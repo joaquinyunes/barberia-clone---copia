@@ -1,0 +1,110 @@
+@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@300;400&display=swap");
+
+.location-section {
+  background: #0e0e0e;
+  padding: 120px 20px;
+  text-align: center;
+  color: #e8e2d3;
+}
+
+/* ---- TITULO PREMIUM ---- */
+.location-title {
+  font-family: "Playfair Display", serif;
+  font-size: 3rem;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  color: #d4b88c;
+  position: relative;
+}
+
+.location-title::after {
+  content: "";
+  width: 55%;
+  height: 3px;
+  background: linear-gradient(to right, transparent, #d4b88c, transparent);
+  display: block;
+  margin: 10px auto;
+}
+
+/* ---- DESCRIPCIÓN ---- */
+.location-desc {
+  max-width: 650px;
+  margin: 20px auto;
+  font-size: 1.1rem;
+  opacity: 0.8;
+  font-family: "Poppins", sans-serif;
+}
+
+/* ---- BOTÓN DORADO ---- */
+.map-button {
+  margin-top: 20px;
+  display: inline-block;
+  padding: 14px 32px;
+  border: 2px solid #d4b88c;
+  color: #d4b88c;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-family: "Poppins", sans-serif;
+  transition: 0.3s ease-in-out;
+}
+
+.map-button:hover {
+  background: #d4b88c;
+  color: #111;
+}
+
+/* ---- MAPA ---- */
+.map-container {
+  width: 85%;
+  max-width: 900px;
+  margin: 50px auto;
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+  border: 1px solid rgba(212, 184, 140, 0.2);
+
+  transition: 0.35s;
+  box-shadow: 0px 0px 35px rgba(0, 0, 0, 0.6);
+}
+
+.map-container:hover {
+  transform: scale(1.02);
+}
+
+.map {
+  width: 100%;
+  height: 350px;
+  border: none;
+}
+
+.map-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  cursor: pointer;
+}
+
+/* ---- ANIMACIÓN ELEGANTE ---- */
+.fade-up {
+  opacity: 0;
+  transform: translateY(40px);
+  animation: fadeUp 1.2s ease forwards;
+}
+
+@keyframes fadeUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ---- RESPONSIVE ---- */
+@media (max-width: 768px) {
+  .location-title {
+    font-size: 2.2rem;
+  }
+
+  .map {
+    height: 260px;
+  }
+}

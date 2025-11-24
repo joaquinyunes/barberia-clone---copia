@@ -1,0 +1,200 @@
+@import url("https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;900&display=swap");
+
+:root {
+  --black: #000;
+  --gold: #d4af37;
+  --white: #fff;
+  --bg-color: #0c0c0c; /* Fondo casi negro */
+}
+
+/* ⚠️ Nota: Este CSS asume que quitaste el 'cursor: none' del body global. */
+
+.vip-locations-page {
+  background: var(--bg-color);
+  min-height: 100vh;
+  padding-top: 80px; /* El padding superior es CRUCIAL para que el contenido no quede detrás del Header fijo */
+}
+
+/* ---------------- HERO (Banner Superior) ---------------- */
+.vip-hero {
+  height: 45vh;
+  background: url("/img/BannerFondo.jpg") center/cover fixed; /* Usa una imagen de fondo */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+}
+.hero-overlay {
+  position: absolute;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+}
+.vip-hero-content {
+  z-index: 2;
+  color: var(--white);
+  text-align: center;
+}
+.vip-hero-content h1 {
+  font-family: "Cinzel", serif;
+  font-size: 3rem;
+  color: var(--gold);
+  margin-bottom: 0.5rem;
+}
+.cta-button-reservar {
+  /* Estilo del botón del banner */
+  background-color: var(--gold);
+  color: var(--black);
+  border: none;
+  padding: 10px 20px;
+  font-size: 1rem;
+  text-transform: uppercase;
+  text-decoration: none;
+  font-weight: 700;
+  transition: all 0.3s ease;
+  z-index: 2;
+  margin-top: 20px;
+}
+
+/* ---------------- DIVISOR DE FRASE ---------------- */
+.location-phrase-divider {
+  background-color: var(--black);
+  color: var(--white);
+  padding: 30px 5%;
+  text-align: center;
+  font-size: 1.4rem;
+  font-family: "Arvo", serif;
+  letter-spacing: 1px;
+  border-bottom: 2px solid var(--gold);
+}
+
+/* ---------------- GRID DE UBICACIONES ---------------- */
+
+.vip-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 40px;
+  padding: 80px 40px;
+}
+
+/* Tarjeta individual */
+.vip-card {
+  width: 350px;
+  background-color: #111;
+  overflow: hidden;
+  border: 1px solid rgba(212, 175, 55, 0.2);
+  border-radius: 8px;
+  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
+  transition: all 0.5s ease;
+  cursor: pointer;
+}
+
+/* Efecto de elevación/zoom/grayscale al pasar el mouse */
+.vip-card:hover {
+  box-shadow: 0 15px 50px rgba(212, 175, 55, 0.5);
+  transform: translateY(-5px);
+}
+
+.vip-card-image-container {
+  height: 250px;
+  overflow: hidden;
+}
+
+.vip-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: grayscale(100%) brightness(60%);
+  transition: 0.6s;
+}
+
+.vip-card:hover .vip-img {
+  filter: grayscale(0) brightness(100%);
+  transform: scale(1.1);
+}
+
+/* Contenido de la tarjeta */
+.vip-card-content {
+  text-align: center;
+  padding: 25px;
+  color: var(--white);
+}
+
+.vip-card-content h2 {
+  color: var(--gold);
+  font-size: 1.8rem;
+  margin-bottom: 5px;
+  font-family: "Cinzel", serif;
+}
+
+/* Estilo para los botones */
+.vip-btn-group {
+  margin-top: 25px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.vip-btn-gold,
+.vip-btn-dark {
+  padding: 10px 20px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  text-decoration: none;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+  display: block;
+  text-align: center;
+}
+.vip-btn-gold {
+  border: 2px solid var(--gold);
+  background-color: var(--gold);
+  color: var(--black);
+}
+
+.vip-btn-dark {
+  border: 2px solid var(--gold);
+  background-color: transparent;
+  color: var(--gold);
+}
+
+/* ---------------- PROMO EXCLUSIVA (CHAMBER 88) ---------------- */
+.chamber-promo-banner {
+  background-color: var(--gold);
+  color: var(--black);
+  padding: 60px 5%;
+  text-align: center;
+  border-top: 1px solid var(--white);
+  border-bottom: 1px solid var(--white);
+}
+
+.cta-button-gold {
+  /* Botón de la promo */
+  background-color: var(--black);
+  color: var(--gold);
+  border: none;
+  padding: 15px 30px;
+  font-size: 1rem;
+  text-transform: uppercase;
+  text-decoration: none;
+  font-weight: 700;
+  transition: all 0.3s ease;
+  display: inline-block;
+}
+
+/* ---------------- SECCIÓN MAPA ---------------- */
+.location-map-section {
+  background-color: var(--black);
+  padding-bottom: 0;
+  color: var(--white);
+}
+
+.location-map-section h2 {
+  padding-top: 40px;
+  text-align: center;
+  font-size: 2.5rem;
+  color: var(--gold);
+  margin-bottom: 20px;
+}

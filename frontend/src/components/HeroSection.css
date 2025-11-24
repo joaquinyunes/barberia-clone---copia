@@ -1,0 +1,138 @@
+@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&display=swap");
+
+/* ====== HERO SECTION ====== */
+.hero-section {
+  height: 100vh;
+  width: 100%;
+  position: relative; /* Importante para no empujar el contenido */
+  overflow: hidden;
+  z-index: 5;
+  font-family: "Playfair Display", serif;
+  color: #f5f0e6;
+}
+
+/* Fondo de cada slide */
+.slide-item {
+  width: 100%;
+  height: 100%;
+  background-size: cover;
+  background-position: center center;
+  position: absolute;
+  top: 0;
+  left: 0;
+  opacity: 0;
+  transition: opacity 1.2s ease-in-out;
+  background-attachment: fixed;
+}
+.is-visible {
+  opacity: 1;
+}
+
+/* Tus imágenes */
+.slide-cortes {
+  background-image: url("/img/corte-principal.jpg");
+}
+.slide-shop {
+  background-image: url("/img/tienda-productos.jpg");
+}
+.slide-location {
+  background-image: url("/img/fachada-local.jpg");
+}
+
+/* Overlay oscuro para dar contraste al texto */
+.slide-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.7));
+}
+
+/* Contenido centrado */
+.slide-content {
+  position: relative;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  text-align: center;
+  opacity: 0;
+  transform: translateY(30px);
+  transition: all 0.8s ease;
+}
+.slide-item.is-visible .slide-content {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Logo */
+.slide-logo {
+  height: 180px;
+  width: auto;
+  margin-bottom: 1rem;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+.slide-logo:hover {
+  transform: scale(1.4);
+}
+
+/* Subtítulo */
+.hero-subtitle {
+  font-size: 1.4rem;
+  color: #d6c3a5;
+  letter-spacing: 1px;
+  margin-bottom: 2rem;
+  text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.5);
+}
+
+/* Botón */
+.cta-button {
+  background: transparent;
+  border: 2px solid #d6c3a5;
+  color: #d6c3a5;
+  padding: 12px 40px;
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.4s ease;
+}
+.cta-button:hover {
+  background-color: #d6c3a5;
+  color: #111;
+}
+
+/* Flechas del carrusel */
+.carousel-arrow {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(0, 0, 0, 0.4);
+  border: none;
+  color: #d6c3a5;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  transition: background 0.3s ease;
+  z-index: 20;
+}
+.carousel-arrow:hover {
+  background: rgba(0, 0, 0, 0.7);
+}
+.carousel-arrow.prev {
+  left: 25px;
+}
+.carousel-arrow.next {
+  right: 25px;
+}
+
+.hero-section {
+  max-width: 100vw;
+  overflow: hidden;
+}

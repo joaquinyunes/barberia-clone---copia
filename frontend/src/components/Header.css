@@ -1,0 +1,96 @@
+/* 1. El Contenedor Principal (La Barra) */
+header {
+  display: flex;
+  align-items: center; /* Centra verticalmente */
+  position: fixed;
+  top: 0;
+  width: 100%;
+  padding: 15px 30px; /* 15px arriba/abajo, 30px a los lados */
+  z-index: 100;
+  box-sizing: border-box; /* Previene el error de "corrido" */
+
+  /* El efecto de scroll que programamos */
+  background-color: transparent;
+  transition: background-color 0.3s ease;
+}
+
+/* 2. El Estado Sólido (cuando SÍ tiene scroll) */
+header.scrolled {
+  background-color: black;
+}
+
+/* 3. Las 3 Zonas (El truco de "flex: 1") */
+.header-left,
+.header-center,
+.header-actions {
+  flex: 1; /* <-- Esta es la clave del centrado */
+}
+
+/* 4. Zona 1: Logo */
+.header-left {
+  display: flex;
+  justify-content: flex-start; /* Logo a la izquierda */
+}
+header img {
+  max-height: 50px; /* Tamaño del logo (puedes ajustarlo) */
+  width: auto;
+}
+
+/* 5. Zona 2: Menú (¡Centrado!) */
+.header-center {
+  display: flex;
+  justify-content: center; /* Menú centrado en su 33% */
+}
+header nav {
+  display: flex;
+  gap: 30px; /* Espacio entre enlaces */
+}
+.menu-link {
+  color: white;
+  text-decoration: none;
+  font-family: "Arvo", serif; /* Fuente Premium */
+  font-weight: 700;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  transition: color 0.3s ease;
+  outline: none; /* Quita el "cuadrado" al hacer clic */
+}
+.menu-link:hover {
+  color: #c7a76c; /* Color dorado al pasar el mouse */
+}
+
+/* 6. Zona 3: Botones (A la derecha) */
+.header-actions {
+  display: flex;
+  justify-content: flex-end; /* Botones a la derecha */
+  gap: 15px;
+  align-items: center;
+}
+.btb-cuenta {
+  background-color: transparent;
+  color: white;
+  border: 1px solid white;
+  padding: 8px 15px;
+  cursor: pointer;
+  font-family: "Arvo", serif;
+  font-weight: 700;
+  transition: all 0.3s ease;
+}
+.btb-cuenta:hover {
+  background-color: white;
+  color: black;
+}
+.btn-reserva {
+  background-color: #932523; /* Color vino */
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  cursor: pointer;
+  font-family: "Arvo", serif;
+  font-weight: 700;
+  transition: all 0.3s ease;
+}
+.btn-reserva:hover {
+  background-color: #b03635;
+}
