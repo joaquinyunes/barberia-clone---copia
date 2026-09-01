@@ -1,36 +1,9 @@
 import { useEffect } from "react";
 import { Link } from "react-router-dom";
 import "./Locations.css";
+import { locationsData } from "../../data/locations";
 // NOTA: Asegúrate de tener instalado 'react-icons'
 // import { FaMapMarkerAlt } from 'react-icons/fa';
-
-// 1. Datos de las Ubicaciones (Simulando lo que se gestionará en el Backend)
-const locationsData = [
-  {
-    id: 1,
-    name: "BOW LANE",
-    address: "47 Bow Lane, London, EC4M 9DL",
-    hours: "Lunes a Viernes: 9:00 - 20:00",
-    imageUrl: "/img/bowlane.jpg",
-    detailLink: "/locations/bow-lane",
-  },
-  {
-    id: 2,
-    name: "MAYFAIR",
-    address: "5 Shepherd Market, London, W1J 7PD",
-    hours: "Lunes a Sábado: 9:00 - 20:00",
-    imageUrl: "/img/mayfair.jpg",
-    detailLink: "/locations/mayfair",
-  },
-  {
-    id: 3,
-    name: "SPITALFIELDS",
-    address: "4 Toynbee Street, London, E1 7NE",
-    hours: "Todos los días: 10:00 - 18:00",
-    imageUrl: "/img/spitalfields.jpg",
-    detailLink: "/locations/spitalfields",
-  },
-];
 
 const Locations = () => {
   // Arreglo: Asegura que la página siempre empiece desde arriba
@@ -81,7 +54,10 @@ const Locations = () => {
                 <Link to="/RESERVA" className="vip-btn-gold">
                   ✂️ Reservar Ahora
                 </Link>
-                <Link to={loc.detailLink} className="vip-btn-dark detail-btn">
+                <Link
+                  to={`/locations/${loc.slug}`}
+                  className="vip-btn-dark detail-btn"
+                >
                   VER DETALLE
                 </Link>
               </div>
