@@ -1,0 +1,31 @@
+.layout { display: grid; grid-template-columns: 1fr 340px; gap: var(--space-7); align-items: start; }
+.main { min-width: 0; }
+.main h2 { font-size: var(--fs-2xl); margin-bottom: var(--space-5); }
+.progress { list-style: none; display: flex; gap: var(--space-1); padding: 0; margin: 0 0 var(--space-6); overflow-x: auto; scrollbar-width: none; }
+.progress li { flex: 1; min-width: 104px; }
+.progress button { width: 100%; background: none; border: 0; border-top: 3px solid var(--c-border); padding: var(--space-2) 0 0; color: var(--c-text-dim); font-size: var(--fs-xs); text-align: left; cursor: pointer; display: flex; gap: 0.35rem; align-items: center; font-family: var(--font-label); letter-spacing: 0.1em; text-transform: uppercase; }
+.progress button:disabled { cursor: default; }
+.progress span { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; border: 1px solid currentColor; font-size: 0.7rem; }
+.past button { border-top-color: var(--c-gold-dark); color: var(--c-text-muted); }
+.past span { border: 0; color: var(--c-gold); }
+.current button { border-top-color: var(--c-gold); color: var(--c-gold); }
+.back { background: none; border: 0; color: var(--c-text-muted); display: inline-flex; gap: 0.35rem; align-items: center; cursor: pointer; margin-bottom: var(--space-4); padding: 0; }
+.category { margin-bottom: var(--space-5); }
+.category h3 { font-family: var(--font-label); font-size: var(--fs-sm); letter-spacing: 0.2em; text-transform: uppercase; color: var(--c-gold); margin-bottom: var(--space-3); }
+.slots { margin: var(--space-5) 0 var(--space-6); }
+.form { display: flex; flex-direction: column; gap: var(--space-4); max-width: 560px; }
+.promo { display: flex; gap: var(--space-2); align-items: flex-start; }
+.promo > :first-child { flex: 1; }
+.promo button { margin-top: 1.55rem; }
+.legal { font-size: var(--fs-xs); color: var(--c-text-dim); margin: 0; }
+.legal a { color: var(--c-gold); }
+.success { display: flex; gap: var(--space-4); align-items: center; margin-bottom: var(--space-5); color: var(--c-success); }
+.success h2 { margin: 0; color: var(--c-text); }
+.success p { margin: 0; color: var(--c-text-muted); }
+.after { margin-top: var(--space-6); display: flex; flex-direction: column; gap: var(--space-3); align-items: flex-start; }
+.referral { color: var(--c-text-muted); font-size: var(--fs-sm); }
+.referral strong { color: var(--c-gold); }
+@media (max-width: 960px) {
+  .layout { grid-template-columns: 1fr; }
+  .layout > aside { position: static; order: -1; }
+}

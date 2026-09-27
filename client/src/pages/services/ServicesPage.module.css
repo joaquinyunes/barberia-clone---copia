@@ -1,0 +1,6 @@
+.tabs > div { border-bottom-color: var(--c-border); }
+.tabs button { color: var(--c-text-dim); }
+.tabs button[aria-selected="true"] { color: var(--c-gold); }
+.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-5); }
+@media (max-width: 960px) { .grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 600px) { .grid { grid-template-columns: 1fr; } }

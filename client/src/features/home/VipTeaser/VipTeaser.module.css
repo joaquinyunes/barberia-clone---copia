@@ -1,0 +1,9 @@
+.vip { position: relative; padding: var(--space-9) var(--space-4); display: grid; place-items: center; text-align: center; overflow: hidden; min-height: 560px; }
+.bg { position: absolute; inset: 0; }
+.bg > * { height: 100%; }
+.overlay { position: absolute; inset: 0; background: radial-gradient(circle at center, rgb(15 13 10 / 0.7), rgb(15 13 10 / 0.95)); }
+.content { position: relative; max-width: 680px; }
+.eyebrow { font-family: var(--font-label); letter-spacing: 0.3em; color: var(--c-gold); text-transform: uppercase; font-size: var(--fs-sm); }
+.content h2 { font-size: clamp(3rem, 2rem + 5vw, 6rem); font-weight: 900; margin: var(--space-3) 0; font-style: italic; }
+.content p { color: var(--c-text-muted); font-size: var(--fs-lg); }
+.ctas { display: flex; gap: var(--space-3); justify-content: center; flex-wrap: wrap; margin-top: var(--space-6); }

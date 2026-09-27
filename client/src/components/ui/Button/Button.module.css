@@ -1,0 +1,35 @@
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-label);
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 0.2s var(--ease), color 0.2s var(--ease), border-color 0.2s var(--ease), transform 0.15s var(--ease);
+  white-space: nowrap;
+}
+.btn:active:not(:disabled) { transform: translateY(1px); }
+.btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.sm { padding: 0.4rem 0.8rem; font-size: 0.72rem; }
+.md { padding: 0.7rem 1.35rem; font-size: 0.82rem; }
+.lg { padding: 0.95rem 2rem; font-size: 0.95rem; }
+.block { width: 100%; }
+.gold { background: var(--c-gold); color: #17130c; }
+.gold:hover:not(:disabled) { background: var(--c-gold-strong); }
+.outline { border-color: var(--c-gold); color: var(--c-gold); background: transparent; }
+.outline:hover:not(:disabled) { background: var(--c-gold); color: #17130c; }
+.ghost { background: transparent; color: currentColor; border-color: transparent; letter-spacing: 0.06em; }
+.ghost:hover:not(:disabled) { background: rgb(128 128 128 / 0.12); }
+.dark { background: var(--c-surface-2); color: var(--c-text); border-color: var(--c-border); }
+.dark:hover:not(:disabled) { border-color: var(--c-gold); }
+.light { background: var(--a-surface); color: var(--a-text); border-color: var(--a-border); letter-spacing: 0.06em; }
+.light:hover:not(:disabled) { border-color: var(--c-gold-dark); }
+.danger { background: var(--c-danger); color: #fff; }
+.danger:hover:not(:disabled) { filter: brightness(1.08); }
+.whatsapp { background: var(--c-whatsapp); color: #06301a; }
+.whatsapp:hover:not(:disabled) { filter: brightness(1.06); }

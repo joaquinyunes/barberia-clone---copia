@@ -1,0 +1,11 @@
+.wrap { display: flex; align-items: center; gap: var(--space-2); }
+.strip { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(64px, 1fr); gap: var(--space-2); overflow-x: auto; flex: 1; padding-bottom: 4px; scrollbar-width: thin; }
+.day { display: flex; flex-direction: column; align-items: center; padding: 0.55rem 0.3rem; border: 1px solid var(--c-border); background: var(--c-surface); border-radius: var(--radius-sm); cursor: pointer; transition: border-color 0.15s, background 0.15s; }
+.day:hover:not(:disabled) { border-color: var(--c-gold); }
+.day:disabled { opacity: 0.3; cursor: not-allowed; }
+.day strong { font-size: var(--fs-xl); font-family: var(--font-display); }
+.wd, .month { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--c-text-dim); }
+.active { background: var(--c-gold); border-color: var(--c-gold); color: #17130c; }
+.active .wd, .active .month { color: #3d3016; }
+.nav { background: none; border: 1px solid var(--c-border); color: var(--c-text); width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; cursor: pointer; flex: none; }
+.nav:disabled { opacity: 0.3; }

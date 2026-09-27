@@ -120,7 +120,7 @@ export async function createDebt(input: {
 }
 
 /** Descuenta del saldo del barbero las cuotas vencidas (o todas las que venzan antes de `until`). */
-export async function applyDueInstallments(barberId: string | Types.ObjectId, until: Date, actor: Actor) {
+export async function applyDueInstallments(barberId: string | Types.ObjectId, until: Date, actor: Actor, date?: Date) {
   const debts = await Debt.find({ barber: barberId, status: "active" });
   let applied = 0;
   for (const debt of debts) {
@@ -133,6 +133,7 @@ export async function applyDueInstallments(barberId: string | Types.ObjectId, un
         amount: -(inst.amount ?? 0),
         concept: `${debt.concept} — cuota ${inst.number}/${debt.installments.length}`,
         ref: { kind: "Debt", id: debt._id },
+        date,
         actor,
       });
       inst.status = "applied";
@@ -266,7 +267,7 @@ export async function settlementPreview(barberId: string, from: Date, to: Date) 
   const settings = await getSettings();
   const [totals, balance, installments, sales, goals, overtimeRows] = await Promise.all([
     ledger.totalsByType("barber", barber._id, from, to),
-    ledger.balanceOf("barber", barber._id),
+    ledger.balanceAt("barber", barber._id, to),
     pendingInstallments(barber._id, to),
     barberMetrics(barber._id, from, to),
     Goal.find({ barber: barber._id, bonusApplied: false, period: { $lte: businessDayString(addDays(to, -1)).slice(0, 7) } }),
@@ -311,7 +312,7 @@ export async function settlementPreview(barberId: string, from: Date, to: Date) 
     sales,
     lines, // lo ocurrido en el período
     pending, // lo que se aplica al cerrar
-    balance, // saldo actual de la cuenta
+    balance, // saldo de la cuenta al cierre del período
     total, // TOTAL A PAGAR
     raw: { totals, goalBonus, overtime, overtimeMinutes, installmentsTotal, goalIds: goals.map((g) => g._id), attendanceIds: overtimeRows.map((r) => r._id) },
   };
@@ -330,17 +331,19 @@ export async function closeSettlement(input: {
   const barber = await barberOrFail(input.barber);
   const { raw } = preview;
 
-  await applyDueInstallments(barber._id, input.to, input.actor);
+  // Lo que se aplica al cerrar queda fechado dentro del período liquidado
+  const postDate = new Date(Math.min(Date.now(), input.to.getTime() - 1000));
+  await applyDueInstallments(barber._id, input.to, input.actor, postDate);
   if (raw.goalBonus) {
-    await ledger.post({ ownerType: "barber", owner: barber._id, type: "bonus", amount: raw.goalBonus, concept: "Bono por objetivo cumplido", actor: input.actor });
+    await ledger.post({ ownerType: "barber", owner: barber._id, type: "bonus", amount: raw.goalBonus, concept: "Bono por objetivo cumplido", date: postDate, actor: input.actor });
     await Goal.updateMany({ _id: { $in: raw.goalIds } }, { bonusApplied: true });
   }
   if (raw.overtime) {
-    await ledger.post({ ownerType: "barber", owner: barber._id, type: "overtime", amount: raw.overtime, concept: `Horas extra (${(raw.overtimeMinutes / 60).toFixed(1)} h)`, actor: input.actor });
+    await ledger.post({ ownerType: "barber", owner: barber._id, type: "overtime", amount: raw.overtime, concept: `Horas extra (${(raw.overtimeMinutes / 60).toFixed(1)} h)`, date: postDate, actor: input.actor });
   }
   await Attendance.updateMany({ _id: { $in: raw.attendanceIds } }, { settled: true });
 
-  const balanceBefore = await ledger.balanceOf("barber", barber._id);
+  const balanceBefore = await ledger.balanceAt("barber", barber._id, input.to);
   const payout = Math.max(0, balanceBefore);
   const settlement = await Settlement.create({
     barber: barber._id,

@@ -2,6 +2,7 @@ import { Router } from "express";
 import { authenticate } from "../../middlewares/authenticate.js";
 import { authorize } from "../../middlewares/authorize.js";
 import { businessDayString, currentPeriod, monthRange } from "../../lib/dates.js";
+import { accountsWithBalance } from "../ledger/ledger.service.js";
 import * as reports from "./reports.service.js";
 
 export const reportsRouter = Router();
@@ -40,5 +41,10 @@ reportsRouter.get("/cash-projection", authorize("reports.view"), async (req, res
 });
 reportsRouter.get("/at-risk-clients", authorize("clients.manage"), async (_req, res) => {
   res.json(await reports.atRiskClients((name) => `¡Hola ${name}! 💈 Hace rato que no te vemos por Jack el Barbero. ¿Te reservamos un turno esta semana? Respondé este mensaje y te pasamos los horarios.`));
+});
+reportsRouter.get("/accounts-list", authorize("reports.view", "finance.manage"), async (req, res) => {
+  const { ownerType = "client", sign = "negative" } = req.query as Record<string, string>;
+  const type = ["client", "barber", "supplier"].includes(ownerType) ? (ownerType as "client") : "client";
+  res.json({ items: await accountsWithBalance(type, sign === "positive" ? "positive" : "negative") });
 });
 reportsRouter.get("/pending-orders", authorize("cash.manage"), async (_req, res) => res.json(await reports.ordersPending()));

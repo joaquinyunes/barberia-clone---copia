@@ -1,0 +1,7 @@
+.badge { display: inline-flex; align-items: center; gap: 0.25rem; padding: 0.15rem 0.55rem; border-radius: var(--radius-pill); font-size: 0.72rem; font-weight: 600; white-space: nowrap; }
+.neutral { background: rgb(128 128 128 / 0.16); color: #777; }
+.warning { background: rgb(212 154 58 / 0.16); color: #b67a15; }
+.info { background: rgb(90 141 194 / 0.16); color: #3c73ad; }
+.success { background: rgb(92 154 99 / 0.18); color: #3f8047; }
+.danger { background: rgb(200 81 74 / 0.16); color: #b43f38; }
+.gold { background: rgb(201 164 92 / 0.2); color: #8a6d35; }

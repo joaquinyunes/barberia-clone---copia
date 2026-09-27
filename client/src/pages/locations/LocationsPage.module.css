@@ -1,0 +1,4 @@
+.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-5); }
+.note { text-align: center; color: var(--c-text-dim); margin-top: var(--space-4); }
+@media (max-width: 960px) { .grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 600px) { .grid { grid-template-columns: 1fr; } }

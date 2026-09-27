@@ -1,0 +1,8 @@
+.box { border: 1px solid var(--c-gold-dark); background: rgb(201 164 92 / 0.06); border-radius: var(--radius-md); padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-2); }
+.amount { font-size: var(--fs-xl); margin: 0 0 var(--space-2); }
+.amount strong { color: var(--c-gold); }
+.row { display: grid; grid-template-columns: 90px 1fr auto; gap: var(--space-2); align-items: center; font-size: var(--fs-sm); padding: 0.4rem 0; border-bottom: 1px dashed var(--c-border); }
+.row span { color: var(--c-text-dim); }
+.row strong { font-family: ui-monospace, monospace; letter-spacing: 0.04em; overflow-wrap: anywhere; }
+.row button { background: var(--c-surface-2); border: 1px solid var(--c-border); color: var(--c-text); border-radius: var(--radius-sm); width: 32px; height: 32px; display: grid; place-items: center; cursor: pointer; }
+.help { font-size: var(--fs-xs); color: var(--c-text-dim); margin: var(--space-2) 0 0; }

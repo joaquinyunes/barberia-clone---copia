@@ -1,0 +1,21 @@
+.hero { position: relative; height: 100svh; min-height: 600px; max-height: 1000px; overflow: hidden; display: flex; align-items: center; }
+.bg { position: absolute; inset: 0; }
+.bg > * { height: 100%; }
+.overlay { position: absolute; inset: 0; background: linear-gradient(90deg, rgb(10 8 5 / 0.92) 0%, rgb(10 8 5 / 0.65) 45%, rgb(10 8 5 / 0.25) 100%), linear-gradient(to top, var(--c-bg), transparent 30%); }
+.content { position: relative; z-index: 2; width: 100%; max-width: var(--container); margin: 0 auto; padding: 0 var(--space-5); }
+.content > div { max-width: 640px; }
+.eyebrow { font-family: var(--font-label); letter-spacing: 0.35em; text-transform: uppercase; color: var(--c-gold); font-size: var(--fs-sm); }
+.title { font-size: var(--fs-hero); margin: var(--space-4) 0; font-weight: 900; }
+.text { font-size: var(--fs-lg); color: var(--c-text-muted); max-width: 52ch; }
+.ctas { display: flex; gap: var(--space-3); flex-wrap: wrap; margin-top: var(--space-6); }
+.arrow { position: absolute; top: 50%; z-index: 3; transform: translateY(-50%); background: rgb(15 13 10 / 0.5); border: 1px solid var(--c-border); color: var(--c-text); width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; cursor: pointer; transition: border-color 0.2s; }
+.arrow:hover { border-color: var(--c-gold); color: var(--c-gold); }
+.prev { left: var(--space-4); }
+.next { right: var(--space-4); }
+.dots { position: absolute; bottom: var(--space-7); left: 50%; transform: translateX(-50%); display: flex; gap: var(--space-2); z-index: 3; }
+.dot { width: 34px; height: 3px; border: 0; background: rgb(243 234 215 / 0.3); cursor: pointer; padding: 0; }
+.dotActive { background: var(--c-gold); }
+.scroll { position: absolute; bottom: var(--space-4); left: 50%; transform: translateX(-50%); width: 22px; height: 34px; border: 1px solid rgb(243 234 215 / 0.4); border-radius: 12px; z-index: 3; }
+.scroll span { display: block; width: 2px; height: 7px; background: var(--c-gold); margin: 6px auto; animation: wheel 1.6s infinite; }
+@keyframes wheel { to { transform: translateY(10px); opacity: 0; } }
+@media (max-width: 760px) { .arrow { display: none; } .content { padding-top: var(--space-7); } }

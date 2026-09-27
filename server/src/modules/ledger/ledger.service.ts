@@ -86,6 +86,15 @@ export async function balanceOf(ownerType: OwnerType, owner: Types.ObjectId | st
   return acc?.balance ?? 0;
 }
 
+/** Saldo a una fecha de corte (suma de movimientos anteriores a `at`). */
+export async function balanceAt(ownerType: OwnerType, owner: Types.ObjectId | string, at: Date) {
+  const [row] = await Movement.aggregate<{ total: number }>([
+    { $match: { ownerType, owner: new Types.ObjectId(String(owner)), date: { $lt: at } } },
+    { $group: { _id: null, total: { $sum: "$amount" } } },
+  ]);
+  return row?.total ?? 0;
+}
+
 export async function statement(ownerType: OwnerType, owner: string, from?: Date, to?: Date) {
   const filter: Record<string, unknown> = { ownerType, owner: new Types.ObjectId(owner) };
   if (from || to) filter.date = { ...(from && { $gte: from }), ...(to && { $lt: to }) };

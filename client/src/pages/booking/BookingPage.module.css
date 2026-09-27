@@ -1,0 +1,4 @@
+.page { padding-top: calc(var(--header-h) + var(--space-7)); min-height: 90vh; }
+.head { margin-bottom: var(--space-6); }
+.head span { font-family: var(--font-label); letter-spacing: 0.3em; text-transform: uppercase; color: var(--c-gold); font-size: var(--fs-sm); }
+.head h1 { font-size: var(--fs-3xl); margin-top: var(--space-2); }
