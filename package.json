@@ -1,5 +1,25 @@
 {
-  "dependencies": {
-    "framer-motion": "^12.23.24"
+  "name": "jack-el-barbero",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Jack el Barbero — sitio + sistema de gestión para barberías (MERN + TypeScript)",
+  "workspaces": [
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "dev": "concurrently -n api,web -c yellow,cyan \"npm run dev -w server\" \"npm run dev -w client\"",
+    "build": "npm run build -w server && npm run build -w client",
+    "test": "npm run test -w server && npm run test -w client",
+    "typecheck": "npm run typecheck -w server && npm run typecheck -w client",
+    "lint": "npm run lint -w client",
+    "seed": "npm run seed -w server",
+    "db:up": "docker compose up -d mongo"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  },
+  "engines": {
+    "node": ">=22"
   }
 }
