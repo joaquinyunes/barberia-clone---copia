@@ -47,7 +47,12 @@ server/
 │   ├── lib/
 │   │   ├── logger.ts                # pino
 │   │   ├── mailer.ts                # nodemailer + plantillas
-│   │   └── stripe.ts
+│   │   ├── mercadopago.ts           # cliente MP + verificación de firma del webhook
+│   │   ├── storage.ts               # Cloudinary / disco local (interfaz única)
+│   │   └── whatsapp/
+│   │       ├── buildMessage.ts      # arma el texto de reserva/pedido (función pura, testeada)
+│   │       ├── waLink.ts            # genera https://wa.me/<numero>?text=...
+│   │       └── cloudApi.ts          # etapa 2: envío automático por WhatsApp Cloud API
 │   ├── modules/
 │   │   ├── auth/
 │   │   │   ├── auth.routes.ts
@@ -67,7 +72,14 @@ server/
 │   │   │   ├── appointment.routes.ts
 │   │   │   └── availability.test.ts
 │   │   ├── products/       # vouchers y packs
-│   │   ├── orders/         # carrito → pedido → pago (Stripe webhook)
+│   │   ├── orders/         # carrito → pedido → pago
+│   │   ├── payments/       # comprobantes (subida + revisión) y Mercado Pago (preferencias + webhook)
+│   │   ├── waitlist/       # lista de espera por sede/día
+│   │   ├── queue/          # fila virtual para clientes sin turno
+│   │   ├── memberships/    # Club Jack (suscripción mensual)
+│   │   ├── loyalty/        # puntos y referidos
+│   │   ├── reviews/        # reseñas verificadas
+│   │   ├── jobs/           # node-cron: liberar turnos vencidos, recordatorios
 │   │   ├── vouchers/       # códigos emitidos y canje
 │   │   ├── contact/
 │   │   ├── newsletter/
@@ -96,7 +108,13 @@ server/
 | POST | `/appointments` | autenticado (o invitado con email) |
 | GET | `/appointments/me` · PATCH `/appointments/:id/cancel` | dueño |
 | GET | `/products?category=&sort=` · `/products/:slug` · `/products/categories` | público |
-| POST | `/orders/checkout` → sesión Stripe · POST `/orders/webhook` | autenticado / Stripe |
+| POST | `/orders` (crea pedido pendiente) | autenticado o invitado |
+| POST | `/payments/:kind/:id/receipt` (subir comprobante, `kind` = appointment\|order) | dueño |
+| GET | `/payments/receipt/:code?t=<token>` (ver comprobante por link firmado) | link firmado |
+| GET | `/payments/:kind/:id/whatsapp` → `{ url, text }` | dueño |
+| POST | `/payments/mercadopago/preference` · POST `/payments/mercadopago/webhook` | dueño / Mercado Pago |
+| PATCH | `/admin/payments/:id/approve` · `/reject` | admin |
+| POST | `/waitlist` · GET `/queue/:location` · POST `/queue/:location/join` | público |
 | GET | `/orders/me` | autenticado |
 | POST | `/vouchers/validate` | público |
 | POST | `/contact` · `/newsletter` | público (rate-limited) |
@@ -107,22 +125,34 @@ server/
 
 ```
 User          { name, email*, passwordHash, phone, role: customer|barber|admin, refreshTokenVersion }
-Location      { slug*, name, address, geo{lat,lng}, phone, email, description, images[],
+Location      { slug*, name, address, geo{lat,lng}, phone, whatsapp, email, description, images[],
+                bankAlias, depositAmount,
                 openingHours[{ day 0-6, open "09:00", close "20:00" }], isVip, active }
 Service       { slug*, name, category: cut|shave|package|vip, description, includes[],
                 durationMin, price, locations[→Location], active }
 Barber        { name, bio, photo, location→Location, services[→Service], user→User?, active }
-Appointment   { customer→User | guest{name,email,phone}, location, service, barber,
-                startsAt, endsAt, status: booked|cancelled|completed|no_show, voucher→Voucher?, notes }
-                índice único parcial: { barber, startsAt } donde status = booked  ← evita doble reserva
+Appointment   { code* (ej. JEB-7F3K2), customer→User | guest{name,email,phone}, location, service, barber,
+                startsAt, endsAt, holdExpiresAt,
+                status: pending_payment|payment_review|confirmed|cancelled|completed|no_show,
+                payment→Payment?, voucher→Voucher?, notes, whatsappSentAt }
+                índice único parcial: { barber, startsAt } donde status ∈ activos  ← evita doble reserva
+Payment       { kind: appointment|order, ref, method: transfer|mercadopago, amount,
+                receipt{ url, mime, uploadedAt }, mpPaymentId?, status: pending|review|approved|rejected,
+                reviewedBy→User?, reviewedAt }
 Product       { slug*, name, category, description, images[], price, validAt[→Location],
                 service→Service?, stock?, active }
-Order         { user→User, items[{ product, qty, unitPrice }], total, status: pending|paid|failed,
-                stripeSessionId, recipientEmail }
+Order         { code*, user→User | guest, items[{ product, qty, unitPrice }], total,
+                status: pending_payment|payment_review|paid|cancelled, payment→Payment, recipient{name,email,phone} }
 Voucher       { code*, product→Product, order→Order, balance, expiresAt, redeemedAt?, redeemedIn→Appointment? }
 ContactMessage{ name, email, location?, message, handled }
 Subscriber    { email*, confirmedAt }
 Content       { type: heroSlide|testimonial|page, slug, title, body, image, order, active }
+WaitlistEntry { location, service, date, customer, notifiedAt, status }
+QueueTicket   { location, name, phone, number, estimatedAt, status: waiting|called|served|left }
+Membership    { user, plan, mpPreapprovalId, status, cutsUsedThisPeriod, renewsAt }
+LoyaltyLedger { user, points, reason, ref }
+Review        { appointment*, user, barber, rating 1-5, comment, photos[] }
+ClientProfile { user, preferredBarber, notes, cuts[{ date, barber, photos[], description }] }
 ```
 
 `*` = índice único.
@@ -182,13 +212,19 @@ client/
 │   │   │   ├── hooks/useAvailability.ts · useCreateAppointment.ts · useBookingWizard.ts
 │   │   │   ├── utils/slots.ts                # helpers puros (testeables)
 │   │   │   └── components/BookingWizard/ · StepLocation/ · StepService/ · StepBarber/
-│   │   │                 · DatePicker/ · TimeSlots/ · StepDetails/ · BookingSummary/
+│   │   │                 · DatePicker/ · TimeSlots/ · StepDetails/ · StepPayment/
+│   │   │                 · StepWhatsApp/ · BookingSummary/
+│   │   ├── payments/
+│   │   │   ├── api/payments.api.ts
+│   │   │   ├── hooks/useUploadReceipt.ts · useWhatsAppLink.ts · useMercadoPago.ts
+│   │   │   ├── utils/shareToWhatsApp.ts      # Web Share API con archivo, o fallback a wa.me
+│   │   │   └── components/BankTransferInfo/ · ReceiptUploader/ · WhatsAppSendButton/ · MercadoPagoButton/
 │   │   ├── shop/
 │   │   │   ├── api/products.api.ts · orders.api.ts
 │   │   │   ├── hooks/useProducts.ts · useProduct.ts · useCheckout.ts
 │   │   │   ├── store/cartStore.ts            # Zustand + persist
 │   │   │   └── components/ProductCard/ · ProductGrid/ · ProductFilters/ · ProductGallery/
-│   │   │                 · CartDrawer/ · CartItem/ · CartSummary/ · CheckoutForm/
+│   │   │                 · CartDrawer/ · CartItem/ · CartSummary/ · CheckoutForm/ (reutiliza features/payments)
 │   │   ├── account/               # MyAppointments, MyOrders, ProfileForm
 │   │   ├── contact/               # ContactForm + useContact
 │   │   ├── newsletter/            # NewsletterForm + useSubscribe
@@ -218,7 +254,7 @@ client/
 │   │   └── seo.ts
 │   └── types/                     # re-exporta los tipos de packages/shared
 ├── tests/                         # Playwright E2E + visual
-├── .env.example                   # VITE_API_URL, VITE_GOOGLE_MAPS_KEY, VITE_STRIPE_PK
+├── .env.example                   # VITE_API_URL, VITE_GOOGLE_MAPS_KEY, VITE_MP_PUBLIC_KEY
 ├── index.html
 ├── vite.config.ts
 └── package.json
@@ -231,5 +267,9 @@ client/
 3. Al elegir fecha, `TimeSlots` usa `useAvailability({location, service, barber, date})` → `GET /appointments/availability`.
 4. En el server, `availability.service` toma el horario de la sede, la duración del servicio y los turnos existentes del barbero, y devuelve los slots libres.
 5. `StepDetails` (React Hook Form + `appointmentSchema` de `shared`) → `useCreateAppointment` → `POST /appointments`.
-6. El server valida con el mismo schema, revalida disponibilidad (el índice único evita la carrera), guarda en MongoDB y envía email.
-7. En `onSuccess`, TanStack Query invalida `['availability']` y `['appointments','me']` → la UI se actualiza sola y navega a `BookingSuccessPage`.
+6. El server valida con el mismo schema, revalida disponibilidad (el índice único evita la carrera) y guarda el turno como `pending_payment`, **reservando el horario 30 minutos** (`holdExpiresAt`).
+7. `StepPayment`: el cliente transfiere la seña al alias de la sede y sube el comprobante (`useUploadReceipt`), y el turno pasa a `payment_review`. Con Mercado Pago (etapa 2): redirección a Checkout Pro y el webhook lo confirma solo.
+8. `StepWhatsApp`: `useWhatsAppLink` pide al server el mensaje armado con todos los datos + link firmado al comprobante; `shareToWhatsApp` lo abre en el WhatsApp de la sede (en celulares adjunta la imagen del comprobante).
+9. El admin aprueba el comprobante → el turno queda `confirmed`. TanStack Query invalida `['availability']` y `['appointments','me']` y la UI se actualiza sola.
+
+Detalle completo en [06 · Reservas, WhatsApp y pagos](./06-RESERVAS-WHATSAPP-Y-PAGOS.md).

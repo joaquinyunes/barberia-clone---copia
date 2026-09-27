@@ -1,5 +1,7 @@
 # 01 · Análisis del sitio de referencia
 
+> **Nuestro proyecto:** "Jack el Barbero" · sitio 100 % en español · pagos con Mercado Pago · reservas y compras se envían por WhatsApp con el comprobante (ver [06](./06-RESERVAS-WHATSAPP-Y-PAGOS.md)).
+
 > Referencia: `https://jacktheclipper.co.uk/` — barbería turca tradicional en Londres
 > (sucursales Bow Lane, Mayfair y Spitalfields, sala VIP "Chamber 88", tienda de vouchers).
 
@@ -24,8 +26,7 @@ Cada punto marcado como **(verificar)** abajo se confirma con esa salida antes d
 
 Se replica **la estructura, el layout, la navegación, los componentes y las funcionalidades**.
 No se copian el logo, las fotos, los textos de marketing ni el nombre comercial de la marca original
-(son propiedad de ese negocio): usamos marca, textos e imágenes propias (lo que el repo ya hace con
-"Tu Barbería" en español). Así el proyecto es publicable y sirve de portfolio sin problemas legales.
+(son propiedad de ese negocio): usamos marca (**Jack el Barbero**), textos e imágenes propias. Así el proyecto es publicable y sirve de portfolio sin problemas legales.
 
 ---
 
@@ -96,11 +97,11 @@ Landing oscura/lujosa · beneficios (bebida de cortesía, extras sin costo) · t
 - **Listado**: filtros por categoría/sede, orden por precio, grilla de ProductCard.
 - **Detalle**: galería, precio, descripción, selector de sede/cantidad, "Agregar al carrito", productos relacionados.
 - **Carrito**: editar cantidades, quitar, subtotal, persistencia.
-- **Checkout**: datos del comprador, email del destinatario del voucher, pago (Stripe en modo test), confirmación.
+- **Checkout**: datos del comprador, email/WhatsApp del destinatario del voucher, pago (transferencia con comprobante → luego Mercado Pago), envío del pedido por WhatsApp, confirmación.
 - **Voucher**: código único generado por el backend, enviado por email, canjeable al reservar.
 
 ### 3.8 Reservar `/reservar` (el corazón funcional)
-Wizard en pasos: **1)** sede → **2)** servicio → **3)** barbero (o "cualquiera") → **4)** fecha en calendario → **5)** horario disponible → **6)** datos del cliente / login → **7)** confirmación + email.
+Wizard en pasos: **1)** sede → **2)** servicio → **3)** barbero (o "cualquiera") → **4)** fecha en calendario → **5)** horario disponible → **6)** datos del cliente / login → **7)** pago de seña + comprobante → **8)** envío de todos los datos + comprobante al WhatsApp de la sede → confirmación.
 Reglas: no se puede reservar un slot ocupado, respetar horario de la sede y duración del servicio, cancelar/reprogramar desde la cuenta.
 
 ### 3.9 Contacto `/contacto`
@@ -118,7 +119,7 @@ Dashboard (turnos del día, ventas) · CRUD de sedes, servicios, barberos, produ
 - Animaciones de entrada al hacer scroll y transiciones entre páginas.
 - SEO: título y meta por página (`react-helmet-async`), `sitemap.xml`, datos estructurados `LocalBusiness`.
 - Estados de carga (skeletons), vacío y error en cada vista con datos.
-- i18n preparado (el repo está en español; el original en inglés).
+- Todo el contenido en español (Argentina): moneda ARS, formato de fecha `dd/mm/aaaa`, teléfonos `+54 9`.
 
 ## 5. Problemas detectados en el repo actual (a corregir en la Fase 0)
 

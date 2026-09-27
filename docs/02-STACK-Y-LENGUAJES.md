@@ -28,8 +28,12 @@ Base: **MERN** (MongoDB · Express · React · Node.js) con **TypeScript de punt
 | Validación | **Zod** (esquemas compartidos) | Una sola fuente de verdad para request bodies. |
 | Auth | **JWT** (access 15 min en memoria + refresh 7 días en cookie `httpOnly`) + **bcrypt** | Seguro contra XSS (el refresh no es accesible por JS) y stateless. Roles: `customer`, `barber`, `admin`. |
 | Seguridad | **helmet**, **cors**, **express-rate-limit**, **express-mongo-sanitize** | Headers seguros, CORS restringido al dominio del front, límite en login/contacto, anti-inyección NoSQL. |
-| Pagos | **Stripe** (modo test) | Checkout de vouchers y packs; webhook confirma el pago y genera el código. |
-| Emails | **Nodemailer** (Ethereal en dev / SMTP en prod) | Confirmación de turno, voucher, recuperar contraseña. |
+| Pagos (etapa 1) | **Transferencia / alias + subida de comprobante** | Funciona desde el día 1 sin cuentas externas; el admin valida el comprobante. |
+| Pagos (etapa 2) | **Mercado Pago Checkout Pro** (SDK oficial `mercadopago` para Node) | Estándar en Argentina. Preferencia de pago → redirección → webhook con validación de firma `x-signature` → se confirma el turno solo. Suscripciones (`preapproval`) para la membresía. |
+| Subida de archivos | **Multer** + **Cloudinary** (disco local en dev) | Comprobantes (JPG/PNG/PDF, máx. 5 MB, validando el tipo real del archivo) y fotos del admin. |
+| WhatsApp (etapa 1) | **Link `wa.me` con mensaje pre-armado** + **Web Share API** en celulares | Gratis y sin aprobación de Meta. En el celular permite adjuntar la imagen del comprobante; en PC va un link seguro al comprobante. |
+| WhatsApp (etapa 2) | **WhatsApp Cloud API** (Meta) | Envío automático de confirmaciones y recordatorios con el comprobante adjunto. Aprox. US$ 0,012 por mensaje "utility" en Argentina. |
+| Emails | **Nodemailer** (Ethereal en dev / SMTP en prod) | Copia de la confirmación, voucher, recuperar contraseña. |
 | Logs | **pino** + **pino-http** | Logs JSON rápidos. |
 | Config | **dotenv** + validación con Zod al arrancar | Si falta una variable, el server no levanta (falla rápido). |
 | **Calidad** | | |
@@ -37,9 +41,10 @@ Base: **MERN** (MongoDB · Express · React · Node.js) con **TypeScript de punt
 | Tests unitarios | **Vitest** (+ React Testing Library en el cliente) | Mismo runner en ambos lados. |
 | Tests API | **Supertest + mongodb-memory-server** | Tests de integración sin tocar una base real. |
 | Tests E2E / visuales | **Playwright** | Recorre el flujo de reserva y compara screenshots contra la referencia. |
+| Tareas programadas | **node-cron** | Liberar turnos con seña vencida, recordatorios 24 h antes, "ya te toca el corte". |
 | **Infra** | | |
 | Base de datos | **MongoDB Atlas** (free tier) / Mongo local con Docker en dev | |
-| Deploy API | **Render** (web service) | |
+| Deploy API | **Render** (web service) | Necesita URL pública para los webhooks de Mercado Pago. |
 | Deploy cliente | **Vercel** (static) | |
 | Dev local | **docker-compose** (mongo + mongo-express) | Nadie necesita instalar Mongo a mano. |
 
