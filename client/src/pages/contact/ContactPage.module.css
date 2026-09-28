@@ -1,0 +1,9 @@
+.grid { display: grid; grid-template-columns: 1.3fr 1fr; gap: var(--space-8); }
+.form { display: flex; flex-direction: column; gap: var(--space-4); }
+.side h2 { font-size: var(--fs-2xl); }
+.side p { color: var(--c-text-muted); }
+.wa { display: flex; gap: var(--space-3); align-items: center; padding: var(--space-4); border: 1px solid var(--c-border); margin-bottom: var(--space-3); color: var(--c-whatsapp); }
+.wa:hover { border-color: var(--c-whatsapp); }
+.wa span { display: flex; flex-direction: column; color: var(--c-text-muted); font-size: var(--fs-sm); }
+.wa strong { color: var(--c-text); }
+@media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }

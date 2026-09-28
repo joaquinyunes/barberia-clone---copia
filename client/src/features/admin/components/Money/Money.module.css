@@ -1,0 +1,4 @@
+.money { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pos { color: #2f7a39; }
+.neg { color: #b03a33; }
+.strong { font-weight: 700; }

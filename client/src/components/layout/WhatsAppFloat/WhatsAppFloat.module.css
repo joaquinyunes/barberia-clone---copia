@@ -1,0 +1,2 @@
+.fab { position: fixed; right: var(--space-5); bottom: var(--space-5); z-index: 90; width: 56px; height: 56px; border-radius: 50%; background: var(--c-whatsapp); color: #fff; display: grid; place-items: center; box-shadow: 0 8px 24px rgb(0 0 0 / 0.4); transition: transform 0.2s var(--ease); }
+.fab:hover { transform: scale(1.07); }

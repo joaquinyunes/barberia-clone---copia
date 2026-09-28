@@ -1,0 +1,14 @@
+.backdrop { position: fixed; inset: 0; background: rgb(10 8 5 / 0.65); display: grid; place-items: center; padding: var(--space-4); z-index: 200; animation: fade 0.15s ease; }
+.modal { width: 100%; max-height: calc(100vh - 2rem); display: flex; flex-direction: column; border-radius: var(--radius-lg); box-shadow: var(--shadow-md); animation: pop 0.2s var(--ease); }
+.sm { max-width: 420px; }
+.md { max-width: 620px; }
+.lg { max-width: 960px; }
+.light { background: var(--a-surface); color: var(--a-text); }
+.dark { background: var(--c-surface); color: var(--c-text); border: 1px solid var(--c-border); }
+.header { display: flex; justify-content: space-between; align-items: center; padding: var(--space-4) var(--space-5); border-bottom: 1px solid rgb(128 128 128 / 0.2); }
+.title { font-family: var(--font-body); font-size: var(--fs-lg); font-weight: 600; margin: 0; }
+.close { background: none; border: 0; cursor: pointer; padding: 0.25rem; border-radius: var(--radius-sm); }
+.body { padding: var(--space-5); overflow-y: auto; }
+.footer { padding: var(--space-4) var(--space-5); border-top: 1px solid rgb(128 128 128 / 0.2); display: flex; justify-content: flex-end; gap: var(--space-2); flex-wrap: wrap; }
+@keyframes fade { from { opacity: 0; } }
+@keyframes pop { from { opacity: 0; transform: translateY(8px) scale(0.98); } }

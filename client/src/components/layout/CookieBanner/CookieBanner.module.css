@@ -1,0 +1,4 @@
+.banner { position: fixed; left: var(--space-4); bottom: var(--space-4); z-index: 95; max-width: 460px; background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius-md); padding: var(--space-4); display: flex; gap: var(--space-4); align-items: center; box-shadow: var(--shadow-md); font-size: var(--fs-sm); }
+.banner p { margin: 0; color: var(--c-text-muted); }
+.banner a { color: var(--c-gold); }
+@media (max-width: 560px) { .banner { right: var(--space-4); bottom: calc(var(--space-4) + 70px); } }

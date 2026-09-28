@@ -1,0 +1,14 @@
+.plans { display: grid; grid-template-columns: repeat(2, minmax(0, 380px)); justify-content: center; gap: var(--space-6); }
+.plan { position: relative; border: 1px solid var(--c-border); background: var(--c-surface); padding: var(--space-6); display: flex; flex-direction: column; gap: var(--space-3); height: 100%; }
+.featured { border-color: var(--c-gold); box-shadow: var(--shadow-gold); }
+.ribbon { position: absolute; top: -12px; left: var(--space-6); background: var(--c-gold); color: #17130c; font-family: var(--font-label); font-size: 0.7rem; letter-spacing: 0.15em; text-transform: uppercase; padding: 0.2rem 0.7rem; }
+.plan h3 { font-size: var(--fs-2xl); margin: 0; }
+.price { font-family: var(--font-label); font-size: 2.4rem; color: var(--c-gold); margin: 0; }
+.price small { font-size: var(--fs-md); color: var(--c-text-dim); }
+.plan ul { list-style: none; padding: 0; margin: 0 0 var(--space-4); display: flex; flex-direction: column; gap: var(--space-2); flex: 1; }
+.plan li { display: flex; gap: var(--space-2); align-items: center; color: var(--c-text-muted); }
+.plan li svg { color: var(--c-gold); flex: none; }
+.steps { list-style: none; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-5); }
+.steps span { font-family: var(--font-display); font-size: 3rem; color: var(--c-gold); }
+.steps p { color: var(--c-text-muted); }
+@media (max-width: 800px) { .plans, .steps { grid-template-columns: 1fr; } }

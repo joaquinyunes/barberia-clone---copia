@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 80" role="img" aria-label="Jack el Barbero">
+  <g fill="none" stroke="#c9a45c" stroke-width="2">
+    <circle cx="40" cy="40" r="34"/>
+    <circle cx="40" cy="40" r="28" stroke-width="1"/>
+  </g>
+  <!-- navaja estilizada -->
+  <g transform="translate(40 40) rotate(-35)">
+    <rect x="-20" y="-3" width="26" height="6" rx="1.5" fill="#c9a45c"/>
+    <rect x="6" y="-2.5" width="16" height="5" rx="2.5" fill="#6f5a33"/>
+    <circle cx="6" cy="0" r="1.6" fill="#0f0d0a"/>
+  </g>
+  <text x="84" y="38" font-family="Playfair Display, Georgia, serif" font-weight="900" font-size="30" letter-spacing="1" fill="#f3ead7">JACK</text>
+  <text x="170" y="38" font-family="Playfair Display, Georgia, serif" font-style="italic" font-size="20" fill="#c9a45c">el</text>
+  <text x="84" y="64" font-family="Oswald, Arial, sans-serif" font-weight="600" font-size="17" letter-spacing="6.2" fill="#c9a45c">BARBERO</text>
+  <text x="245" y="64" font-family="Oswald, Arial, sans-serif" font-size="9" letter-spacing="2" fill="#8f8674">BS. AS.</text>
+</svg>

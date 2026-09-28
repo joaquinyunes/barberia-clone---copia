@@ -1,0 +1,8 @@
+.page { padding-top: calc(var(--header-h) + var(--space-8)); min-height: 80vh; }
+.box { max-width: 440px; }
+.box h1 { font-size: var(--fs-3xl); margin-bottom: var(--space-2); }
+.box > p { color: var(--c-text-muted); }
+.form { display: flex; flex-direction: column; gap: var(--space-4); margin-top: var(--space-5); }
+.error { color: var(--c-danger); margin: 0; font-size: var(--fs-sm); }
+.alt { margin-top: var(--space-5); color: var(--c-text-muted); }
+.alt a { color: var(--c-gold); }

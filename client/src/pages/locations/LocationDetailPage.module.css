@@ -1,0 +1,24 @@
+.notFound { padding-top: calc(var(--header-h) + var(--space-8)); min-height: 60vh; }
+.heroCtas { display: flex; gap: var(--space-3); justify-content: center; flex-wrap: wrap; margin-top: var(--space-5); }
+.grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: var(--space-8); align-items: start; }
+.grid h2 { font-size: var(--fs-2xl); }
+.desc { color: var(--c-text-muted); font-size: var(--fs-lg); }
+.features { list-style: none; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-2); margin: var(--space-5) 0; }
+.features li { display: flex; gap: var(--space-2); align-items: center; }
+.features svg { color: var(--c-gold); }
+.gallery { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-3); }
+.info { background: var(--c-surface); border: 1px solid var(--c-border); padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-2); align-items: flex-start; }
+.info h3 { font-family: var(--font-label); font-size: var(--fs-sm); letter-spacing: 0.2em; text-transform: uppercase; color: var(--c-gold); margin: var(--space-4) 0 0; }
+.info p { display: flex; gap: var(--space-2); align-items: center; margin: 0; color: var(--c-text-muted); }
+.info a { color: var(--c-text); text-decoration: underline; text-underline-offset: 3px; }
+.hours { margin: 0; width: 100%; }
+.hours div { display: flex; justify-content: space-between; border-bottom: 1px dashed var(--c-border); padding: 0.3rem 0; font-size: var(--fs-sm); }
+.hours dd { margin: 0; }
+.team { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: var(--space-5); }
+.barber { text-align: center; display: flex; flex-direction: column; align-items: center; gap: var(--space-2); }
+.barber > :first-child { border-radius: 50%; overflow: hidden; width: 180px; height: 180px; }
+.barber h3 { margin: var(--space-2) 0 0; font-size: var(--fs-xl); }
+.barber p { color: var(--c-text-dim); font-size: var(--fs-sm); margin: 0; }
+.services { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-4); }
+@media (max-width: 960px) { .grid { grid-template-columns: 1fr; } .services { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 600px) { .services, .features { grid-template-columns: 1fr; } }

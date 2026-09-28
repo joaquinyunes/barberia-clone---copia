@@ -1,0 +1,64 @@
+/* Design tokens de Jack el Barbero: oscuro, cálido, dorado envejecido. */
+:root {
+  --c-bg: #0f0d0a;
+  --c-bg-soft: #16130f;
+  --c-surface: #1d1914;
+  --c-surface-2: #26211a;
+  --c-border: #3a3226;
+  --c-text: #f3ead7;
+  --c-text-muted: #b3a88f;
+  --c-text-dim: #8f8674;
+  --c-gold: #c9a45c;
+  --c-gold-strong: #e0bd72;
+  --c-gold-dark: #8a6d35;
+  --c-red: #a4302a; /* franja del poste de barbero */
+  --c-success: #5c9a63;
+  --c-warning: #d49a3a;
+  --c-danger: #c8514a;
+  --c-info: #5a8dc2;
+  --c-whatsapp: #25d366;
+
+  /* Panel de administración (claro para uso intensivo) */
+  --a-bg: #f6f3ee;
+  --a-surface: #ffffff;
+  --a-border: #e6e0d6;
+  --a-text: #1e1b16;
+  --a-muted: #6d6558;
+  --a-sidebar: #15120e;
+
+  --font-display: "Playfair Display", Georgia, serif;
+  --font-label: "Oswald", "Arial Narrow", sans-serif;
+  --font-body: "Inter", system-ui, -apple-system, sans-serif;
+
+  --fs-xs: 0.75rem;
+  --fs-sm: 0.875rem;
+  --fs-md: 1rem;
+  --fs-lg: 1.125rem;
+  --fs-xl: 1.375rem;
+  --fs-2xl: clamp(1.6rem, 1.2rem + 1.5vw, 2.25rem);
+  --fs-3xl: clamp(2rem, 1.4rem + 2.6vw, 3.25rem);
+  --fs-hero: clamp(2.6rem, 1.6rem + 4.5vw, 5.5rem);
+
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --space-7: 3rem;
+  --space-8: 4.5rem;
+  --space-9: 6.5rem;
+
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 14px;
+  --radius-pill: 999px;
+
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.25);
+  --shadow-md: 0 8px 24px rgb(0 0 0 / 0.35);
+  --shadow-gold: 0 0 0 1px rgb(201 164 92 / 0.35), 0 10px 30px rgb(201 164 92 / 0.12);
+
+  --container: 1200px;
+  --header-h: 76px;
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+}

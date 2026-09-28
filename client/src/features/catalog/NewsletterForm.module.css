@@ -1,0 +1,2 @@
+.form { display: flex; gap: var(--space-2); flex: 1; max-width: 460px; min-width: 260px; }
+.form input { flex: 1; min-width: 0; background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius-sm); padding: 0.65rem 0.8rem; }

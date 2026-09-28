@@ -1,0 +1,18 @@
+.img { width: 100%; height: 100%; object-fit: cover; }
+.fallback {
+  width: 100%;
+  height: 100%;
+  min-height: 160px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  color: var(--c-gold-dark);
+  background:
+    repeating-linear-gradient(135deg, rgb(201 164 92 / 0.05) 0 12px, transparent 12px 24px),
+    radial-gradient(circle at 30% 20%, #2a2319, #14110d 70%);
+  text-align: center;
+  padding: var(--space-4);
+}
+.fallback span { font-family: var(--font-label); font-size: var(--fs-xs); letter-spacing: 0.15em; text-transform: uppercase; color: var(--c-text-dim); max-width: 26ch; }

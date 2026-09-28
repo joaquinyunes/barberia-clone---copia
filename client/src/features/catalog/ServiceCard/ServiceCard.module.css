@@ -1,0 +1,14 @@
+.card { background: var(--c-surface); border: 1px solid var(--c-border); display: flex; flex-direction: column; transition: border-color 0.25s; height: 100%; }
+.card:hover { border-color: var(--c-gold-dark); }
+.media { overflow: hidden; }
+.media img { transition: transform 0.6s var(--ease); }
+.card:hover .media img { transform: scale(1.05); }
+.body { padding: var(--space-5); display: flex; flex-direction: column; flex: 1; }
+.head { display: flex; justify-content: space-between; gap: var(--space-3); align-items: baseline; border-bottom: 1px dashed var(--c-border); padding-bottom: var(--space-3); }
+.head h3 { font-size: var(--fs-xl); margin: 0; }
+.price { font-family: var(--font-label); color: var(--c-gold); font-size: var(--fs-lg); white-space: nowrap; }
+.meta { display: flex; align-items: center; gap: 0.35rem; color: var(--c-text-dim); font-size: var(--fs-sm); margin: var(--space-3) 0; }
+.desc { color: var(--c-text-muted); font-size: var(--fs-sm); flex: 1; }
+.includes { list-style: none; padding: 0; margin: 0 0 var(--space-4); display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.includes li { font-size: 0.72rem; border: 1px solid var(--c-border); padding: 0.1rem 0.5rem; border-radius: var(--radius-pill); color: var(--c-text-muted); }
+.book { font-family: var(--font-label); letter-spacing: 0.15em; text-transform: uppercase; font-size: var(--fs-xs); color: var(--c-gold); }

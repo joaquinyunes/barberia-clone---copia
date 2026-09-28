@@ -1,0 +1,8 @@
+.overlay { position: fixed; inset: 0; z-index: 180; background: var(--c-bg); display: flex; flex-direction: column; padding: var(--space-7) var(--space-5) var(--space-5); animation: in 0.25s var(--ease); }
+.close { position: absolute; top: var(--space-4); right: var(--space-4); background: none; border: 0; color: var(--c-text); cursor: pointer; }
+.nav { display: flex; flex-direction: column; gap: var(--space-2); margin-top: var(--space-5); }
+.nav a { font-family: var(--font-display); font-size: 1.8rem; padding: 0.3rem 0; border-bottom: 1px solid var(--c-border); }
+.nav a[aria-current="page"] { color: var(--c-gold); }
+.bottom { margin-top: auto; display: flex; flex-direction: column; gap: var(--space-4); }
+.social { display: flex; justify-content: center; gap: var(--space-5); color: var(--c-gold); }
+@keyframes in { from { opacity: 0; transform: translateY(-10px); } }

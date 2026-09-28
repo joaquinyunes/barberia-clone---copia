@@ -1,0 +1,20 @@
+.field { display: flex; flex-direction: column; gap: 0.35rem; min-width: 0; }
+.label { font-size: var(--fs-xs); font-family: var(--font-label); letter-spacing: 0.1em; text-transform: uppercase; }
+.control {
+  width: 100%;
+  border-radius: var(--radius-sm);
+  padding: 0.65rem 0.8rem;
+  border: 1px solid;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.control:focus { outline: none; border-color: var(--c-gold); box-shadow: 0 0 0 3px rgb(201 164 92 / 0.2); }
+.textarea { min-height: 96px; resize: vertical; }
+.invalid { border-color: var(--c-danger) !important; }
+.error { color: var(--c-danger); font-size: var(--fs-xs); }
+.hint { font-size: var(--fs-xs); opacity: 0.75; }
+.dark .label { color: var(--c-text-muted); }
+.dark .control { background: var(--c-bg-soft); border-color: var(--c-border); color: var(--c-text); }
+.light .label { color: var(--a-muted); }
+.light .control { background: #fff; border-color: var(--a-border); color: var(--a-text); }
+.check { display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer; font-size: var(--fs-sm); }
+.check input { width: 1rem; height: 1rem; accent-color: var(--c-gold); }

@@ -1,0 +1,3 @@
+.page { padding-top: calc(var(--header-h) + var(--space-8)); min-height: 70vh; }
+.page h1 { font-size: var(--fs-3xl); }
+.page p { color: var(--c-text-muted); }

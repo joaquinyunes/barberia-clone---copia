@@ -1,0 +1,4 @@
+.banner { background: var(--c-gold); color: #17130c; padding: var(--space-7) 0; }
+.inner { display: flex; align-items: center; justify-content: space-between; gap: var(--space-5); flex-wrap: wrap; }
+.inner h2 { margin: 0 0 var(--space-2); font-size: var(--fs-2xl); }
+.inner p { margin: 0; }

@@ -1,0 +1,2 @@
+.wrap { width: 100%; border-radius: var(--radius-md); overflow: hidden; border: 1px solid var(--c-border); filter: grayscale(0.6) contrast(1.05); }
+.wrap iframe { width: 100%; height: 100%; border: 0; }

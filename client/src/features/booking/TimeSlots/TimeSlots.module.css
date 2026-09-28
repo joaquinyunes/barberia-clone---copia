@@ -1,0 +1,6 @@
+.groups { display: flex; flex-direction: column; gap: var(--space-4); }
+.label { font-family: var(--font-label); font-size: var(--fs-xs); letter-spacing: 0.2em; text-transform: uppercase; color: var(--c-text-dim); margin-bottom: var(--space-2); }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: var(--space-2); }
+.slot { padding: 0.6rem; border: 1px solid var(--c-border); background: var(--c-surface); border-radius: var(--radius-sm); cursor: pointer; font-variant-numeric: tabular-nums; font-weight: 600; }
+.slot:hover { border-color: var(--c-gold); }
+.active { background: var(--c-gold); color: #17130c; border-color: var(--c-gold); }
