@@ -1,8 +1,8 @@
-.hero { position: relative; min-height: 440px; display: grid; place-items: center; text-align: center; padding: calc(var(--header-h) + var(--space-7)) var(--space-4) var(--space-8); overflow: hidden; background: var(--c-bg-soft); }
-.bg { position: absolute; inset: 0; }
-.bg > * { height: 100%; }
+.hero { position: relative; min-height: 520px; display: grid; place-items: center; text-align: center; padding: calc(var(--header-h) + var(--space-7)) var(--space-4) var(--space-8); overflow: hidden; background: var(--c-bg-soft); }
+.zoom { height: 100%; }
+.zoom > * { height: 100%; }
 .overlay { position: absolute; inset: 0; background: linear-gradient(to bottom, rgb(10 8 5 / 0.75), rgb(10 8 5 / 0.85) 60%, var(--c-bg)); }
 .content { position: relative; max-width: 760px; }
 .eyebrow { font-family: var(--font-label); letter-spacing: 0.3em; text-transform: uppercase; color: var(--c-gold); font-size: var(--fs-sm); }
-.content h1 { font-size: var(--fs-3xl); margin: var(--space-3) 0; font-weight: 900; }
+.content h1 { font-size: clamp(2.2rem, 1.4rem + 3.4vw, 4.2rem); margin: var(--space-3) 0; font-weight: 900; line-height: 1.08; }
 .content p { color: var(--c-text-muted); font-size: var(--fs-lg); }

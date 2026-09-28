@@ -1,0 +1,1 @@
+.bar { position: fixed; top: 0; left: 0; right: 0; height: 2px; z-index: 150; background: linear-gradient(90deg, var(--c-gold-dark), var(--c-gold-strong)); transform-origin: left center; pointer-events: none; }

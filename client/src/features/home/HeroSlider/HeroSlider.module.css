@@ -1,21 +1,47 @@
-.hero { position: relative; height: 100svh; min-height: 600px; max-height: 1000px; overflow: hidden; display: flex; align-items: center; }
-.bg { position: absolute; inset: 0; }
-.bg > * { height: 100%; }
-.overlay { position: absolute; inset: 0; background: linear-gradient(90deg, rgb(10 8 5 / 0.92) 0%, rgb(10 8 5 / 0.65) 45%, rgb(10 8 5 / 0.25) 100%), linear-gradient(to top, var(--c-bg), transparent 30%); }
+.hero { position: relative; height: 100svh; min-height: 620px; max-height: 1080px; overflow: hidden; display: flex; align-items: center; background: var(--c-bg); }
+.bgWrap { position: absolute; inset: 0; will-change: transform; }
+.bg { position: absolute; inset: 0; overflow: hidden; }
+.kenburns { position: absolute; inset: 0; will-change: transform; }
+.kenburns > * { height: 100%; }
+.overlay { position: absolute; inset: 0; background: linear-gradient(90deg, rgb(10 8 5 / 0.9) 0%, rgb(10 8 5 / 0.6) 45%, rgb(10 8 5 / 0.2) 100%), linear-gradient(to top, var(--c-bg), transparent 35%); }
+/* Grano de película sutil encima de la foto */
+.grain { position: absolute; inset: 0; opacity: 0.08; pointer-events: none; mix-blend-mode: overlay; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+
 .content { position: relative; z-index: 2; width: 100%; max-width: var(--container); margin: 0 auto; padding: 0 var(--space-5); }
-.content > div { max-width: 640px; }
-.eyebrow { font-family: var(--font-label); letter-spacing: 0.35em; text-transform: uppercase; color: var(--c-gold); font-size: var(--fs-sm); }
-.title { font-size: var(--fs-hero); margin: var(--space-4) 0; font-weight: 900; }
+.content > div { max-width: 720px; }
+.eyebrow { display: inline-flex; align-items: center; gap: var(--space-3); font-family: var(--font-label); letter-spacing: 0.35em; text-transform: uppercase; color: var(--c-gold); font-size: var(--fs-sm); }
+.line { display: block; width: 48px; height: 1px; background: var(--c-gold); transform-origin: left center; }
+.title { font-size: var(--fs-hero); margin: var(--space-4) 0; font-weight: 900; line-height: 1.04; letter-spacing: -0.01em; }
 .text { font-size: var(--fs-lg); color: var(--c-text-muted); max-width: 52ch; }
 .ctas { display: flex; gap: var(--space-3); flex-wrap: wrap; margin-top: var(--space-6); }
-.arrow { position: absolute; top: 50%; z-index: 3; transform: translateY(-50%); background: rgb(15 13 10 / 0.5); border: 1px solid var(--c-border); color: var(--c-text); width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; cursor: pointer; transition: border-color 0.2s; }
-.arrow:hover { border-color: var(--c-gold); color: var(--c-gold); }
-.prev { left: var(--space-4); }
-.next { right: var(--space-4); }
-.dots { position: absolute; bottom: var(--space-7); left: 50%; transform: translateX(-50%); display: flex; gap: var(--space-2); z-index: 3; }
-.dot { width: 34px; height: 3px; border: 0; background: rgb(243 234 215 / 0.3); cursor: pointer; padding: 0; }
-.dotActive { background: var(--c-gold); }
-.scroll { position: absolute; bottom: var(--space-4); left: 50%; transform: translateX(-50%); width: 22px; height: 34px; border: 1px solid rgb(243 234 215 / 0.4); border-radius: 12px; z-index: 3; }
-.scroll span { display: block; width: 2px; height: 7px; background: var(--c-gold); margin: 6px auto; animation: wheel 1.6s infinite; }
-@keyframes wheel { to { transform: translateY(10px); opacity: 0; } }
-@media (max-width: 760px) { .arrow { display: none; } .content { padding-top: var(--space-7); } }
+
+.arrow { position: absolute; top: 50%; z-index: 3; transform: translateY(-50%); background: rgb(15 13 10 / 0.35); border: 1px solid rgb(243 234 215 / 0.25); color: var(--c-text); width: 54px; height: 54px; border-radius: 50%; display: grid; place-items: center; cursor: pointer; backdrop-filter: blur(4px); transition: border-color 0.3s, color 0.3s, background 0.3s, transform 0.3s var(--ease); }
+.arrow:hover { border-color: var(--c-gold); color: #17130c; background: var(--c-gold); }
+.prev { left: var(--space-5); }
+.prev:hover { transform: translateY(-50%) translateX(-3px); }
+.next { right: var(--space-5); }
+.next:hover { transform: translateY(-50%) translateX(3px); }
+
+.footer { position: absolute; z-index: 3; bottom: var(--space-7); left: 50%; transform: translateX(-50%); width: 100%; max-width: var(--container); padding: 0 var(--space-5); display: flex; align-items: center; gap: var(--space-5); }
+.counter { display: flex; align-items: baseline; gap: var(--space-2); font-family: var(--font-label); color: var(--c-text-dim); letter-spacing: 0.1em; }
+.counter strong { display: inline-block; font-size: 1.6rem; color: var(--c-text); font-weight: 500; }
+.counter { overflow: hidden; height: 2.2rem; }
+.dots { display: flex; gap: var(--space-2); }
+.dot { position: relative; width: 56px; height: 2px; border: 0; background: rgb(243 234 215 / 0.25); cursor: pointer; padding: 0; overflow: hidden; }
+.dot::before { content: ""; position: absolute; inset: -10px 0; }
+.dot:hover { background: rgb(243 234 215 / 0.5); }
+.progress { position: absolute; inset: 0; background: var(--c-gold); transform-origin: left center; animation: progress linear forwards; }
+@keyframes progress { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+
+.scroll { position: absolute; bottom: var(--space-5); right: var(--space-5); z-index: 3; display: flex; flex-direction: column; align-items: center; gap: var(--space-2); }
+.scroll span { font-family: var(--font-label); font-size: 0.65rem; letter-spacing: 0.35em; text-transform: uppercase; color: var(--c-text-dim); writing-mode: vertical-rl; }
+.scroll i { position: relative; display: block; width: 1px; height: 64px; background: rgb(243 234 215 / 0.2); overflow: hidden; }
+.scroll i::after { content: ""; position: absolute; left: 0; top: 0; width: 100%; height: 40%; background: var(--c-gold); animation: drip 1.8s var(--ease) infinite; }
+@keyframes drip { from { transform: translateY(-100%); } to { transform: translateY(260%); } }
+
+@media (max-width: 760px) {
+  .arrow, .scroll { display: none; }
+  .content { padding-top: var(--space-7); }
+  .footer { bottom: var(--space-5); }
+  .dot { width: 36px; }
+}

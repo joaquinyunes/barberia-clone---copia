@@ -1,5 +1,7 @@
-.header { position: fixed; inset: 0 0 auto; z-index: 100; height: var(--header-h); transition: background 0.3s var(--ease), height 0.3s var(--ease), box-shadow 0.3s; background: linear-gradient(to bottom, rgb(10 8 5 / 0.75), transparent); }
+.header { position: fixed; inset: 0 0 auto; z-index: 100; height: var(--header-h); transition: background 0.3s var(--ease), height 0.3s var(--ease), box-shadow 0.3s, transform 0.45s var(--ease); background: linear-gradient(to bottom, rgb(10 8 5 / 0.75), transparent); }
 .scrolled { background: rgb(15 13 10 / 0.96); height: 64px; box-shadow: 0 1px 0 var(--c-border); backdrop-filter: blur(8px); }
+.hidden { transform: translateY(-100%); }
+.header:focus-within { transform: none; }
 .inner { max-width: 1320px; margin: 0 auto; height: 100%; padding: 0 var(--space-4); display: flex; align-items: center; gap: var(--space-5); }
 .logo img { height: 46px; width: auto; transition: height 0.3s; }
 .scrolled .logo img { height: 38px; }

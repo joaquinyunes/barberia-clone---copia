@@ -1,16 +1,22 @@
 import { paths } from "@/app/router/paths";
-import { Button, Container } from "@/components/ui";
+import { Button, Container, Img, Parallax, Reveal, SplitText } from "@/components/ui";
 import styles from "./CtaBanner.module.css";
 
 export function CtaBanner({ title = "¿Te toca el corte?", text = "Reservá en un minuto. Elegís sede, barbero y horario, y confirmás por WhatsApp." }: { title?: string; text?: string }) {
   return (
     <section className={styles.banner}>
+      <Parallax strength={0.2}>
+        <Img src="/images/home/cta-sillon.webp" alt="" />
+      </Parallax>
+      <div className={styles.overlay} />
       <Container className={styles.inner}>
         <div>
-          <h2>{title}</h2>
-          <p>{text}</p>
+          <SplitText as="h2" text={title} inView />
+          <Reveal delay={0.2}><p>{text}</p></Reveal>
         </div>
-        <Button to={paths.booking} size="lg" variant="dark">Reservar turno</Button>
+        <Reveal delay={0.35}>
+          <Button to={paths.booking} size="lg">Reservar turno</Button>
+        </Reveal>
       </Container>
     </section>
   );

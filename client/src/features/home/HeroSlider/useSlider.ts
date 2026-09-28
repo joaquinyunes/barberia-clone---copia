@@ -11,5 +11,5 @@ export function useSlider(count: number, interval = 6500) {
     const id = setInterval(next, interval);
     return () => clearInterval(id);
   }, [next, interval, paused, index]);
-  return { index, setIndex, next, prev, pause: () => setPaused(true), resume: () => setPaused(false) };
+  return { index, setIndex, next, prev, paused, pause: () => setPaused(true), resume: () => setPaused(false) };
 }

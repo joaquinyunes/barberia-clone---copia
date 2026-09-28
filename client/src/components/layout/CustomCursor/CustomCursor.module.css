@@ -1,0 +1,5 @@
+.ring, .dot { position: fixed; top: 0; left: 0; z-index: 2000; pointer-events: none; border-radius: 50%; opacity: 0; transition: opacity 0.3s; }
+.ring { width: 36px; height: 36px; margin: -18px 0 0 -18px; border: 1px solid var(--c-gold); transition: opacity 0.3s, width 0.3s var(--ease), height 0.3s var(--ease), margin 0.3s var(--ease), background 0.3s; }
+.dot { width: 6px; height: 6px; margin: -3px 0 0 -3px; background: var(--c-gold); }
+.visible { opacity: 1; }
+.hover { width: 64px; height: 64px; margin: -32px 0 0 -32px; background: rgb(201 164 92 / 0.12); }
