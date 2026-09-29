@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { IoLogoInstagram } from "react-icons/io5";
 import { Container, Img, Section, SectionTitle } from "@/components/ui";
+import { EASE_OUT } from "@/components/ui/Motion/easing";
 import { cx } from "@/utils/format";
 import styles from "./Gallery.module.css";
 
@@ -28,10 +29,10 @@ export function Gallery() {
               target="_blank"
               rel="noopener noreferrer"
               className={cx(styles.item, "size" in p && styles[p.size])}
-              initial={{ opacity: 0, y: 60, scale: 0.96 }}
-              whileInView={{ opacity: 1, y: 0, scale: 1 }}
-              viewport={{ once: true, margin: "-40px" }}
-              transition={{ duration: 0.9, delay: (i % 4) * 0.08, ease: [0.16, 1, 0.3, 1] }}
+              initial={{ opacity: 0, y: 50 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "0px 0px -10% 0px" }}
+              transition={{ duration: 1.4, delay: (i % 4) * 0.1, ease: EASE_OUT }}
               aria-label={`${p.alt} (ver en Instagram)`}
             >
               <Img src={p.src} alt={p.alt} />

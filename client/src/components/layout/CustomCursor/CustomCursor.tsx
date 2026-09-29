@@ -5,15 +5,16 @@ import styles from "./CustomCursor.module.css";
 
 const INTERACTIVE = "a, button, [role='button'], input, select, textarea, label";
 
-/** Aro dorado que sigue al mouse y se agranda sobre links y botones (solo con mouse, no en touch). */
+/** Aro dorado que sigue al mouse con un leve retraso y se agranda sobre links y botones (solo con mouse). */
 export function CustomCursor() {
   const [enabled] = useState(() => typeof window !== "undefined" && window.matchMedia("(pointer: fine) and (prefers-reduced-motion: no-preference)").matches);
   const [hover, setHover] = useState(false);
   const [visible, setVisible] = useState(false);
   const x = useMotionValue(-100);
   const y = useMotionValue(-100);
-  const ringX = useSpring(x, { stiffness: 350, damping: 30, mass: 0.6 });
-  const ringY = useSpring(y, { stiffness: 350, damping: 30, mass: 0.6 });
+  // Resorte blando: el aro "flota" detrás del puntero en vez de pegarse.
+  const ringX = useSpring(x, { stiffness: 160, damping: 22, mass: 0.6 });
+  const ringY = useSpring(y, { stiffness: 160, damping: 22, mass: 0.6 });
 
   useEffect(() => {
     if (!enabled) return;
@@ -35,8 +36,12 @@ export function CustomCursor() {
   if (!enabled) return null;
   return (
     <>
-      <motion.div className={cx(styles.ring, hover && styles.hover, visible && styles.visible)} style={{ x: ringX, y: ringY }} aria-hidden="true" />
-      <motion.div className={cx(styles.dot, visible && styles.visible)} style={{ x, y }} aria-hidden="true" />
+      <motion.div className={cx(styles.cursor, visible && styles.visible)} style={{ x: ringX, y: ringY }} aria-hidden="true">
+        <span className={cx(styles.ring, hover && styles.hover)} />
+      </motion.div>
+      <motion.div className={cx(styles.cursor, visible && styles.visible)} style={{ x, y }} aria-hidden="true">
+        <span className={cx(styles.dot, hover && styles.dotHidden)} />
+      </motion.div>
     </>
   );
 }

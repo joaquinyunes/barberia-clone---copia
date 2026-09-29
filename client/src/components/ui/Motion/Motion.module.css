@@ -1,7 +1,7 @@
 /* SplitText */
 .split { display: inline; }
-.mask { display: inline-block; overflow: hidden; vertical-align: top; padding-bottom: 0.08em; margin-bottom: -0.08em; }
-.word { display: inline-block; transform-origin: 0 100%; will-change: transform; }
+.mask { display: inline-block; overflow: hidden; vertical-align: top; padding-bottom: 0.1em; margin-bottom: -0.1em; }
+.word { display: inline-block; will-change: transform; }
 
 /* Parallax */
 .parallax { position: absolute; inset: 0; overflow: hidden; }
@@ -11,20 +11,15 @@
 /* ImageReveal */
 .revealWrap { position: relative; }
 .reveal { position: relative; overflow: hidden; height: 100%; }
-.revealInner { height: 100%; }
+.revealInner { height: 100%; will-change: transform; }
 .revealInner > * { height: 100%; }
-.curtain { position: absolute; inset: 0; background: var(--c-gold); transform-origin: right center; pointer-events: none; }
 
 /* Marquee */
-.marquee { overflow: hidden; padding: var(--space-4) 0; border-block: 1px solid var(--c-border); background: var(--c-bg); user-select: none; }
-.marqueeTrack { display: flex; width: max-content; animation: marquee 38s linear infinite; }
-.marqueeReverse { animation-direction: reverse; }
-.marquee:hover .marqueeTrack { animation-play-state: paused; }
+.marquee { overflow: hidden; padding: var(--space-5) 0; border-block: 1px solid var(--c-border); background: var(--c-bg); user-select: none; }
+.marqueeTrack { display: flex; width: max-content; will-change: transform; }
 .marqueeRow { display: flex; flex-shrink: 0; }
-.marqueeItem { display: inline-flex; align-items: center; gap: var(--space-6); padding-right: var(--space-6); font-family: var(--font-display); font-size: clamp(1.8rem, 1.2rem + 3vw, 3.6rem); font-weight: 900; font-style: italic; white-space: nowrap; line-height: 1.1; }
-.marqueeIcon { font-size: 0.6em; color: var(--c-gold); flex-shrink: 0; }
+.marqueeItem { display: inline-flex; align-items: center; gap: var(--space-7); padding-right: var(--space-7); font-family: var(--font-display); font-size: clamp(2rem, 1.2rem + 3.4vw, 4.2rem); font-weight: 700; font-style: italic; white-space: nowrap; line-height: 1.1; }
+.marqueeIcon { font-size: 0.5em; color: var(--c-gold); flex-shrink: 0; }
 .gold .marqueeItem { color: var(--c-text); }
 .outline .marqueeItem { color: transparent; -webkit-text-stroke: 1px var(--c-gold); }
 .outline .marqueeIcon { color: var(--c-gold-dark); }
-@keyframes marquee { to { transform: translateX(-50%); } }
-@media (prefers-reduced-motion: reduce) { .marqueeTrack { animation: none; } }

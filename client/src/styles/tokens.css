@@ -61,4 +61,7 @@
   --container: 1200px;
   --header-h: 76px;
   --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+  /* Sitio público: salida exponencial, igual que EASE_OUT en components/ui/Motion/easing.ts */
+  --ease-out: cubic-bezier(0.19, 1, 0.22, 1);
+  --ease-in-out: cubic-bezier(0.76, 0, 0.24, 1);
 }

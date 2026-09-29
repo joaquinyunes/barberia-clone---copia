@@ -16,7 +16,7 @@ export function QuickLinks() {
     <Section tone="soft">
       <Container className={styles.grid}>
         {LINKS.map((l, i) => (
-          <Reveal key={l.to} delay={i * 0.1} y={50}>
+          <Reveal key={l.to} delay={i * 0.12} y={60}>
             <Link to={l.to} className={styles.card}>
               <div className={styles.bg}><Img src={l.image} alt="" /></div>
               <div className={styles.shade} />

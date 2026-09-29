@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { Fragment, type ElementType } from "react";
+import { EASE_OUT } from "./easing";
 import styles from "./Motion.module.css";
 
 /**
@@ -11,7 +12,7 @@ export function SplitText({
   as: Tag = "span",
   className,
   delay = 0,
-  stagger = 0.06,
+  stagger = 0.045,
   inView = false,
 }: {
   text: string;
@@ -23,7 +24,7 @@ export function SplitText({
   inView?: boolean;
 }) {
   const words = text.split(" ");
-  const trigger = inView ? { whileInView: "show", viewport: { once: true, margin: "-40px" } } : { animate: "show" };
+  const trigger = inView ? { whileInView: "show", viewport: { once: true, margin: "0px 0px -10% 0px" } } : { animate: "show" };
   return (
     <Tag className={className}>
       <motion.span className={styles.split} initial="hidden" {...trigger} transition={{ staggerChildren: stagger, delayChildren: delay }}>
@@ -32,8 +33,8 @@ export function SplitText({
             <span className={styles.mask}>
               <motion.span
                 className={styles.word}
-                variants={{ hidden: { y: "110%", rotate: 4 }, show: { y: "0%", rotate: 0 } }}
-                transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+                variants={{ hidden: { y: "105%", opacity: 0 }, show: { y: "0%", opacity: 1 } }}
+                transition={{ y: { duration: 1.4, ease: EASE_OUT }, opacity: { duration: 0.8, ease: "linear" } }}
               >
                 {w}
               </motion.span>
