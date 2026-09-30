@@ -1,4 +1,5 @@
-.banner { background: var(--c-gold); color: #17130c; padding: var(--space-7) 0; }
-.inner { display: flex; align-items: center; justify-content: space-between; gap: var(--space-5); flex-wrap: wrap; }
-.inner h2 { margin: 0 0 var(--space-2); font-size: var(--fs-2xl); }
-.inner p { margin: 0; }
+.banner { position: relative; overflow: hidden; padding: var(--space-9) 0; border-top: 1px solid var(--c-gold-dark); background: var(--c-bg-soft); }
+.overlay { position: absolute; inset: 0; background: linear-gradient(90deg, rgb(10 8 5 / 0.92), rgb(10 8 5 / 0.7) 60%, rgb(10 8 5 / 0.5)); }
+.inner { position: relative; display: flex; align-items: center; justify-content: space-between; gap: var(--space-6); flex-wrap: wrap; }
+.inner h2 { margin: 0 0 var(--space-3); font-size: clamp(2.2rem, 1.4rem + 3.5vw, 4.4rem); font-weight: 900; font-style: italic; }
+.inner p { margin: 0; color: var(--c-text-muted); font-size: var(--fs-lg); max-width: 48ch; }

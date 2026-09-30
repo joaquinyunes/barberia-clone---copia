@@ -1,7 +1,7 @@
 .card { background: var(--c-surface); border: 1px solid var(--c-border); display: flex; flex-direction: column; height: 100%; }
 .media { position: relative; display: block; overflow: hidden; }
-.media img { transition: transform 0.6s var(--ease); filter: saturate(0.85); }
-.card:hover .media img { transform: scale(1.05); }
+.media img { transition: transform 1.6s var(--ease-out), filter 1.2s var(--ease-out); filter: saturate(0.85); }
+.card:hover .media img { transform: scale(1.06); filter: saturate(1); }
 .vip { position: absolute; top: var(--space-3); left: var(--space-3); background: var(--c-gold); color: #17130c; font-family: var(--font-label); font-size: 0.7rem; letter-spacing: 0.15em; text-transform: uppercase; padding: 0.2rem 0.6rem; }
 .body { padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-2); flex: 1; align-items: flex-start; }
 .tagline { font-family: var(--font-label); letter-spacing: 0.2em; text-transform: uppercase; font-size: var(--fs-xs); color: var(--c-gold); }
@@ -9,5 +9,6 @@
 .address { display: flex; gap: 0.35rem; align-items: center; color: var(--c-text-muted); font-size: var(--fs-sm); margin: 0; }
 .actions { display: flex; gap: var(--space-2); margin-top: auto; padding-top: var(--space-4); width: 100%; }
 .primary { flex: 1; text-align: center; background: var(--c-gold); color: #17130c; font-family: var(--font-label); letter-spacing: 0.15em; text-transform: uppercase; font-size: 0.8rem; padding: 0.7rem; }
+.primary { transition: background 0.6s var(--ease-out); }
 .primary:hover { background: var(--c-gold-strong); }
 .wa { display: grid; place-items: center; width: 44px; border: 1px solid var(--c-border); color: var(--c-whatsapp); }

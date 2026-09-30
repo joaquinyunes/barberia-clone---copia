@@ -6,6 +6,7 @@ import { Button } from "@/components/ui";
 import { cartCount, useCartStore } from "@/features/cart/cartStore";
 import { useAuthStore } from "@/features/auth/authStore";
 import { useLocations } from "@/features/catalog/useCatalog";
+import { useHideOnScroll } from "@/hooks/useHideOnScroll";
 import { useScrolled } from "@/hooks/useScrolled";
 import { cx } from "@/utils/format";
 import { MobileMenu } from "../MobileMenu/MobileMenu";
@@ -15,6 +16,7 @@ import styles from "./Header.module.css";
 export function Header() {
   const scrolled = useScrolled();
   const [menuOpen, setMenuOpen] = useState(false);
+  const hidden = useHideOnScroll() && !menuOpen;
   const { items, setOpen } = useCartStore();
   const user = useAuthStore((s) => s.user);
   const { data: locations } = useLocations();
@@ -22,7 +24,7 @@ export function Header() {
 
   return (
     <>
-      <header className={cx(styles.header, scrolled && styles.scrolled)}>
+      <header className={cx(styles.header, scrolled && styles.scrolled, hidden && styles.hidden)}>
         <div className={styles.inner}>
           <button className={styles.burger} onClick={() => setMenuOpen(true)} aria-label="Abrir menú">
             <IoMenu size={26} />

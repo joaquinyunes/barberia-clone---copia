@@ -1,9 +1,25 @@
 .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--space-4); }
-.card { display: flex; flex-direction: column; height: 100%; padding: var(--space-6) var(--space-5); border: 1px solid var(--c-border); background: var(--c-surface); transition: border-color 0.25s, transform 0.25s var(--ease); text-align: center; align-items: center; }
-.card:hover { border-color: var(--c-gold); transform: translateY(-4px); }
-.icon { color: var(--c-gold); margin-bottom: var(--space-4); }
-.card h3 { font-size: var(--fs-xl); margin-bottom: var(--space-2); }
-.card p { color: var(--c-text-muted); font-size: var(--fs-sm); flex: 1; }
-.more { font-family: var(--font-label); letter-spacing: 0.2em; color: var(--c-gold); font-size: var(--fs-xs); text-transform: uppercase; }
-@media (max-width: 900px) { .grid { grid-template-columns: 1fr 1fr; } }
+.card { position: relative; display: flex; align-items: flex-end; height: 100%; min-height: 420px; overflow: hidden; border: 1px solid var(--c-border); isolation: isolate; transition: border-color 0.8s var(--ease-out); }
+.bg { position: absolute; inset: 0; z-index: -2; }
+.bg > * { height: 100%; }
+.bg img { transition: transform 1.6s var(--ease-out), filter 1.2s var(--ease-out); filter: grayscale(0.6) brightness(0.8); }
+.shade { position: absolute; inset: 0; z-index: -1; background: linear-gradient(to top, rgb(10 8 5 / 0.95) 10%, rgb(10 8 5 / 0.55) 55%, rgb(10 8 5 / 0.25)); transition: background 1s var(--ease-out); }
+.num { position: absolute; top: var(--space-4); right: var(--space-5); font-family: var(--font-display); font-size: 3rem; font-weight: 900; font-style: italic; color: transparent; -webkit-text-stroke: 1px rgb(201 164 92 / 0.6); line-height: 1; }
+.body { padding: var(--space-6) var(--space-5); transform: translateY(32px); transition: transform 1s var(--ease-out); }
+.icon { color: var(--c-gold); margin-bottom: var(--space-3); transition: transform 1s var(--ease-out); }
+.body h3 { font-size: var(--fs-2xl); margin-bottom: var(--space-2); }
+.body p { color: var(--c-text-muted); font-size: var(--fs-sm); margin-bottom: var(--space-4); }
+.more { display: inline-flex; gap: var(--space-2); font-family: var(--font-label); letter-spacing: 0.25em; color: var(--c-gold); font-size: var(--fs-xs); text-transform: uppercase; opacity: 0; transition: opacity 0.8s var(--ease-out); }
+.more i { font-style: normal; transition: transform 0.8s var(--ease-out); }
+/* Borde dorado que se dibuja al pasar el mouse */
+.card::after { content: ""; position: absolute; inset: var(--space-3); border: 1px solid var(--c-gold); opacity: 0; transform: scale(1.04); transition: opacity 0.9s var(--ease-out), transform 1.1s var(--ease-out); pointer-events: none; }
+.card:hover, .card:focus-visible { border-color: var(--c-gold-dark); }
+.card:hover::after, .card:focus-visible::after { opacity: 1; transform: scale(1); }
+.card:hover .bg img, .card:focus-visible .bg img { transform: scale(1.07); filter: grayscale(0) brightness(0.9); }
+.card:hover .body, .card:focus-visible .body { transform: translateY(0); }
+.card:hover .more, .card:focus-visible .more { opacity: 1; }
+.card:hover .more i { transform: translateX(6px); }
+.card:hover .icon { transform: translateY(-4px); }
+@media (hover: none) { .body { transform: none; } .more { opacity: 1; } }
+@media (max-width: 900px) { .grid { grid-template-columns: 1fr 1fr; } .card { min-height: 340px; } }
 @media (max-width: 520px) { .grid { grid-template-columns: 1fr; } }

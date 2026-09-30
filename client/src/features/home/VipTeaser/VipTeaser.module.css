@@ -1,9 +1,11 @@
-.vip { position: relative; padding: var(--space-9) var(--space-4); display: grid; place-items: center; text-align: center; overflow: hidden; min-height: 560px; }
-.bg { position: absolute; inset: 0; }
-.bg > * { height: 100%; }
-.overlay { position: absolute; inset: 0; background: radial-gradient(circle at center, rgb(15 13 10 / 0.7), rgb(15 13 10 / 0.95)); }
+.vip { position: relative; padding: var(--space-9) var(--space-4); display: grid; place-items: center; text-align: center; overflow: hidden; min-height: 680px; }
+.overlay { position: absolute; inset: 0; background: radial-gradient(circle at center, rgb(15 13 10 / 0.55), rgb(15 13 10 / 0.95) 75%); }
+/* Marco art déco doble */
+.lines { position: absolute; inset: var(--space-6); border: 1px solid rgb(201 164 92 / 0.45); pointer-events: none; }
+.lines::after { content: ""; position: absolute; inset: 10px; border: 1px solid rgb(201 164 92 / 0.2); }
 .content { position: relative; max-width: 680px; }
 .eyebrow { font-family: var(--font-label); letter-spacing: 0.3em; color: var(--c-gold); text-transform: uppercase; font-size: var(--fs-sm); }
-.content h2 { font-size: clamp(3rem, 2rem + 5vw, 6rem); font-weight: 900; margin: var(--space-3) 0; font-style: italic; }
+.content h2 { font-size: clamp(3.4rem, 2rem + 7vw, 8rem); font-weight: 900; margin: var(--space-3) 0; font-style: italic; line-height: 1; }
 .content p { color: var(--c-text-muted); font-size: var(--fs-lg); }
 .ctas { display: flex; gap: var(--space-3); justify-content: center; flex-wrap: wrap; margin-top: var(--space-6); }
+@media (max-width: 600px) { .lines { inset: var(--space-3); } }

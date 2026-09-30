@@ -3,5 +3,6 @@
 .center .rule { margin-inline: auto; }
 .eyebrow { display: block; font-family: var(--font-label); color: var(--c-gold); letter-spacing: 0.3em; text-transform: uppercase; font-size: var(--fs-sm); margin-bottom: var(--space-3); }
 .title { font-size: var(--fs-3xl); margin: 0; }
-.rule { display: block; width: 64px; height: 2px; background: var(--c-gold); margin-top: var(--space-4); }
+.rule { display: block; width: 64px; height: 2px; background: var(--c-gold); margin-top: var(--space-4); transform-origin: left center; }
+.center .rule { transform-origin: center; }
 .subtitle { color: var(--c-text-muted); margin-top: var(--space-4); font-size: var(--fs-lg); }

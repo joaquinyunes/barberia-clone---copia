@@ -10,8 +10,10 @@
   letter-spacing: 0.12em;
   text-transform: uppercase;
   cursor: pointer;
-  transition: background 0.2s var(--ease), color 0.2s var(--ease), border-color 0.2s var(--ease), transform 0.15s var(--ease);
+  transition: background 0.5s var(--ease-out), color 0.5s var(--ease-out), border-color 0.5s var(--ease-out), transform 0.3s var(--ease-out);
   white-space: nowrap;
+  position: relative;
+  isolation: isolate;
 }
 .btn:active:not(:disabled) { transform: translateY(1px); }
 .btn:disabled { opacity: 0.55; cursor: not-allowed; }
@@ -21,8 +23,12 @@
 .block { width: 100%; }
 .gold { background: var(--c-gold); color: #17130c; }
 .gold:hover:not(:disabled) { background: var(--c-gold-strong); }
-.outline { border-color: var(--c-gold); color: var(--c-gold); background: transparent; }
-.outline:hover:not(:disabled) { background: var(--c-gold); color: #17130c; }
+/* Brillo que cruza el botón dorado al pasar el mouse */
+.gold::after { content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: linear-gradient(110deg, transparent 40%, rgb(255 255 255 / 0.45) 50%, transparent 60%) no-repeat; background-size: 300% 100%; background-position: 100% 0; transition: background-position 1.2s var(--ease-out); pointer-events: none; }
+.gold:hover:not(:disabled)::after { background-position: 0% 0; }
+/* El contorno se rellena de izquierda a derecha */
+.outline { border-color: var(--c-gold); color: var(--c-gold); background: linear-gradient(var(--c-gold), var(--c-gold)) no-repeat left center / 0% 100%; transition: background-size 0.8s var(--ease-out), color 0.5s var(--ease-out), border-color 0.5s var(--ease-out), transform 0.3s var(--ease-out); }
+.outline:hover:not(:disabled) { background-size: 100% 100%; color: #17130c; }
 .ghost { background: transparent; color: currentColor; border-color: transparent; letter-spacing: 0.06em; }
 .ghost:hover:not(:disabled) { background: rgb(128 128 128 / 0.12); }
 .dark { background: var(--c-surface-2); color: var(--c-text); border-color: var(--c-border); }

@@ -1,0 +1,7 @@
+/* El contenedor solo se traslada (x/y); el tamaño cambia con scale en el hijo: todo por GPU, sin relayout. */
+.cursor { position: fixed; top: 0; left: 0; z-index: 2000; pointer-events: none; opacity: 0; transition: opacity 0.6s var(--ease-out); }
+.visible { opacity: 1; }
+.ring { position: absolute; width: 40px; height: 40px; margin: -20px 0 0 -20px; border: 1px solid rgb(201 164 92 / 0.8); border-radius: 50%; transition: transform 0.7s var(--ease-out), background-color 0.7s var(--ease-out), border-color 0.7s var(--ease-out); }
+.hover { transform: scale(1.7); background-color: rgb(201 164 92 / 0.1); border-color: rgb(201 164 92 / 0.4); }
+.dot { position: absolute; width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 50%; background: var(--c-gold); transition: transform 0.5s var(--ease-out); }
+.dotHidden { transform: scale(0); }
