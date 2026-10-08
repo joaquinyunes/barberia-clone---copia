@@ -4,7 +4,7 @@
 .second { position: absolute; z-index: 2; right: 0; bottom: 0; width: 48%; border: 6px solid var(--c-bg); box-shadow: var(--shadow-md); }
 .frame { position: absolute; z-index: 0; top: var(--space-6); left: calc(-1 * var(--space-5)); right: var(--space-6); bottom: var(--space-6); border: 1px solid var(--c-gold); }
 .badge { position: absolute; z-index: 3; top: calc(-1 * var(--space-5)); right: var(--space-5); width: 120px; height: 120px; border-radius: 50%; background: var(--c-bg); display: grid; place-items: center; box-shadow: var(--shadow-gold); }
-.badge svg { position: absolute; inset: 0; width: 100%; height: 100%; fill: var(--c-gold); font-family: var(--font-label); font-size: 10.5px; letter-spacing: 0.22em; animation: spin 18s linear infinite; }
+.badge svg { position: absolute; inset: 0; width: 100%; height: 100%; fill: var(--c-gold); font-family: var(--font-label); font-size: 10.5px; letter-spacing: 0.22em; animation: spin 30s linear infinite; }
 .badge strong { font-family: var(--font-display); font-size: 2.4rem; font-style: italic; color: var(--c-gold); }
 @keyframes spin { to { transform: rotate(360deg); } }
 .eyebrow { font-family: var(--font-label); letter-spacing: 0.3em; text-transform: uppercase; color: var(--c-gold); font-size: var(--fs-sm); }

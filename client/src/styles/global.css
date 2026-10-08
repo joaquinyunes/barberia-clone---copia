@@ -9,6 +9,17 @@ html {
   scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;
 }
+/* Scroll suave con Lenis: él maneja la inercia, así que el navegador no debe suavizar por su cuenta */
+html.lenis {
+  scroll-behavior: auto;
+}
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+.lenis-stopped {
+  overflow: clip;
+}
 body {
   margin: 0;
   background: var(--c-bg);

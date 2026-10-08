@@ -1,9 +1,7 @@
-.ring, .dot { position: fixed; top: 0; left: 0; z-index: 2000; pointer-events: none; border-radius: 50%; opacity: 0; transition: opacity 0.3s; }
-.ring { width: 36px; height: 36px; margin: -18px 0 0 -18px; border: 1px solid var(--c-gold); display: grid; place-items: center; transition: opacity 0.3s, width 0.3s var(--ease), height 0.3s var(--ease), margin 0.3s var(--ease), background 0.3s; }
-.ring span { font-family: var(--font-label); font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase; color: #17130c; opacity: 0; transform: scale(0.6); transition: opacity 0.25s, transform 0.35s var(--ease); white-space: nowrap; }
-.dot { width: 6px; height: 6px; margin: -3px 0 0 -3px; background: var(--c-gold); }
+/* El contenedor solo se traslada (x/y); el tamaño cambia con scale en el hijo: todo por GPU, sin relayout. */
+.cursor { position: fixed; top: 0; left: 0; z-index: 2000; pointer-events: none; opacity: 0; transition: opacity 0.6s var(--ease-out); }
 .visible { opacity: 1; }
-.hover { width: 64px; height: 64px; margin: -32px 0 0 -32px; background: rgb(201 164 92 / 0.12); }
-.label { width: 84px; height: 84px; margin: -42px 0 0 -42px; background: var(--c-gold); }
-.label span { opacity: 1; transform: none; }
-.dot.hidden { opacity: 0; }
+.ring { position: absolute; width: 40px; height: 40px; margin: -20px 0 0 -20px; border: 1px solid rgb(201 164 92 / 0.8); border-radius: 50%; transition: transform 0.7s var(--ease-out), background-color 0.7s var(--ease-out), border-color 0.7s var(--ease-out); }
+.hover { transform: scale(1.7); background-color: rgb(201 164 92 / 0.1); border-color: rgb(201 164 92 / 0.4); }
+.dot { position: absolute; width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 50%; background: var(--c-gold); transition: transform 0.5s var(--ease-out); }
+.dotHidden { transform: scale(0); }

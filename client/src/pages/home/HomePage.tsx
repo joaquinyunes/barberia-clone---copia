@@ -21,7 +21,7 @@ export default function HomePage() {
       <QuickLinks />
       <IntroBlock />
       <FeaturedServices />
-      <Marquee items={CASA} tone="outline" reverse speed={45} />
+      <Marquee items={CASA} tone="outline" reverse speed={1.2} />
       <VipTeaser />
       <LocationsPreview />
       <Gallery />

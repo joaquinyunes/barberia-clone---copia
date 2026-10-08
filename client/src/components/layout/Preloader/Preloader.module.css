@@ -1,4 +1,5 @@
-.loader { position: fixed; inset: 0; z-index: 1000; background: var(--c-bg); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--space-5); border-bottom: 1px solid var(--c-gold-dark); }
+.loader { position: fixed; inset: 0; z-index: 1000; background: var(--c-bg); display: flex; align-items: center; justify-content: center; border-bottom: 1px solid var(--c-gold-dark); will-change: transform; }
+.inner { display: flex; flex-direction: column; align-items: center; gap: var(--space-5); }
 .logo { width: min(280px, 60vw); height: auto; }
 .bar { width: min(220px, 50vw); height: 1px; background: var(--c-border); overflow: hidden; }
 .bar span { display: block; height: 100%; background: var(--c-gold); transform-origin: left center; }
