@@ -1,10 +1,23 @@
 .wrap { text-align: center; position: relative; }
 .quote { font-family: var(--font-display); font-size: 8rem; line-height: 0.6; color: var(--c-gold); opacity: 0.35; display: block; }
-.block { margin: 0; min-height: 210px; }
+.stage { overflow: hidden; padding: 0 var(--space-2); }
+.block { margin: 0; min-height: 210px; cursor: grab; }
+.block:active { cursor: grabbing; }
 .stars { display: flex; justify-content: center; gap: 0.2rem; color: var(--c-gold); margin-bottom: var(--space-4); }
-.block p { font-family: var(--font-display); font-size: var(--fs-2xl); font-style: italic; line-height: 1.4; }
+.stars svg { animation: pop 0.5s var(--ease) both; animation-delay: calc(0.25s + var(--i) * 70ms); }
+.block p { font-family: var(--font-display); font-size: var(--fs-2xl); font-style: italic; line-height: 1.4; user-select: none; }
 .block footer { font-family: var(--font-label); letter-spacing: 0.2em; text-transform: uppercase; font-size: var(--fs-sm); }
 .block footer span { color: var(--c-gold); }
-.dots { display: flex; justify-content: center; gap: var(--space-2); margin-top: var(--space-5); }
-.dot { width: 10px; height: 10px; border-radius: 50%; border: 1px solid var(--c-gold); background: none; cursor: pointer; padding: 0; }
-.active { background: var(--c-gold); }
+.controls { display: flex; justify-content: center; align-items: center; gap: var(--space-4); margin-top: var(--space-5); }
+.arrow { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--c-border); background: none; color: var(--c-text-muted); cursor: pointer; transition: border-color 0.3s, color 0.3s, background 0.3s, transform 0.3s var(--ease); }
+.arrow:hover { border-color: var(--c-gold); color: #17130c; background: var(--c-gold); }
+.arrow:active { transform: scale(0.92); }
+.dots { display: flex; gap: var(--space-2); }
+.dot { position: relative; width: 14px; height: 4px; border-radius: 2px; border: 0; background: rgb(201 164 92 / 0.3); cursor: pointer; padding: 0; overflow: hidden; transition: width 0.45s var(--ease), background 0.3s; }
+.dot::before { content: ""; position: absolute; inset: -12px -3px; }
+.dot:hover { background: rgb(201 164 92 / 0.6); }
+.active { width: 44px; }
+.fill { position: absolute; inset: 0; background: var(--c-gold); transform-origin: left center; }
+@keyframes pop { from { opacity: 0; transform: scale(0.3) rotate(-30deg); } }
+@media (max-width: 560px) { .block p { font-size: var(--fs-xl); } .arrow { width: 36px; height: 36px; } }
+@media (prefers-reduced-motion: reduce) { .stars svg { animation: none; } }

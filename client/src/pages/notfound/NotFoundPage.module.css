@@ -1,4 +1,4 @@
 .page { padding-top: calc(var(--header-h) + var(--space-8)); min-height: 70vh; }
 .box { text-align: center; }
-.box span { font-family: var(--font-display); font-size: 7rem; color: var(--c-gold); line-height: 1; }
+.code { display: block; font-family: var(--font-display); font-size: 7rem; color: var(--c-gold); line-height: 1; margin-bottom: var(--space-4); }
 .box p { color: var(--c-text-muted); }

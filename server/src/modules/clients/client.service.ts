@@ -23,13 +23,19 @@ export async function ensureReferralCode(client: InstanceType<typeof Client>) {
   return client.referralCode;
 }
 
-export async function findOrCreate(input: { name: string; phone: string; email?: string; referralCode?: string; source?: string }) {
+/**
+ * Busca el cliente por celular o lo crea. `trustEmail` solo desde el panel: un formulario
+ * público no puede escribir el email de una ficha ajena (el registro vincula la cuenta por email).
+ */
+export async function findOrCreate(input: { name: string; phone: string; email?: string; referralCode?: string; source?: string; trustEmail?: boolean }) {
   const phone = normalizePhone(input.phone);
   let client = await Client.findOne({ phone });
   if (client) {
     if (client.blocked) throw AppError.forbidden("No es posible reservar online. Comunicate con la barbería.");
-    if (input.email && !client.email) client.email = input.email;
-    await client.save();
+    if (input.trustEmail && input.email && !client.email) {
+      client.email = input.email;
+      await client.save();
+    }
     return { client, isNew: false };
   }
   let referredBy: Types.ObjectId | undefined;

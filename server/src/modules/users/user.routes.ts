@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, type Request } from "express";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
 import { authenticate } from "../../middlewares/authenticate.js";
@@ -31,7 +31,16 @@ const base = z.object({
   active: z.boolean().optional(),
 });
 
+/** Quien tiene users.manage sin ser admin no puede crear admins ni repartir users.manage (escalada). */
+function assertCanGrant(req: Request, target: { role?: string; extraPermissions?: string[] }) {
+  if (req.user!.role === "admin") return;
+  if (target.role === "admin" || target.extraPermissions?.includes("users.manage")) {
+    throw AppError.forbidden("Solo un administrador puede otorgar ese rol o permiso");
+  }
+}
+
 usersRouter.post("/", validate({ body: base.extend({ password: z.string().min(8) }) }), async (req, res) => {
+  assertCanGrant(req, req.body);
   const { password, ...data } = req.body;
   const user = await User.create({ ...data, passwordHash: await bcrypt.hash(password, 10) });
   await audit(req, { action: "create", entity: "Usuario", entityId: user._id, summary: `creó el usuario ${user.name} (${ROLE_LABELS[user.role]})` });
@@ -41,6 +50,8 @@ usersRouter.post("/", validate({ body: base.extend({ password: z.string().min(8)
 usersRouter.patch("/:id", validate({ body: base.partial().extend({ password: z.string().min(8).optional() }) }), async (req, res) => {
   const user = await User.findById(req.params.id);
   if (!user) throw AppError.notFound("Usuario");
+  // Tampoco puede tocar (ni cambiar la contraseña de) un admin existente.
+  assertCanGrant(req, { role: user.role === "admin" ? "admin" : req.body.role, extraPermissions: req.body.extraPermissions });
   if (String(user._id) === String(req.user!._id) && (req.body.role && req.body.role !== "admin" || req.body.active === false)) {
     throw AppError.badRequest("No podés quitarte a vos mismo el rol de administrador");
   }

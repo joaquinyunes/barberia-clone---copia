@@ -11,8 +11,8 @@ const svgVersion = (src?: string) => (src?.startsWith("/images/") && src.endsWit
  * Orden de intento: `src` → misma ruta en .svg → placeholder.
  */
 export function Img({ src, alt, className, ratio, ...rest }: ImgHTMLAttributes<HTMLImageElement> & { ratio?: string }) {
-  const [state, setState] = useState({ src, url: src, failed: !src });
-  if (state.src !== src) setState({ src, url: src, failed: !src }); // cambió la imagen: se reintenta desde cero
+  const [state, setState] = useState({ src, url: src, failed: !src, loaded: false });
+  if (state.src !== src) setState({ src, url: src, failed: !src, loaded: false }); // cambió la imagen: se reintenta desde cero
 
   if (state.failed) {
     return (
@@ -26,5 +26,18 @@ export function Img({ src, alt, className, ratio, ...rest }: ImgHTMLAttributes<H
     const svg = svgVersion(src);
     setState((s) => (svg && s.url !== svg ? { ...s, url: svg } : { ...s, failed: true }));
   };
-  return <img src={state.url} alt={alt} loading="lazy" decoding="async" className={cx(styles.img, className)} style={{ aspectRatio: ratio }} onError={onError} {...rest} />;
+  // Aparece con un fade al terminar de cargar (en vez de "saltar" de golpe).
+  return (
+    <img
+      src={state.url}
+      alt={alt}
+      loading="lazy"
+      decoding="async"
+      className={cx(styles.img, state.loaded && styles.loaded, className)}
+      style={{ aspectRatio: ratio }}
+      onLoad={() => setState((s) => ({ ...s, loaded: true }))}
+      onError={onError}
+      {...rest}
+    />
+  );
 }

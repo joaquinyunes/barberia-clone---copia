@@ -38,9 +38,13 @@ test("reserva completa: sede → servicio → barbero → horario → datos → 
   await page.getByRole("button", { name: "Subir comprobante" }).click();
   await expect(page.getByText("¡Listo! Lo revisamos y te confirmamos.")).toBeVisible();
 
+  // Sin salir a internet: respondemos wa.me localmente.
+  await context.route("https://wa.me/**", (r) => r.fulfill({ contentType: "text/html", body: "WhatsApp" }));
   const popup = context.waitForEvent("page");
   await page.getByRole("button", { name: /Enviar reserva por WhatsApp/ }).click();
   const wa = await popup;
+  // Con noopener la pestaña nace en about:blank: esperamos a que navegue a wa.me.
+  await wa.waitForURL(/wa\.me/);
   const url = decodeURIComponent(wa.url());
   expect(url).toContain("5491160000001"); // WhatsApp de la sede Palermo
   expect(url).toContain("NUEVA RESERVA");

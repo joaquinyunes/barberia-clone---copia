@@ -164,7 +164,8 @@ export async function dashboard(period: string, location?: string) {
     clients,
     newClients,
     appointments: (Object.values(status) as number[]).reduce((a, b) => a + b, 0),
-    completed: status.completed ?? 0,
+    // Por fecha de cobro (completedAt), igual que la facturación y el gráfico por día.
+    completed: byDay.reduce((a, d) => a + d.count, 0),
     noShows: status.no_show ?? 0,
     cancelled: status.cancelled ?? 0,
     lowStock,

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { IoAdd, IoRemove } from "react-icons/io5";
 import { paths } from "@/app/router/paths";
-import { Badge, Button, Container, EmptyState, Img, PageLoader, Section, SectionTitle } from "@/components/ui";
+import { Badge, Button, Container, EmptyState, Img, PageLoader, Section, SectionTitle, SnapCarousel } from "@/components/ui";
 import { useCartStore } from "@/features/cart/cartStore";
 import { useProduct } from "@/features/catalog/useCatalog";
 import { ProductCard } from "@/features/shop/ProductCard/ProductCard";
@@ -56,7 +56,9 @@ export default function ProductPage() {
         <Section tone="soft">
           <Container>
             <SectionTitle title="También te puede gustar" />
-            <div className={styles.related}>{p.related.map((r) => <ProductCard key={r._id} product={r} />)}</div>
+            <SnapCarousel className={styles.related} label="Productos relacionados">
+              {p.related.map((r) => <ProductCard key={r._id} product={r} />)}
+            </SnapCarousel>
           </Container>
         </Section>
       )}

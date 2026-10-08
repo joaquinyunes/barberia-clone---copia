@@ -1,3 +1,3 @@
-.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-5); }
-@media (max-width: 960px) { .grid { grid-template-columns: 1fr 1fr; } }
-@media (max-width: 600px) { .grid { grid-template-columns: 1fr; } }
+.carousel { --per-view: 3; }
+@media (max-width: 960px) { .carousel { --per-view: 2.1; } }
+@media (max-width: 600px) { .carousel { --per-view: 1.12; --gap: var(--space-4); } }

@@ -17,4 +17,6 @@
   .grid { grid-template-columns: 1fr; gap: var(--space-8); }
   .media { padding: 0 var(--space-6) var(--space-6) 0; }
   .badge { width: 96px; height: 96px; right: var(--space-3); }
+  /* El marco no puede salirse del margen lateral (16px): en celulares quedaría cortado. */
+  .frame { left: calc(-1 * var(--space-3)); }
 }

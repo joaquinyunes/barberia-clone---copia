@@ -1,4 +1,4 @@
-import { Container, Reveal, Section, SectionTitle, SkeletonGrid } from "@/components/ui";
+import { Container, Reveal, Section, SectionTitle, SkeletonGrid, SnapCarousel } from "@/components/ui";
 import { LocationCard } from "@/features/catalog/LocationCard/LocationCard";
 import { useLocations } from "@/features/catalog/useCatalog";
 import styles from "./LocationsPreview.module.css";
@@ -12,13 +12,11 @@ export function LocationsPreview() {
         {isLoading ? (
           <SkeletonGrid count={3} height={460} />
         ) : (
-          <div className={styles.grid}>
-            {data?.map((l, i) => (
-              <Reveal key={l._id} delay={i * 0.08}>
-                <LocationCard location={l} />
-              </Reveal>
-            ))}
-          </div>
+          <Reveal>
+            <SnapCarousel className={styles.carousel} label="Nuestras sedes">
+              {data?.map((l) => <LocationCard key={l._id} location={l} />)}
+            </SnapCarousel>
+          </Reveal>
         )}
       </Container>
     </Section>

@@ -1,5 +1,6 @@
 .tabs { display: flex; gap: var(--space-1); border-bottom: 1px solid var(--a-border); overflow-x: auto; margin-bottom: var(--space-5); scrollbar-width: thin; }
-.tab { background: none; border: 0; padding: 0.7rem 1rem; cursor: pointer; font-weight: 500; color: var(--a-muted); border-bottom: 2px solid transparent; white-space: nowrap; display: inline-flex; gap: 0.4rem; align-items: center; }
+.tab { position: relative; background: none; border: 0; padding: 0.7rem 1rem; cursor: pointer; font-weight: 500; color: var(--a-muted); border-bottom: 2px solid transparent; white-space: nowrap; display: inline-flex; gap: 0.4rem; align-items: center; }
 .tab:hover { color: var(--a-text); }
-.active { color: var(--a-text); border-bottom-color: var(--c-gold); }
+.active { color: var(--a-text); }
+.indicator { position: absolute; left: 0; right: 0; bottom: -2px; height: 2px; background: var(--c-gold); }
 .count { background: var(--a-bg); border-radius: var(--radius-pill); padding: 0 0.45rem; font-size: 0.72rem; }

@@ -2,7 +2,7 @@ import { useEffect, type ReactNode } from "react";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { MotionConfig } from "framer-motion";
 import { Toaster } from "@/components/ui";
-import { useAuthStore } from "@/features/auth/authStore";
+import { sessionHint, useAuthStore } from "@/features/auth/authStore";
 import { refreshSession } from "@/services/http";
 import { queryClient } from "./queryClient";
 
@@ -10,7 +10,8 @@ import { queryClient } from "./queryClient";
 function SessionBootstrap() {
   const setReady = useAuthStore((s) => s.setReady);
   useEffect(() => {
-    refreshSession().finally(setReady);
+    if (sessionHint.get()) refreshSession().finally(setReady);
+    else setReady();
   }, [setReady]);
   return null;
 }

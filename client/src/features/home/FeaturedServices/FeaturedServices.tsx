@@ -1,5 +1,5 @@
 import { paths } from "@/app/router/paths";
-import { Button, Container, Reveal, Section, SectionTitle, SkeletonGrid } from "@/components/ui";
+import { Button, Container, Reveal, Section, SectionTitle, SkeletonGrid, SnapCarousel } from "@/components/ui";
 import { ServiceCard } from "@/features/catalog/ServiceCard/ServiceCard";
 import { useServices } from "@/features/catalog/useCatalog";
 import styles from "./FeaturedServices.module.css";
@@ -14,13 +14,11 @@ export function FeaturedServices() {
         {isLoading ? (
           <SkeletonGrid count={4} height={420} />
         ) : (
-          <div className={styles.grid}>
-            {featured?.map((s, i) => (
-              <Reveal key={s._id} delay={i * 0.07}>
-                <ServiceCard service={s} />
-              </Reveal>
-            ))}
-          </div>
+          <Reveal>
+            <SnapCarousel className={styles.carousel} label="Servicios destacados">
+              {featured?.map((s) => <ServiceCard key={s._id} service={s} />)}
+            </SnapCarousel>
+          </Reveal>
         )}
         <div className={styles.more}>
           <Button variant="outline" to={paths.services}>Ver todos los servicios</Button>

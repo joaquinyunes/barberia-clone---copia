@@ -195,6 +195,8 @@ publicRouter.get("/bookings/:code/calendar.ics", async (req, res) => {
   const a = await Appointment.findOne({ code: req.params.code }).populate("location service barber");
   if (!a) throw AppError.notFound("Turno");
   const fmt = (d: Date) => d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+  // RFC 5545: en textos hay que escapar \ , ; y saltos de línea (las direcciones llevan coma).
+  const esc = (s: string) => s.replace(/[\\,;]/g, (c) => `\\${c}`).replace(/\r?\n/g, "\\n");
   const loc = a.location as any;
   const ics = [
     "BEGIN:VCALENDAR",
@@ -205,8 +207,8 @@ publicRouter.get("/bookings/:code/calendar.ics", async (req, res) => {
     `DTSTAMP:${fmt(new Date())}`,
     `DTSTART:${fmt(a.startsAt)}`,
     `DTEND:${fmt(a.endsAt)}`,
-    `SUMMARY:${(a.service as any).name} con ${(a.barber as any).name} – Jack el Barbero`,
-    `LOCATION:${loc.name} – ${loc.address}`,
+    `SUMMARY:${esc(`${(a.service as any).name} con ${(a.barber as any).name} – Jack el Barbero`)}`,
+    `LOCATION:${esc(`${loc.name} – ${loc.address}`)}`,
     `DESCRIPTION:Código de reserva ${a.code}`,
     "END:VEVENT",
     "END:VCALENDAR",

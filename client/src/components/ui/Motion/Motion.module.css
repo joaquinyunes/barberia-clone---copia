@@ -28,3 +28,6 @@
 .outline .marqueeIcon { color: var(--c-gold-dark); }
 @keyframes marquee { to { transform: translateX(-50%); } }
 @media (prefers-reduced-motion: reduce) { .marqueeTrack { animation: none; } }
+
+/* Magnetic */
+.magnetic { display: inline-flex; will-change: transform; }

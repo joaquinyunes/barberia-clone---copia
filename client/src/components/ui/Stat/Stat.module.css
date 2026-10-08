@@ -1,10 +1,11 @@
-.stat { background: var(--a-surface); border: 1px solid var(--a-border); border-radius: var(--radius-md); padding: var(--space-4); color: var(--a-text); border-top: 3px solid var(--a-border); min-width: 0; }
+.stat { background: var(--a-surface); border: 1px solid var(--a-border); border-radius: var(--radius-md); padding: var(--space-4); color: var(--a-text); border-top: 3px solid var(--a-border); min-width: 0; container-type: inline-size; }
 .clickable { cursor: pointer; transition: box-shadow 0.15s; }
 .clickable:hover { box-shadow: 0 4px 14px rgb(0 0 0 / 0.08); }
 .top { display: flex; justify-content: space-between; align-items: center; gap: var(--space-2); }
 .label { font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: 0.08em; color: var(--a-muted); font-weight: 600; }
 .icon { color: var(--c-gold-dark); display: flex; }
-.value { font-size: 1.55rem; font-weight: 700; margin-top: var(--space-2); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+/* El monto se achica con la tarjeta en vez de partirse ("$ 12.265.00" + "0" en otra línea). */
+.value { font-size: clamp(1rem, 11cqi, 1.55rem); font-weight: 700; margin-top: var(--space-2); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .hint { font-size: var(--fs-xs); color: var(--a-muted); margin-top: var(--space-1); }
 .positive { border-top-color: var(--c-success); }
 .positive .value { color: #2f6e37; }

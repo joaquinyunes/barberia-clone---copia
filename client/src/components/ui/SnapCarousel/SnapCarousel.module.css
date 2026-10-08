@@ -1,0 +1,29 @@
+/* Quien lo usa define --per-view (tarjetas visibles, admite decimales para "asomar" la siguiente) y --gap. */
+.root { position: relative; }
+.track {
+  display: flex;
+  gap: var(--gap, var(--space-5));
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
+  /* Aire arriba y abajo para que la elevación y la sombra de las tarjetas no se recorten */
+  padding: 12px 2px 36px;
+  margin: -12px -2px -36px;
+  outline-offset: 4px;
+}
+.track::-webkit-scrollbar { display: none; }
+.dragging { scroll-snap-type: none; cursor: grabbing; user-select: none; }
+.dragging * { pointer-events: none; }
+.slide { flex: 0 0 calc((100% - (var(--per-view, 3) - 1) * var(--gap, var(--space-5))) / var(--per-view, 3)); min-width: 0; scroll-snap-align: start; }
+.slide > * { height: 100%; }
+
+.controls { display: flex; align-items: center; gap: var(--space-3); margin-top: var(--space-6); }
+.bar { flex: 1; height: 2px; background: var(--c-border); overflow: hidden; border-radius: 1px; }
+.bar span { display: block; height: 100%; background: var(--c-gold); will-change: transform; }
+.arrow { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--c-border); background: none; color: var(--c-text); cursor: pointer; transition: border-color 0.3s, color 0.3s, background 0.3s, opacity 0.3s, transform 0.3s var(--ease); }
+.arrow:hover:not(:disabled) { border-color: var(--c-gold); background: var(--c-gold); color: #17130c; }
+.arrow:active:not(:disabled) { transform: scale(0.92); }
+.arrow:disabled { opacity: 0.3; cursor: default; }
+@media (prefers-reduced-motion: reduce) { .track { scroll-behavior: auto; } }

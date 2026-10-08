@@ -8,6 +8,7 @@ import { validate } from "../../middlewares/validate.js";
 import { AppError } from "../../lib/AppError.js";
 import { signAccess, signRefresh, verifyRefresh } from "../../lib/tokens.js";
 import { permissionsFor, type Role } from "../../core/permissions.js";
+import { Client, normalizePhone } from "../clients/client.model.js";
 import { findOrCreate } from "../clients/client.service.js";
 import { User } from "../users/user.model.js";
 
@@ -45,7 +46,15 @@ authRouter.post(
   authLimiter,
   validate({ body: z.object({ name: z.string().trim().min(2), email: z.string().email(), phone: z.string().min(8), password: z.string().min(8, "Mínimo 8 caracteres") }) }),
   async (req, res) => {
-    if (await User.exists({ email: req.body.email.toLowerCase() })) throw AppError.conflict("Ya existe una cuenta con ese email");
+    const email = req.body.email.toLowerCase();
+    if (await User.exists({ email })) throw AppError.conflict("Ya existe una cuenta con ese email");
+    // Una ficha existente (mismo celular) trae turnos, saldo y gift cards: solo se vincula
+    // si nadie la reclamó y el email coincide con el que ya tiene cargado.
+    const existing = await Client.findOne({ phone: normalizePhone(req.body.phone) });
+    if (existing?.user) throw AppError.conflict("Ya existe una cuenta con ese celular. Ingresá con tu email.");
+    if (existing && existing.email?.toLowerCase() !== email) {
+      throw AppError.conflict("Ese celular ya figura en la barbería con otro email. Registrate con el email que dejaste al reservar, o pedí en la sede que lo actualicen.");
+    }
     const { client } = await findOrCreate({ name: req.body.name, phone: req.body.phone, email: req.body.email });
     const user = await User.create({
       name: req.body.name,

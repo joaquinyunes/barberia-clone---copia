@@ -5,10 +5,14 @@ import styles from "./CustomCursor.module.css";
 
 const INTERACTIVE = "a, button, [role='button'], input, select, textarea, label";
 
-/** Aro dorado que sigue al mouse y se agranda sobre links y botones (solo con mouse, no en touch). */
+/**
+ * Aro dorado que sigue al mouse (solo con mouse, no en touch). Se agranda sobre links y botones,
+ * y sobre una zona con `data-cursor="texto"` (carruseles) muestra ese texto adentro.
+ */
 export function CustomCursor() {
   const [enabled] = useState(() => typeof window !== "undefined" && window.matchMedia("(pointer: fine) and (prefers-reduced-motion: no-preference)").matches);
   const [hover, setHover] = useState(false);
+  const [label, setLabel] = useState("");
   const [visible, setVisible] = useState(false);
   const x = useMotionValue(-100);
   const y = useMotionValue(-100);
@@ -21,7 +25,11 @@ export function CustomCursor() {
       x.set(e.clientX);
       y.set(e.clientY);
       setVisible(true);
-      setHover(!!(e.target as Element | null)?.closest?.(INTERACTIVE));
+      const target = e.target as Element | null;
+      const interactive = !!target?.closest?.(INTERACTIVE);
+      setHover(interactive);
+      // Sobre un link/botón dentro del carrusel manda el estado "hover", no la etiqueta.
+      setLabel(interactive ? "" : (target?.closest?.<HTMLElement>("[data-cursor]")?.dataset.cursor ?? ""));
     };
     const leave = () => setVisible(false);
     window.addEventListener("pointermove", move, { passive: true });
@@ -35,8 +43,10 @@ export function CustomCursor() {
   if (!enabled) return null;
   return (
     <>
-      <motion.div className={cx(styles.ring, hover && styles.hover, visible && styles.visible)} style={{ x: ringX, y: ringY }} aria-hidden="true" />
-      <motion.div className={cx(styles.dot, visible && styles.visible)} style={{ x, y }} aria-hidden="true" />
+      <motion.div className={cx(styles.ring, hover && styles.hover, label && styles.label, visible && styles.visible)} style={{ x: ringX, y: ringY }} aria-hidden="true">
+        <span>{label}</span>
+      </motion.div>
+      <motion.div className={cx(styles.dot, visible && styles.visible, label && styles.hidden)} style={{ x, y }} aria-hidden="true" />
     </>
   );
 }

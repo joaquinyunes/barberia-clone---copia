@@ -12,7 +12,21 @@ interface Props {
 }
 
 export const Stat = ({ label, value, hint, tone = "neutral", icon, onClick }: Props) => (
-  <div className={cx(styles.stat, styles[tone], onClick && styles.clickable)} onClick={onClick} role={onClick ? "button" : undefined} tabIndex={onClick ? 0 : undefined}>
+  <div
+    className={cx(styles.stat, styles[tone], onClick && styles.clickable)}
+    onClick={onClick}
+    role={onClick ? "button" : undefined}
+    tabIndex={onClick ? 0 : undefined}
+    onKeyDown={
+      onClick
+        ? (e) => {
+            if (e.key !== "Enter" && e.key !== " ") return;
+            e.preventDefault();
+            onClick();
+          }
+        : undefined
+    }
+  >
     <div className={styles.top}>
       <span className={styles.label}>{label}</span>
       {icon && <span className={styles.icon}>{icon}</span>}

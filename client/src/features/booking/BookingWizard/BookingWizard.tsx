@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { motion } from "framer-motion";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -35,6 +36,11 @@ export function BookingWizard({ initialLocation, initialService }: { initialLoca
   const { data: locations } = useLocations();
   const wizard = useBookingWizard();
   const { step, selection, choose, goTo, next, back, index, canGo } = wizard;
+  const prevIndex = useRef(index);
+  const direction = index >= prevIndex.current ? 1 : -1;
+  useEffect(() => {
+    prevIndex.current = index;
+  }, [index]);
   const [result, setResult] = useState<BookingResult>();
   const [promo, setPromo] = useState<{ discount: number; total: number; name?: string }>();
 
@@ -139,114 +145,117 @@ export function BookingWizard({ initialLocation, initialService }: { initialLoca
           <button className={styles.back} onClick={back}><IoArrowBack /> Volver</button>
         )}
 
-        {step === "location" && (
-          <section>
-            <h2>¿En qué sede?</h2>
-            {!locations ? <Skeleton height={200} /> : (
-              <StepPicker
-                columns={1}
-                value={selection.location?._id}
-                onChange={(id) => {
-                  choose("location", locations.find((l) => l._id === id) as Location);
-                  next();
-                }}
-                options={locations.map((l) => ({ id: l._id, title: l.name, subtitle: l.address, image: l.heroImage, badge: l.isVip ? "La Cava VIP" : undefined }))}
-              />
-            )}
-          </section>
-        )}
-
-        {step === "service" && (
-          <section>
-            <h2>¿Qué te hacemos?</h2>
-            {loadingServices ? <Skeleton height={300} /> : servicesByCat.map(([cat, list]) => (
-              <div key={cat} className={styles.category}>
-                <h3>{CATEGORY_LABELS[cat] ?? cat}</h3>
+        {/* Cada paso entra desde el lado hacia el que se avanza (o retrocede) */}
+        <motion.div key={step} initial={{ opacity: 0, x: direction * 36 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}>
+          {step === "location" && (
+            <section>
+              <h2>¿En qué sede?</h2>
+              {!locations ? <Skeleton height={200} /> : (
                 <StepPicker
-                  value={selection.service?._id}
+                  columns={1}
+                  value={selection.location?._id}
                   onChange={(id) => {
-                    choose("service", list.find((s) => s._id === id));
+                    choose("location", locations.find((l) => l._id === id) as Location);
                     next();
                   }}
-                  options={list.map((s) => ({ id: s._id, title: s.name, subtitle: `${s.durationMin} min${s.description ? ` · ${s.description}` : ""}`, aside: money(s.price) }))}
+                  options={locations.map((l) => ({ id: l._id, title: l.name, subtitle: l.address, image: l.heroImage, badge: l.isVip ? "La Cava VIP" : undefined }))}
                 />
+              )}
+            </section>
+          )}
+
+          {step === "service" && (
+            <section>
+              <h2>¿Qué te hacemos?</h2>
+              {loadingServices ? <Skeleton height={300} /> : servicesByCat.map(([cat, list]) => (
+                <div key={cat} className={styles.category}>
+                  <h3>{CATEGORY_LABELS[cat] ?? cat}</h3>
+                  <StepPicker
+                    value={selection.service?._id}
+                    onChange={(id) => {
+                      choose("service", list.find((s) => s._id === id));
+                      next();
+                    }}
+                    options={list.map((s) => ({ id: s._id, title: s.name, subtitle: `${s.durationMin} min${s.description ? ` · ${s.description}` : ""}`, aside: money(s.price) }))}
+                  />
+                </div>
+              ))}
+            </section>
+          )}
+
+          {step === "barber" && (
+            <section>
+              <h2>¿Con quién?</h2>
+              {loadingBarbers ? <Skeleton height={200} /> : (
+                <StepPicker
+                  value={selection.barber === "any" ? "any" : selection.barber?._id}
+                  onChange={(id) => {
+                    choose("barber", id === "any" ? "any" : { _id: id, name: barbers!.find((b) => b._id === id)!.name });
+                    if (!selection.date) choose("date", isoDay());
+                    next();
+                  }}
+                  options={[
+                    { id: "any", title: "Cualquier barbero", subtitle: "Te asignamos al primero disponible — más horarios", image: "" },
+                    ...(barbers ?? []).map((b) => ({ id: b._id, title: b.name, subtitle: b.specialties?.join(" · "), image: b.photo })),
+                  ]}
+                />
+              )}
+            </section>
+          )}
+
+          {step === "datetime" && (
+            <section>
+              <h2>¿Cuándo?</h2>
+              <DateStrip value={selection.date} onChange={(d) => choose("date", d)} closedDays={closedDays} />
+              <div className={styles.slots}>
+                <TimeSlots slots={slots} loading={loadingSlots && !availability} closed={availability?.closed} value={selection.time} onChange={(t) => choose("time", t)} />
               </div>
-            ))}
-          </section>
-        )}
+              <Button size="lg" disabled={!selection.time} onClick={next}>Continuar</Button>
+            </section>
+          )}
 
-        {step === "barber" && (
-          <section>
-            <h2>¿Con quién?</h2>
-            {loadingBarbers ? <Skeleton height={200} /> : (
-              <StepPicker
-                value={selection.barber === "any" ? "any" : selection.barber?._id}
-                onChange={(id) => {
-                  choose("barber", id === "any" ? "any" : { _id: id, name: barbers!.find((b) => b._id === id)!.name });
-                  if (!selection.date) choose("date", isoDay());
-                  next();
-                }}
-                options={[
-                  { id: "any", title: "Cualquier barbero", subtitle: "Te asignamos al primero disponible — más horarios", image: "" },
-                  ...(barbers ?? []).map((b) => ({ id: b._id, title: b.name, subtitle: b.specialties?.join(" · "), image: b.photo })),
-                ]}
-              />
-            )}
-          </section>
-        )}
+          {step === "details" && (
+            <section>
+              <h2>Tus datos</h2>
+              <form className={styles.form} onSubmit={form.handleSubmit((d) => create.mutate(d))} noValidate>
+                <Input label="Nombre y apellido" autoComplete="name" {...form.register("name")} error={form.formState.errors.name?.message} />
+                <Input label="Celular (WhatsApp)" type="tel" autoComplete="tel" placeholder="11 5555-5555" {...form.register("phone")} error={form.formState.errors.phone?.message} />
+                <Input label="Email (opcional)" type="email" autoComplete="email" {...form.register("email")} error={form.formState.errors.email?.message} />
+                <Textarea label="¿Algo que tu barbero deba saber? (opcional)" placeholder="Ej: degradé bajo, dejo largo arriba…" {...form.register("notes")} />
+                <div className={styles.promo}>
+                  <Input label="Código de descuento" {...form.register("promoCode")} error={form.formState.errors.promoCode?.message} hint={promo ? `✓ ${promo.name}: −${money(promo.discount)}` : undefined} />
+                  <Button type="button" variant="dark" onClick={checkPromo}>Aplicar</Button>
+                </div>
+                <Input label="¿Te recomendó alguien? Código de referido (opcional)" {...form.register("referralCode")} hint="Tu amigo suma crédito y vos tenés descuento en tu primera visita." />
+                <p className={styles.legal}>
+                  Al reservar aceptás la <Link to={paths.legal("cancelaciones")}>política de cancelación</Link>: podés cancelar o reprogramar gratis hasta 12 h antes.
+                </p>
+                <Button type="submit" size="lg" loading={create.isPending}>Reservar y pasar a la seña</Button>
+              </form>
+            </section>
+          )}
 
-        {step === "datetime" && (
-          <section>
-            <h2>¿Cuándo?</h2>
-            <DateStrip value={selection.date} onChange={(d) => choose("date", d)} closedDays={closedDays} />
-            <div className={styles.slots}>
-              <TimeSlots slots={slots} loading={loadingSlots && !availability} closed={availability?.closed} value={selection.time} onChange={(t) => choose("time", t)} />
-            </div>
-            <Button size="lg" disabled={!selection.time} onClick={next}>Continuar</Button>
-          </section>
-        )}
-
-        {step === "details" && (
-          <section>
-            <h2>Tus datos</h2>
-            <form className={styles.form} onSubmit={form.handleSubmit((d) => create.mutate(d))} noValidate>
-              <Input label="Nombre y apellido" autoComplete="name" {...form.register("name")} error={form.formState.errors.name?.message} />
-              <Input label="Celular (WhatsApp)" type="tel" autoComplete="tel" placeholder="11 5555-5555" {...form.register("phone")} error={form.formState.errors.phone?.message} />
-              <Input label="Email (opcional)" type="email" autoComplete="email" {...form.register("email")} error={form.formState.errors.email?.message} />
-              <Textarea label="¿Algo que tu barbero deba saber? (opcional)" placeholder="Ej: degradé bajo, dejo largo arriba…" {...form.register("notes")} />
-              <div className={styles.promo}>
-                <Input label="Código de descuento" {...form.register("promoCode")} error={form.formState.errors.promoCode?.message} hint={promo ? `✓ ${promo.name}: −${money(promo.discount)}` : undefined} />
-                <Button type="button" variant="dark" onClick={checkPromo}>Aplicar</Button>
+          {step === "payment" && result && (
+            <section>
+              <div className={styles.success}>
+                <IoCheckmarkCircle size={40} />
+                <div>
+                  <h2>¡Horario reservado!</h2>
+                  <p>Código <strong>{result.code}</strong>. Para confirmarlo, completá estos 3 pasos.</p>
+                </div>
               </div>
-              <Input label="¿Te recomendó alguien? Código de referido (opcional)" {...form.register("referralCode")} hint="Tu amigo suma crédito y vos tenés descuento en tu primera visita." />
-              <p className={styles.legal}>
-                Al reservar aceptás la <Link to={paths.legal("cancelaciones")}>política de cancelación</Link>: podés cancelar o reprogramar gratis hasta 12 h antes.
-              </p>
-              <Button type="submit" size="lg" loading={create.isPending}>Reservar y pasar a la seña</Button>
-            </form>
-          </section>
-        )}
-
-        {step === "payment" && result && (
-          <section>
-            <div className={styles.success}>
-              <IoCheckmarkCircle size={40} />
-              <div>
-                <h2>¡Horario reservado!</h2>
-                <p>Código <strong>{result.code}</strong>. Para confirmarlo, completá estos 3 pasos.</p>
+              {result.deposit > 0 ? (
+                <PaymentPanel kind="bookings" code={result.code} token={result.token} amount={result.deposit} bank={result.bank} holdExpiresAt={result.holdExpiresAt} />
+              ) : (
+                <p>Tu turno ya está confirmado. ¡Te esperamos!</p>
+              )}
+              <div className={styles.after}>
+                <Button variant="outline" to={paths.bookingManage(result.code, result.token)}>Ver / gestionar mi reserva</Button>
+                {result.referralCode && <p className={styles.referral}>Tu código para invitar amigos: <strong>{result.referralCode}</strong></p>}
               </div>
-            </div>
-            {result.deposit > 0 ? (
-              <PaymentPanel kind="bookings" code={result.code} token={result.token} amount={result.deposit} bank={result.bank} holdExpiresAt={result.holdExpiresAt} />
-            ) : (
-              <p>Tu turno ya está confirmado. ¡Te esperamos!</p>
-            )}
-            <div className={styles.after}>
-              <Button variant="outline" to={paths.bookingManage(result.code, result.token)}>Ver / gestionar mi reserva</Button>
-              {result.referralCode && <p className={styles.referral}>Tu código para invitar amigos: <strong>{result.referralCode}</strong></p>}
-            </div>
-          </section>
-        )}
+            </section>
+          )}
+        </motion.div>
       </div>
 
       <BookingSummary selection={selection} discount={result?.discount ?? promo?.discount} total={result?.total ?? promo?.total} />

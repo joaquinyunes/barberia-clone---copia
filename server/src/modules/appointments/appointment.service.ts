@@ -69,6 +69,10 @@ export async function availability(input: { location: string; service: string; d
   ]);
   if (!location || !location.active) throw AppError.notFound("Sede");
   if (!service || !service.active) throw AppError.notFound("Servicio");
+  // Servicios exclusivos de algunas sedes (ej. La Cava VIP solo en Recoleta).
+  if (service.locations?.length && !service.locations.some((l) => String(l) === String(location._id))) {
+    throw AppError.badRequest("Ese servicio no se ofrece en esta sede");
+  }
 
   const weekday = businessWeekday(input.date);
   const hours = location.openingHours?.find((h) => h.day === weekday);
@@ -143,7 +147,12 @@ export async function createBooking(input: BookingInput, actor?: Actor) {
   const barber = await Barber.findById(barberId);
   if (!barber) throw AppError.notFound("Barbero");
 
-  const { client, isNew } = await clients.findOrCreate({ ...input.customer, referralCode: input.referralCode, source: input.source });
+  const { client, isNew } = await clients.findOrCreate({
+    ...input.customer,
+    referralCode: input.referralCode,
+    source: input.source,
+    trustEmail: !!input.source && input.source !== "web",
+  });
   const startsAt = toBusinessDate(input.date, input.time);
   const endsAt = new Date(startsAt.getTime() + service.durationMin * 60_000);
 
@@ -222,7 +231,14 @@ export async function attachReceipt(code: string, file: { path: string; mime: st
   if (appt.status === "cancelled") {
     if (appt.cancellation?.by !== "system") throw AppError.conflict("El turno fue cancelado");
     // venció la reserva pero pagó igual: se reactiva si el horario sigue libre
-    const clash = await Appointment.exists({ _id: { $ne: appt._id }, barber: appt.barber, startsAt: appt.startsAt, status: { $in: BLOCKING_STATUSES } });
+    // Cualquier turno que se superponga, no solo el que empieza a la misma hora.
+    const clash = await Appointment.exists({
+      _id: { $ne: appt._id },
+      barber: appt.barber,
+      startsAt: { $lt: appt.endsAt },
+      endsAt: { $gt: appt.startsAt },
+      status: { $in: BLOCKING_STATUSES },
+    });
     if (clash) throw AppError.conflict("El horario fue tomado por otra persona. Contactanos por WhatsApp para reprogramar con tu seña.");
     appt.cancellation = undefined as never;
   }

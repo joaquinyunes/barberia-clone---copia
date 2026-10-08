@@ -1,5 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 import mongoose from "mongoose";
+import multer from "multer";
 import { AppError } from "../lib/AppError.js";
 import { logger } from "../lib/logger.js";
 
@@ -21,6 +22,12 @@ export function errorHandler(err: unknown, _req: Request, res: Response, _next: 
   if (typeof err === "object" && err && "code" in err && (err as { code: number }).code === 11000) {
     const keys = Object.keys((err as { keyValue?: object }).keyValue ?? {}).join(", ");
     return res.status(409).json({ error: { code: "DUPLICATE", message: `Ya existe un registro con ese valor (${keys})` } });
+  }
+  if (err instanceof multer.MulterError) {
+    const tooBig = err.code === "LIMIT_FILE_SIZE";
+    return res.status(tooBig ? 413 : 400).json({
+      error: { code: "UPLOAD", message: tooBig ? "El archivo supera los 5 MB. Probá con una foto o captura más liviana." : "No se pudo procesar el archivo adjunto." },
+    });
   }
   if (typeof err === "object" && err && "type" in err && (err as { type: string }).type === "entity.parse.failed") {
     return res.status(400).json({ error: { code: "BAD_JSON", message: "JSON inválido" } });
