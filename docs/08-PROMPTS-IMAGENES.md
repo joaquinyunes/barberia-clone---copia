@@ -45,21 +45,29 @@ Negativo sugerido: `texto, letras, logos, marcas, manos deformes, dedos de más,
 
 ## Servicios
 
-Formato 1200×900, fondo oscuro, plano cercano, sin mostrar caras completas si es posible.
+Cada foto tiene que **mostrar el servicio que dice el título** (si dice "Color / platinado", se ve pelo decolorado o el decolorante aplicándose; si dice "Padre e hijo", se ven dos personas). Formato **1200×900 (4:3)**, WebP, plano medio o cercano, el sujeto ocupando el centro-derecha (las tarjetas recortan los bordes).
 
-| Archivo | Prompt |
-|---|---|
-| `services/servicios-hero.webp` (2400×1100) | Plano cenital de herramientas de barbería alineadas sobre una toalla negra: navaja, tijera, máquina, peine y brocha. |
-| `services/corte-clasico.webp` | Corte clásico con tijera y peine, raya al costado, vista lateral de la nuca prolija. |
-| `services/fade.webp` | Degradé (fade) de piel a corto, vista trasera y lateral, líneas muy limpias, máquina en la mano del barbero. |
-| `services/barba.webp` | Perfilado de barba con navaja en la mejilla, línea definida, aceite brillando en la barba. |
-| `services/corte-y-barba.webp` | Hombre con corte fresco y barba perfilada mirándose al espejo del barbero, satisfecho. |
-| `services/afeitado.webp` | Afeitado ritual: rostro cubierto con toalla caliente humeante, barbero preparando la navaja al lado. |
-| `services/padre-hijo.webp` | Padre e hijo de 8 años en sillones contiguos de barbería, el niño con capa, ambiente tierno y cálido. |
-| `services/color.webp` | Barbero aplicando decolorante platinado con pincel en el pelo corto de un joven, guantes negros. |
-| `services/facial.webp` | Hombre recostado con máscara facial negra de carbón, rodajas de pepino, luz suave. |
-| `services/ritual.webp` | Masaje de hombros en sillón de cuero en un sótano de ladrillo, vaso de whisky en primer plano. |
-| `services/presidente.webp` | Escena de lujo: cliente recostado con toalla caliente, barbero con guantes, mesa auxiliar con whisky premium, habano apagado y productos de vidrio ámbar. |
+Agregá siempre al final el **estilo común** de arriba y este refuerzo: *"la acción del servicio es claramente visible, el protagonista es el servicio y no el retrato"*.
+
+| Archivo | Servicio | Prompt |
+|---|---|---|
+| `services/servicios-hero.webp` (2400×1100) | Portada de Servicios | Plano cenital de herramientas de barbería alineadas sobre una toalla negra: navaja recta, tijera, máquina de cortar, peine de carey y brocha de afeitar, con espacio libre a la izquierda. |
+| `services/corte-clasico.webp` | Corte clásico | Barbero cortando con tijera y peine el pelo de un hombre de unos 30 años, con la raya al costado marcada, vista de tres cuartos por detrás; se ven la tijera abierta y mechones de pelo cayendo, capa negra sobre el cliente. |
+| `services/fade.webp` | Fade / degradé | Barbero pasando la máquina por la nuca y los costados de un cliente, degradé de piel a pelo largo con transición muy limpia, vista lateral trasera; la máquina en acción y el degradé bien definido son lo más visible. |
+| `services/barba.webp` | Perfilado de barba | Primer plano de la mejilla de un hombre con barba tupida mientras un barbero perfila el contorno con navaja recta; línea de la barba nítida, aceite brillando en el vello, guantes negros. |
+| `services/corte-y-barba.webp` | Corte + barba | Hombre de 35 años con corte recién hecho y barba perfilada, sentado en el sillón de barbero mirándose al espejo con gesto satisfecho; el barbero detrás con un peine, se ven las dos cosas: pelo y barba impecables. |
+| `services/afeitado.webp` | Afeitado ritual a navaja | Cliente recostado en el sillón con la cara cubierta de espuma blanca y una toalla caliente humeante sobre la frente, mientras el barbero afila o sostiene la navaja recta junto a su mejilla; vapor visible. |
+| `services/padre-hijo.webp` | Padre e hijo | **Dos personas:** un padre de 38 años sentado en un sillón de barbería y su hijo de 8 años en el sillón de al lado, con capa de corte a su medida, mientras uno de los barberos le corta el pelo al niño; ambos sonríen y se miran entre sí, ambiente tierno y cálido. |
+| `services/color.webp` | Color / platinado | Joven de unos 25 años con el pelo corto **decolorado platinado casi blanco**, de perfil, con un barbero con guantes negros aplicando decolorante o matizante con pincel sobre la parte superior; se ve claramente el contraste entre el rubio platino y las raíces oscuras o la cara de cliente satisfecho con el resultado final. |
+| `services/facial.webp` | Limpieza facial | Hombre recostado y relajado con **máscara facial negra de carbón** cubriendo el rostro, rodajas de pepino sobre los ojos y una toalla blanca en el cuello; luz suave, vapor de un vaporizador, frascos de vidrio ámbar al fondo. |
+| `services/ritual.webp` | Ritual del Caballero | Sillón de cuero en un sótano de ladrillo, cliente con toalla caliente sobre el rostro mientras el barbero le da un **masaje de hombros**; en primer plano, desenfocado, un vaso de whisky con hielo sobre una mesa auxiliar de madera. |
+| `services/presidente.webp` | El Presidente | Escena de lujo máximo: cliente recostado con toalla caliente y máscara de ojos, barbero con guantes trabajando con una navaja, mesa auxiliar con botella de whisky premium, vaso, hilo de depilación y frascos de vidrio ámbar; iluminación cálida dramática. |
+
+**Cuáles conviene cambiar primero:** `color`, `facial`, `padre-hijo` y `ritual` (las fotos actuales no muestran el servicio). `corte-clasico`, `fade`, `barba`, `afeitado` y `corte-y-barba` ya coinciden y se pueden dejar; `presidente` funciona pero se puede mejorar.
+
+### Texto del hero (portada)
+
+Los textos grandes de la portada ya no son texto sino imágenes (`hero/texto-ritual.png`, `texto-cava.png`, `texto-regalo.png`) con efecto de "latido". No hace falta generarlas con IA: se crean solas con tipografías del sitio. Si cambiás el texto en `client/src/features/home/HeroSlider/slides.ts`, editá también `tools/hero-lockups/generate.mjs` y ejecutá, desde `client/`: `node ../tools/hero-lockups/generate.mjs`.
 
 ## Salón VIP "La Cava"
 
