@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { AnimatePresence, motion, useScroll, useTransform } from "framer-motion";
 import { IoChevronBack, IoChevronForward } from "react-icons/io5";
 import { INTRO_DELAY } from "@/components/layout/Preloader/intro";
-import { Button, Img, SplitText } from "@/components/ui";
+import { Button, Img } from "@/components/ui";
 import { DURATION, EASE_IN_OUT, EASE_OUT } from "@/components/ui/Motion/easing";
 import { cx } from "@/utils/format";
 import { HERO_SLIDES } from "./slides";
@@ -58,15 +58,18 @@ export function HeroSlider() {
       <motion.div className={styles.content} style={{ y: contentY, opacity: contentOpacity }}>
         <AnimatePresence mode="wait">
           <motion.div key={slide.id} exit={{ opacity: 0, y: -12, transition: { duration: 0.7, ease: EASE_IN_OUT } }}>
-            <motion.span className={styles.eyebrow} initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: DURATION, delay: d, ease: EASE_OUT }}>
-              <motion.i className={styles.line} initial={{ scaleX: 0 }} animate={{ scaleX: 1 }} transition={{ duration: 1.6, delay: d, ease: EASE_OUT }} />
-              {slide.eyebrow}
-            </motion.span>
-            <SplitText as="h1" className={styles.title} text={slide.title} delay={d + 0.1} stagger={0.06} />
-            <motion.p className={styles.text} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: DURATION, delay: d + 0.5, ease: EASE_OUT }}>
-              {slide.text}
-            </motion.p>
-            <motion.div className={styles.ctas} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: DURATION, delay: d + 0.7, ease: EASE_OUT }}>
+            {/* El texto es una imagen con efecto "latido"; el texto real queda oculto para lectores de pantalla y buscadores. */}
+            <h1 className={styles.srOnly}>{slide.title}</h1>
+            <p className={styles.srOnly}>{slide.eyebrow}. {slide.text}</p>
+            <motion.div
+              className={styles.lockupWrap}
+              initial={{ opacity: 0, scale: 0.82, y: 24 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{ opacity: { duration: 0.5, delay: d }, scale: { type: "spring", stiffness: 140, damping: 11, delay: d }, y: { type: "spring", stiffness: 140, damping: 14, delay: d } }}
+            >
+              <img className={styles.lockup} src={slide.textImage} alt="" aria-hidden="true" width={1100} height={520} decoding="async" />
+            </motion.div>
+            <motion.div className={styles.ctas} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: DURATION, delay: d + 0.6, ease: EASE_OUT }}>
               <Button to={slide.cta.to} size="lg">{slide.cta.label}</Button>
               <Button to={slide.secondary.to} size="lg" variant="outline">{slide.secondary.label}</Button>
             </motion.div>

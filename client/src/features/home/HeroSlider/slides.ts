@@ -7,6 +7,8 @@ export const HERO_SLIDES = [
     title: "El ritual de la navaja, como se hacía antes",
     text: "Toalla caliente, espuma tibia y doble pasada. Cortes de precisión en tres sedes porteñas.",
     image: "/images/hero/hero-ritual.webp",
+    // Texto del hero como imagen (se regenera con tools/hero-lockups/generate.mjs)
+    textImage: "/images/hero/texto-ritual.png",
     cta: { label: "Reservar turno", to: paths.booking },
     secondary: { label: "Ver servicios", to: paths.services },
   },
@@ -16,6 +18,8 @@ export const HERO_SLIDES = [
     title: "La Cava: el salón privado de la casa",
     text: "Un subsuelo de ladrillo, sillones de cuero y whisky de cortesía. La experiencia completa, sin apuro.",
     image: "/images/hero/hero-cava.webp",
+    // Texto del hero como imagen (se regenera con tools/hero-lockups/generate.mjs)
+    textImage: "/images/hero/texto-cava.png",
     cta: { label: "Conocer La Cava", to: paths.vip },
     secondary: { label: "Reservar ritual", to: `${paths.booking}?location=recoleta` },
   },
@@ -25,6 +29,8 @@ export const HERO_SLIDES = [
     title: "Regalá un corte que se recuerde",
     text: "Gift cards para cualquier sede, packs con descuento y una membresía mensual con cortes incluidos.",
     image: "/images/hero/hero-regalo.webp",
+    // Texto del hero como imagen (se regenera con tools/hero-lockups/generate.mjs)
+    textImage: "/images/hero/texto-regalo.png",
     cta: { label: "Ir a la tienda", to: paths.shop },
     secondary: { label: "Club Jack", to: paths.club },
   },
