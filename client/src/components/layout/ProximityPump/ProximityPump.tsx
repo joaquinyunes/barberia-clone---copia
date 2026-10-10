@@ -15,15 +15,13 @@ const smooth = (t: number) => t * t * (3 - 2 * t);
  * - `data-pump="center"`: escala desde el centro (texto centrado). Sin valor: desde el borde izquierdo.
  * - `data-pump-amount="0.04"`: crecimiento máximo propio (4 %); útil en párrafos largos.
  *
- * Solo con mouse y sin `prefers-reduced-motion`. Los elementos marcados no deben tener otra
+ * Solo reacciona a eventos de mouse (el dedo no dispara `pointerType: "mouse"`) y no depende de
+ * `prefers-reduced-motion` ni de `hover`/`pointer`, que en notebooks con pantalla táctil mienten.
+ * Los elementos marcados no deben tener otra
  * `transform` propia (usá un hijo si la necesitás).
  */
 export function ProximityPump() {
   useEffect(() => {
-    const fine = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (!fine || reduce) return;
-
     const progress = new WeakMap<HTMLElement, number>();
     let x = -9999;
     let y = -9999;

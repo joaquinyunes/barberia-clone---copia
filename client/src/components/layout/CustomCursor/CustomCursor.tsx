@@ -7,7 +7,7 @@ const INTERACTIVE = "a, button, [role='button'], input, select, textarea, label"
 
 /** Aro dorado que sigue al mouse con un leve retraso y se agranda sobre links y botones (solo con mouse). */
 export function CustomCursor() {
-  const [enabled] = useState(() => typeof window !== "undefined" && window.matchMedia("(pointer: fine) and (prefers-reduced-motion: no-preference)").matches);
+  const [enabled] = useState(() => typeof window !== "undefined" && window.matchMedia("(pointer: fine)").matches);
   const [hover, setHover] = useState(false);
   const [visible, setVisible] = useState(false);
   const x = useMotionValue(-100);

@@ -15,5 +15,4 @@
 .aside { font-family: var(--font-label); color: var(--c-gold); white-space: nowrap; }
 .check { position: absolute; top: 8px; right: 8px; color: var(--c-gold); }
 @keyframes rise { from { opacity: 0; transform: translateY(14px); } }
-@media (prefers-reduced-motion: reduce) { .option { animation: none; } }
 @media (max-width: 720px) { .c2, .c3 { grid-template-columns: 1fr; } }

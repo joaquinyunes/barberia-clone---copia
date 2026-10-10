@@ -19,7 +19,8 @@ function SessionBootstrap() {
 export function AppProviders({ children }: { children: ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
-      <MotionConfig reducedMotion="user">
+      {/* Las animaciones son parte de la identidad del sitio: no se apagan con la preferencia "reducir movimiento" del sistema. */}
+      <MotionConfig reducedMotion="never">
         <SessionBootstrap />
         {children}
         <Toaster />

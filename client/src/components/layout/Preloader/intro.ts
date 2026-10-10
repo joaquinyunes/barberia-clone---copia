@@ -3,7 +3,6 @@ export const PRELOADER_KEY = "jack.preloaded";
 /** El preloader se muestra solo la primera vez de la sesión (y nunca en tests automatizados). */
 function shouldShowPreloader() {
   if (typeof window === "undefined" || navigator.webdriver) return false;
-  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return false;
   try {
     return !sessionStorage.getItem(PRELOADER_KEY);
   } catch {

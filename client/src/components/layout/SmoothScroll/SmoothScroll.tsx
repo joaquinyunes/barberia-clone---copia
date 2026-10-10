@@ -11,7 +11,6 @@ const isDialog = (node: HTMLElement) => node.getAttribute("role") === "dialog" |
  */
 export function SmoothScroll() {
   useEffect(() => {
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const lenis = new Lenis({ autoRaf: true, lerp: 0.085, smoothWheel: true, allowNestedScroll: true, prevent: isDialog });
     setLenis(lenis);
 
