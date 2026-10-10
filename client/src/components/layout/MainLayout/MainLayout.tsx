@@ -9,6 +9,7 @@ import { CustomCursor } from "../CustomCursor/CustomCursor";
 import { Footer } from "../Footer/Footer";
 import { Header } from "../Header/Header";
 import { Preloader } from "../Preloader/Preloader";
+import { ProximityPump } from "../ProximityPump/ProximityPump";
 import { ScrollProgress } from "../ScrollProgress/ScrollProgress";
 import { SmoothScroll } from "../SmoothScroll/SmoothScroll";
 import { WhatsAppFloat } from "../WhatsAppFloat/WhatsAppFloat";
@@ -20,6 +21,7 @@ export function MainLayout() {
     <div className={styles.layout}>
       <a href="#contenido" className={styles.skip}>Saltar al contenido</a>
       <SmoothScroll />
+      <ProximityPump />
       <Preloader />
       <ScrollProgress />
       <Header />

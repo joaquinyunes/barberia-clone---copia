@@ -12,7 +12,7 @@ export function CtaBanner({ title = "¿Te toca el corte?", text = "Reservá en u
       <Container className={styles.inner}>
         <div>
           <SplitText as="h2" text={title} inView />
-          <Reveal delay={0.2}><p>{text}</p></Reveal>
+          <Reveal delay={0.2}><p data-pump data-pump-amount="0.04">{text}</p></Reveal>
         </div>
         <Reveal delay={0.35}>
           <Button to={paths.booking} size="lg">Reservar turno</Button>

@@ -14,6 +14,7 @@ export function SplitText({
   delay = 0,
   stagger = 0.045,
   inView = false,
+  pump,
 }: {
   text: string;
   as?: ElementType;
@@ -22,11 +23,13 @@ export function SplitText({
   stagger?: number;
   /** true: se anima al entrar en pantalla; false: al montarse. */
   inView?: boolean;
+  /** Marca el título para el "bombeo" por cercanía del mouse (ver ProximityPump). */
+  pump?: "center" | "left";
 }) {
   const words = text.split(" ");
   const trigger = inView ? { whileInView: "show", viewport: { once: true, margin: "0px 0px -10% 0px" } } : { animate: "show" };
   return (
-    <Tag className={className}>
+    <Tag className={className} data-pump={pump === "center" ? "center" : pump ? "" : undefined}>
       <motion.span className={styles.split} initial="hidden" {...trigger} transition={{ staggerChildren: stagger, delayChildren: delay }}>
         {words.map((w, i) => (
           <Fragment key={`${w}-${i}`}>

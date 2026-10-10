@@ -23,7 +23,7 @@ export function Testimonials() {
         <AnimatePresence mode="wait">
           <motion.blockquote key={r.name} className={styles.block} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -16 }} transition={{ duration: 0.45 }}>
             <div className={styles.stars} aria-label="5 de 5 estrellas">{Array.from({ length: 5 }, (_, i) => <IoStar key={i} />)}</div>
-            <p>{r.text}</p>
+            <p data-pump data-pump-amount="0.03">{r.text}</p>
             <footer>{r.name} · <span>{r.place}</span></footer>
           </motion.blockquote>
         </AnimatePresence>

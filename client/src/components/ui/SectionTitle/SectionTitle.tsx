@@ -15,7 +15,7 @@ export const SectionTitle = ({ eyebrow, title, subtitle, align = "center" }: { e
         {eyebrow}
       </motion.span>
     )}
-    {typeof title === "string" ? <SplitText as="h2" className={styles.title} text={title} inView delay={0.1} /> : <h2 className={styles.title}>{title}</h2>}
+    {typeof title === "string" ? <SplitText as="h2" className={styles.title} text={title} inView delay={0.1} pump={align} /> : <h2 className={styles.title} data-pump={align === "center" ? "center" : ""}>{title}</h2>}
     <motion.span className={styles.rule} aria-hidden="true" {...inView} variants={{ hidden: { scaleX: 0 }, show: { scaleX: 1 } }} transition={{ duration: 1.6, delay: 0.3, ease: EASE_OUT }} />
     {subtitle && (
       <motion.p className={styles.subtitle} {...inView} variants={fadeUp} transition={{ duration: DURATION, delay: 0.35, ease: EASE_OUT }}>

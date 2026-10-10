@@ -23,8 +23,8 @@ export function QuickLinks() {
               <span className={styles.num}>0{i + 1}</span>
               <div className={styles.body}>
                 <l.icon size={40} className={styles.icon} />
-                <h3>{l.title}</h3>
-                <p>{l.text}</p>
+                <h3 data-pump>{l.title}</h3>
+                <p data-pump data-pump-amount="0.04">{l.text}</p>
                 <span className={styles.more}>Ir <i>→</i></span>
               </div>
             </Link>

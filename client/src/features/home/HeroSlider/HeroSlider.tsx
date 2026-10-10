@@ -67,7 +67,10 @@ export function HeroSlider() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               transition={{ opacity: { duration: 0.5, delay: d }, scale: { type: "spring", stiffness: 140, damping: 11, delay: d }, y: { type: "spring", stiffness: 140, damping: 14, delay: d } }}
             >
-              <img className={styles.lockup} src={slide.textImage} alt="" aria-hidden="true" width={1100} height={520} decoding="async" />
+              {/* El "bombeo" por cercanía va en el contenedor: la imagen ya tiene su propio latido por CSS. */}
+              <div data-pump data-pump-amount="0.05">
+                <img className={styles.lockup} src={slide.textImage} alt="" aria-hidden="true" width={1100} height={520} decoding="async" />
+              </div>
             </motion.div>
             <motion.div className={styles.ctas} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: DURATION, delay: d + 0.6, ease: EASE_OUT }}>
               <Button to={slide.cta.to} size="lg">{slide.cta.label}</Button>

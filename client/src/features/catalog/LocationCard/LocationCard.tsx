@@ -16,9 +16,9 @@ export function LocationCard({ location }: { location: Location }) {
         {location.isVip && <span className={styles.vip}>La Cava VIP</span>}
       </Link>
       <div className={styles.body}>
-        <span className={styles.tagline}>{location.tagline}</span>
-        <h3><Link to={paths.location(location.slug)}>{location.name}</Link></h3>
-        <p className={styles.address}><IoLocationOutline /> {location.address}</p>
+        <span className={styles.tagline} data-pump>{location.tagline}</span>
+        <h3 data-pump><Link to={paths.location(location.slug)}>{location.name}</Link></h3>
+        <p className={styles.address} data-pump><IoLocationOutline /> {location.address}</p>
         <Badge tone={status.open ? "success" : "neutral"}>{status.label}</Badge>
         <div className={styles.actions}>
           <Link to={`${paths.booking}?location=${location.slug}`} className={styles.primary}>Reservar acá</Link>

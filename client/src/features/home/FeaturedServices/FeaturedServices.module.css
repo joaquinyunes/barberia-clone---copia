@@ -1,4 +1,4 @@
-.carousel { --per-view: 4; }
+.grid { --cols: 4; }
 .more { text-align: center; margin-top: var(--space-7); }
-@media (max-width: 1000px) { .carousel { --per-view: 2.15; } }
-@media (max-width: 560px) { .carousel { --per-view: 1.12; --gap: var(--space-4); } }
+@media (max-width: 1100px) { .grid { --cols: 2; } }
+@media (max-width: 560px) { .grid { --cols: 1; --gap: var(--space-4); } }

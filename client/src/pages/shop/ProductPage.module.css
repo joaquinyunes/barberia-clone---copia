@@ -12,6 +12,5 @@
 .qty { display: flex; align-items: center; border: 1px solid var(--c-border); }
 .qty button { background: none; border: 0; color: var(--c-text); width: 44px; height: 48px; cursor: pointer; display: grid; place-items: center; }
 .qty span { min-width: 32px; text-align: center; }
-.related { --per-view: 4; --gap: var(--space-4); }
-@media (max-width: 860px) { .grid { grid-template-columns: 1fr; } .related { --per-view: 2.2; } }
-@media (max-width: 520px) { .related { --per-view: 1.5; } }
+.related { --cols: 4; --gap: var(--space-4); }
+@media (max-width: 860px) { .grid { grid-template-columns: 1fr; } .related { --cols: 2; } }

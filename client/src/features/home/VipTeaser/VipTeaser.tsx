@@ -16,7 +16,7 @@ export function VipTeaser() {
         <Reveal><span className={styles.eyebrow}>Recoleta · Subsuelo · Solo con turno</span></Reveal>
         <SplitText as="h2" text="La Cava" inView delay={0.15} stagger={0.1} />
         <Reveal delay={0.3}>
-          <p>
+          <p data-pump data-pump-amount="0.03">
             Bajás una escalera de hierro y el ruido de la ciudad queda arriba. Sillones Chesterfield, luz baja, un whisky de
             cortesía y dos horas dedicadas a vos. Los rituales más completos de la casa se hacen acá.
           </p>

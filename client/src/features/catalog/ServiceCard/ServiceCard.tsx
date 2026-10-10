@@ -16,11 +16,11 @@ export function ServiceCard({ service, compact }: { service: Service; compact?: 
       )}
       <div className={styles.body}>
         <div className={styles.head}>
-          <h3>{service.name}</h3>
-          <span className={styles.price}>{money(service.price)}</span>
+          <h3 data-pump>{service.name}</h3>
+          <span className={styles.price} data-pump="center">{money(service.price)}</span>
         </div>
-        <p className={styles.meta}><IoTimeOutline /> {service.durationMin} min</p>
-        {service.description && <p className={styles.desc}>{service.description}</p>}
+        <p className={styles.meta} data-pump><IoTimeOutline /> {service.durationMin} min</p>
+        {service.description && <p className={styles.desc} data-pump data-pump-amount="0.035">{service.description}</p>}
         {service.includes && service.includes.length > 0 && (
           <ul className={styles.includes}>
             {service.includes.map((i) => (
@@ -28,7 +28,7 @@ export function ServiceCard({ service, compact }: { service: Service; compact?: 
             ))}
           </ul>
         )}
-        <Link to={`${paths.booking}?service=${service._id}`} className={styles.book}>Reservar este servicio →</Link>
+        <Link to={`${paths.booking}?service=${service._id}`} className={styles.book} data-pump>Reservar este servicio →</Link>
       </div>
     </article>
   );

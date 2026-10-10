@@ -33,11 +33,11 @@ export function IntroBlock() {
           <Reveal><span className={styles.eyebrow}>Nuestra forma de trabajar</span></Reveal>
           <SplitText as="h2" text="Oficio antiguo, trato de barrio y agenda del siglo XXI" inView delay={0.1} />
           <Reveal delay={0.25}>
-            <p>
+            <p data-pump data-pump-amount="0.03">
               En Jack el Barbero creemos que un buen corte empieza con una charla. Escuchamos, miramos cómo crece tu pelo y recién
               después agarramos la tijera. Trabajamos con navaja recta, toallas calientes y productos elegidos uno por uno.
             </p>
-            <p>
+            <p data-pump data-pump-amount="0.03">
               Lo clásico no está peleado con lo práctico: reservás online en un minuto, te llega todo por WhatsApp y tu barbero
               recuerda cómo te gusta el degradé la próxima vez.
             </p>

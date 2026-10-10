@@ -25,7 +25,7 @@ export const Button = forwardRef<HTMLButtonElement, Props>(function Button(
   const content = (
     <>
       {loading ? <Spinner size={16} /> : icon}
-      {children && <span>{children}</span>}
+      {children && <span data-pump="center">{children}</span>}
     </>
   );
   if (to) return <Link to={to} className={classes}>{content}</Link>;

@@ -1,3 +1,2 @@
-.carousel { --per-view: 3; }
-@media (max-width: 960px) { .carousel { --per-view: 2.1; } }
-@media (max-width: 600px) { .carousel { --per-view: 1.12; --gap: var(--space-4); } }
+.grid { --cols: 3; }
+@media (max-width: 900px) { .grid { --cols: 1; } }

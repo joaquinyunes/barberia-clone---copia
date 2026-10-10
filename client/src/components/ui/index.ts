@@ -24,4 +24,4 @@ export { DataTable, type Column } from "./DataTable/DataTable";
 export { Toaster } from "./Toast/Toaster";
 export { toast } from "./Toast/toastStore";
 export { Magnetic } from "./Motion/Magnetic";
-export { SnapCarousel } from "./SnapCarousel/SnapCarousel";
+export { CardGrid } from "./CardGrid/CardGrid";
