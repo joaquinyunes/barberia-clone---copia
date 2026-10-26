@@ -18,9 +18,13 @@ const schema = z.object({
   MP_WEBHOOK_SECRET: z.string().optional(),
 });
 
-const parsed = schema.safeParse(
-  Object.fromEntries(Object.entries(process.env).filter(([, v]) => v !== "")),
+const raw: Record<string, string | undefined> = Object.fromEntries(
+  Object.entries(process.env).filter(([, v]) => v !== ""),
 );
+// Render define RENDER_EXTERNAL_URL solo: sirve de PUBLIC_API_URL si no se configuró.
+raw.PUBLIC_API_URL ??= raw.RENDER_EXTERNAL_URL;
+
+const parsed = schema.safeParse(raw);
 if (!parsed.success) {
   console.error("Variables de entorno inválidas:", z.treeifyError(parsed.error));
   process.exit(1);
@@ -29,6 +33,10 @@ if (!parsed.success) {
 export const env = parsed.data;
 
 if (env.NODE_ENV === "production") {
+  // Los valores por defecto (localhost, secretos de desarrollo) son solo para desarrollo y tests.
+  for (const key of ["MONGO_URI", "CLIENT_URL", "PUBLIC_API_URL"] as const) {
+    if (!raw[key]) throw new Error(`${key} debe configurarse en producción`);
+  }
   for (const key of ["JWT_ACCESS_SECRET", "JWT_REFRESH_SECRET", "LINK_SECRET"] as const) {
     if (env[key].startsWith(DEV_SECRET)) {
       throw new Error(`${key} debe configurarse en producción`);
