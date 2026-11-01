@@ -28,6 +28,11 @@ reportsRouter.get("/ranking", authorize("reports.view"), async (req, res) => {
   const { start, end } = range(q);
   res.json(await reports.barberRanking(start, end, q.location));
 });
+reportsRouter.get("/commissions", authorize("reports.view", "finance.manage"), async (req, res) => {
+  const q = req.query as Record<string, string>;
+  const { start, end } = range(q);
+  res.json(await reports.commissionsReport(start, end, q.location));
+});
 reportsRouter.get("/daily-close", authorize("cash.manage", "reports.view"), async (req, res) => {
   const q = req.query as Record<string, string>;
   res.json(await reports.dailyClose(q.date || businessDayString(new Date()), q.location));

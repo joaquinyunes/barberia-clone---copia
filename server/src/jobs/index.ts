@@ -1,6 +1,7 @@
 import cron from "node-cron";
 import { logger } from "../lib/logger.js";
 import { expireHolds } from "../modules/appointments/appointment.service.js";
+import { sendDueReminders } from "../modules/appointments/reminder.service.js";
 import { Membership } from "../modules/commercial/commercial.models.js";
 import { applyDueInstallments } from "../modules/staff/staff.service.js";
 import { Barber } from "../modules/barbers/barber.model.js";
@@ -17,6 +18,8 @@ const safe = (name: string, fn: () => Promise<unknown>) => async () => {
 export function startJobs() {
   // Libera horarios con seña vencida
   cron.schedule("* * * * *", safe("expire-holds", expireHolds));
+  // Recordatorio del turno (cada 10 min; cada turno se avisa una sola vez)
+  cron.schedule("*/10 * * * *", safe("send-reminders", sendDueReminders));
   // Membresías vencidas sin renovar
   cron.schedule("15 3 * * *", safe("expire-memberships", async () => (await Membership.updateMany({ status: "active", renewsAt: { $lt: new Date() } }, { status: "expired" })).modifiedCount));
   // Cuotas internas vencidas: se descuentan solas del saldo del barbero

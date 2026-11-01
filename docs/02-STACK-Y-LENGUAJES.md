@@ -88,4 +88,4 @@ Reglas:
 - Carpetas de componentes en `PascalCase`, hooks `useAlgo.ts`, servicios `algo.api.ts`.
 - Rutas de URL en minúscula y español (`/ubicaciones`, `/reservar`), definidas una sola vez en `routes/paths.ts`.
 - Commits con **Conventional Commits** (`feat:`, `fix:`, `refactor:` …).
-- Variables de entorno: `server/.env.example` y `client/.env.example` versionados; los `.env` reales, nunca.
+- Variables de entorno: sus nombres están en la tabla de [`DEPLOY.md`](./DEPLOY.md); los `.env` con valores, nunca se versionan.

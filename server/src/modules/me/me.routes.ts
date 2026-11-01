@@ -7,6 +7,7 @@ import { currentPeriod, monthRange } from "../../lib/dates.js";
 import { Appointment } from "../appointments/appointment.model.js";
 import { manageToken } from "../appointments/appointment.service.js";
 import { Client } from "../clients/client.model.js";
+import * as lastCuts from "../clients/lastCut.service.js";
 import { ClientPack, GiftCard, Membership } from "../commercial/commercial.models.js";
 import * as ledger from "../ledger/ledger.service.js";
 import { Goal, Settlement } from "../staff/staff.models.js";
@@ -69,3 +70,23 @@ meRouter.get("/client", async (req, res) => {
     giftCards,
   });
 });
+
+const clientIdOf = (req: { user?: { client?: unknown } }) => {
+  if (!req.user?.client) throw AppError.forbidden("Tu usuario no tiene ficha de cliente");
+  return req.user.client;
+};
+
+/** «Lo mismo que la última vez»: el último corte con su nota y los próximos horarios libres del mismo barbero. */
+meRouter.get("/client/last-cut", async (req, res) => {
+  const last = await lastCuts.lastCut(clientIdOf(req));
+  res.json({ lastCut: last, suggestions: last ? await lastCuts.suggestSlots(last) : [] });
+});
+
+meRouter.post(
+  "/client/repeat-last-cut",
+  validate({ body: z.object({ date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/), time: z.string().regex(/^\d{2}:\d{2}$/) }) }),
+  async (req, res) => {
+    const a = await lastCuts.repeat(clientIdOf(req), req.body);
+    res.status(201).json({ code: a.code, token: manageToken(a.code), status: a.status, startsAt: a.startsAt, deposit: a.deposit.required });
+  },
+);

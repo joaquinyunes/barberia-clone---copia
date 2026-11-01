@@ -17,6 +17,7 @@ import { servicesAdminRouter } from "../modules/services/service.routes.js";
 import { settingsRouter } from "../modules/settings/settings.routes.js";
 import { attendanceKioskRouter, staffRouter } from "../modules/staff/staff.routes.js";
 import { usersRouter } from "../modules/users/user.routes.js";
+import { waitlistRouter } from "../modules/waitlist/waitlist.routes.js";
 
 export const api = Router();
 
@@ -32,6 +33,7 @@ api.use("/admin/services", servicesAdminRouter);
 api.use("/admin/barbers", barbersAdminRouter);
 api.use("/admin/clients", clientsRouter);
 api.use("/admin/appointments", appointmentsRouter);
+api.use("/admin/waitlist", waitlistRouter);
 api.use("/admin/ledger", ledgerRouter);
 api.use("/admin/cash", cashRouter);
 api.use("/admin/staff", staffRouter);

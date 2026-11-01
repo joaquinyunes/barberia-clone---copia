@@ -19,6 +19,7 @@ import { DateStrip } from "../DateStrip/DateStrip";
 import { PaymentPanel } from "../PaymentPanel/PaymentPanel";
 import { StepPicker } from "../StepPicker/StepPicker";
 import { TimeSlots } from "../TimeSlots/TimeSlots";
+import { WaitlistForm } from "../WaitlistForm/WaitlistForm";
 import { STEPS, useBookingWizard } from "../useBookingWizard";
 import styles from "./BookingWizard.module.css";
 
@@ -210,6 +211,9 @@ export function BookingWizard({ initialLocation, initialService }: { initialLoca
               <div className={styles.slots}>
                 <TimeSlots slots={slots} loading={loadingSlots && !availability} closed={availability?.closed} value={selection.time} onChange={(t) => choose("time", t)} />
               </div>
+              {availability && !availability.closed && !slots?.length && selection.location && selection.service && selection.barber && selection.date && (
+                <WaitlistForm location={selection.location._id} service={selection.service._id} barber={selection.barber === "any" ? "any" : selection.barber._id} date={selection.date} />
+              )}
               <Button size="lg" disabled={!selection.time} onClick={next}>Continuar</Button>
             </section>
           )}

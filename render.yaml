@@ -1,0 +1,41 @@
+# Referencia de lo que corre hoy en Render (servicios jack-el-barbero-api y jack-el-barbero-web).
+# Sirve para recrearlos o para entender qué variables hacen falta; los servicios actuales no dependen de este archivo.
+services:
+  - type: web
+    name: jack-el-barbero-api
+    runtime: node
+    plan: starter # free se duerme y la reserva en curso se corta; starter no
+    region: virginia
+    buildCommand: npm ci --include=dev && npm run build -w server
+    startCommand: npm run start -w server
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: MONGO_URI # MongoDB Atlas
+        sync: false
+      - key: CLIENT_URL # URL pública del sitio (jack-el-barbero-web)
+        sync: false
+      - key: PUBLIC_API_URL # URL pública de esta API; si falta usa RENDER_EXTERNAL_URL
+        sync: false
+      # En producción la API se niega a arrancar con los secretos de desarrollo (server/src/config/env.ts): mínimo 16 caracteres.
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: LINK_SECRET
+        generateValue: true
+      - key: MP_ACCESS_TOKEN # Mercado Pago (opcional hasta activar los cobros)
+        sync: false
+      - key: MP_WEBHOOK_SECRET
+        sync: false
+
+  - type: web
+    name: jack-el-barbero-web
+    runtime: static
+    buildCommand: npm ci --include=dev && npm run build -w client
+    staticPublishPath: client/dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html

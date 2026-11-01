@@ -13,7 +13,7 @@ Node 22+, MongoDB 7 (local con Docker o Atlas).
 ```bash
 npm install
 docker compose up -d mongo      # o configurá MONGO_URI con Atlas
-cp server/.env.example server/.env
+# creá server/.env a mano (nombres de variables en docs/DEPLOY.md); sin él usa valores de desarrollo
 npm run seed                    # datos de ejemplo (borra la base)
 npm run dev                     # API :4000 + web :5173
 ```

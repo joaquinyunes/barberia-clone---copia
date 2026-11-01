@@ -31,6 +31,10 @@ const settingsSchema = new Schema(
     commissionOnNet: { type: Boolean, default: true },
     advanceMaxPctOfBalance: { type: Number, default: 80 },
     holdMinutes: { type: Number, default: 30 },
+    /** Minutos que tiene para tomar el horario quien estaba en lista de espera. */
+    waitlistOfferMinutes: { type: Number, default: 15 },
+    /** Cuántas horas antes del turno se manda el recordatorio. */
+    reminderHours: { type: Number, default: 24 },
     cancellationHours: { type: Number, default: 12 },
     slotStepMinutes: { type: Number, default: 15 },
     clientCreditLimit: { type: Number, default: 20000 },

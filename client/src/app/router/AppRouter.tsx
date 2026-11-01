@@ -62,6 +62,7 @@ const router = createBrowserRouter([
           { path: "mi-panel", element: guard(["appointments.own"], () => import("@/pages/admin/MyBarberPage")) },
           { path: "turnos", element: guard(["appointments.manage", "appointments.own"], () => import("@/pages/admin/AppointmentsPage")) },
           { path: "cancelaciones", element: guard(["appointments.manage"], () => import("@/pages/admin/CancellationsPage")) },
+          { path: "lista-de-espera", element: guard(["appointments.manage"], () => import("@/pages/admin/WaitlistPage")) },
           { path: "clientes", element: guard(["clients.manage"], () => import("@/pages/admin/ClientsPage")) },
           { path: "clientes/:id", element: guard(["clients.manage"], () => import("@/pages/admin/ClientDetailPage")) },
           { path: "barberos", element: guard(["barbers.manage"], () => import("@/pages/admin/BarbersPage")) },

@@ -103,6 +103,32 @@ export async function profitAndLoss(from: Date, to: Date, location?: string) {
   };
 }
 
+/* ───────── Comisiones: qué ganó cada barbero en cada servicio ───────── */
+export async function commissionsReport(from: Date, to: Date, location?: string) {
+  const rows = await Appointment.aggregate([
+    { $match: { ...byLocation(location), status: "completed", completedAt: { $gte: from, $lt: to } } },
+    { $group: { _id: { barber: "$barber", service: "$serviceName" }, count: { $sum: 1 }, sales: { $sum: "$total" }, commission: { $sum: { $ifNull: ["$commission", 0] } } } },
+    { $lookup: { from: "barbers", localField: "_id.barber", foreignField: "_id", as: "b" } },
+    { $unwind: "$b" },
+  ]);
+  const pct = (commission: number, sales: number) => (sales ? Math.round((commission / sales) * 1000) / 10 : 0);
+  type Line = { service: string; count: number; sales: number; commission: number; effectivePct: number };
+  type Entry = { barber: { _id: unknown; name: string }; serviceCount: number; sales: number; commission: number; services: Line[] };
+  const byBarber = new Map<string, Entry>();
+  for (const r of rows) {
+    const key = String(r._id.barber);
+    const e: Entry = byBarber.get(key) ?? { barber: { _id: r.b._id, name: r.b.name }, serviceCount: 0, sales: 0, commission: 0, services: [] };
+    e.serviceCount += r.count;
+    e.sales += r.sales;
+    e.commission += r.commission;
+    e.services.push({ service: r._id.service, count: r.count, sales: r.sales, commission: r.commission, effectivePct: pct(r.commission, r.sales) });
+    byBarber.set(key, e);
+  }
+  const barbers = [...byBarber.values()].map((b) => ({ ...b, effectivePct: pct(b.commission, b.sales) })).sort((x, y) => y.commission - x.commission);
+  const totals = barbers.reduce((t, b) => ({ services: t.services + b.serviceCount, sales: t.sales + b.sales, commission: t.commission + b.commission }), { services: 0, sales: 0, commission: 0 });
+  return { from, to, barbers, totals };
+}
+
 /* ───────── Centro de saldos: dónde está la plata ───────── */
 export async function balancesCenter() {
   const [clients, barbers, suppliers, openSessions, giftCards] = await Promise.all([

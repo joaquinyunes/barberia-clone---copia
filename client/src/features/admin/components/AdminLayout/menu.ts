@@ -3,7 +3,7 @@ import {
   IoAnalyticsOutline, IoBagHandleOutline, IoBarChartOutline, IoBusinessOutline, IoCalendarOutline, IoCardOutline, IoCashOutline,
   IoConstructOutline, IoCubeOutline, IoDocumentTextOutline, IoFlagOutline, IoGiftOutline, IoGridOutline, IoHomeOutline, IoPeopleOutline,
   IoPersonOutline, IoPricetagOutline, IoReceiptOutline, IoRibbonOutline, IoSettingsOutline, IoShieldCheckmarkOutline, IoSwapHorizontalOutline,
-  IoTimeOutline, IoTrendingUpOutline, IoWalletOutline, IoCutOutline, IoChatbubbleOutline, IoCloseCircleOutline, IoStorefrontOutline,
+  IoTimeOutline, IoTrendingUpOutline, IoWalletOutline, IoCutOutline, IoChatbubbleOutline, IoCloseCircleOutline, IoStorefrontOutline, IoHourglassOutline,
 } from "react-icons/io5";
 
 export interface MenuItem {
@@ -29,6 +29,7 @@ export const ADMIN_MENU: { group: string; items: MenuItem[] }[] = [
     items: [
       { to: "/admin/turnos", label: "Turnos", icon: IoCalendarOutline, perms: ["appointments.manage", "appointments.own"] },
       { to: "/admin/cancelaciones", label: "Cancelaciones", icon: IoCloseCircleOutline, perms: ["appointments.manage"] },
+      { to: "/admin/lista-de-espera", label: "Lista de espera", icon: IoHourglassOutline, perms: ["appointments.manage"] },
       { to: "/admin/clientes", label: "Clientes", icon: IoPeopleOutline, perms: ["clients.manage"] },
       { to: "/admin/asistencia", label: "Asistencia", icon: IoTimeOutline, perms: ["barbers.manage"] },
       { to: "/admin/puestos", label: "Puestos", icon: IoGridOutline, perms: ["inventory.manage"] },

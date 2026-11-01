@@ -32,12 +32,14 @@ export default function ReportsPage() {
       <Tabs value={tab} onChange={setTab} tabs={[
         { value: "resultados", label: "Resultados" },
         { value: "ranking", label: "Ranking operativo" },
+        { value: "comisiones", label: "Comisiones" },
         { value: "margenes", label: "Margen por servicio" },
         { value: "cierre", label: "Cierre diario" },
         { value: "riesgo", label: "Clientes en riesgo" },
       ]} />
       {tab === "resultados" && <PnlReport period={period} location={location} />}
       {tab === "ranking" && <Ranking period={period} location={location} />}
+      {tab === "comisiones" && <Commissions period={period} location={location} />}
       {tab === "margenes" && <Margins period={period} />}
       {tab === "cierre" && <DailyClose location={location} />}
       {tab === "riesgo" && <AtRiskClients />}
@@ -94,6 +96,33 @@ function Ranking({ period, location }: { period: string; location: string }) {
         { key: "x", header: "Cancel. / no-show", align: "right", render: (r) => `${r.cancelled} / ${r.noShows}` },
       ]} />
     </Card>
+  );
+}
+
+interface CommissionBarber { barber: { _id: string; name: string }; serviceCount: number; sales: number; commission: number; effectivePct: number; services: { service: string; count: number; sales: number; commission: number; effectivePct: number }[] }
+
+function Commissions({ period, location }: { period: string; location: string }) {
+  const { data, isLoading } = useAdminQuery<{ barbers: CommissionBarber[]; totals: { services: number; sales: number; commission: number } }>("reports/commissions", { period, location: location || undefined });
+  return (
+    <>
+      <p className={styles.muted}>Qué ganó cada barbero en cada servicio del período y qué porcentaje real de la venta representa. La liquidación se hace en “Liquidaciones”.</p>
+      <div className={styles.stats}>
+        <Stat label="Servicios" value={data?.totals.services ?? 0} />
+        <Stat label="Ventas" value={money(data?.totals.sales)} />
+        <Stat label="Comisiones" value={money(data?.totals.commission)} />
+      </div>
+      {data?.barbers.map((b) => (
+        <Card key={b.barber._id} tone="light" padded={false} title={`${b.barber.name} · ${money(b.commission)} (${b.effectivePct}%)`}>
+          <DataTable loading={isLoading} rows={b.services} rowKey={(s) => s.service} columns={[
+            { key: "s", header: "Servicio", render: (s) => <strong>{s.service}</strong> },
+            { key: "n", header: "Cant.", align: "right", render: (s) => s.count },
+            { key: "v", header: "Ventas", align: "right", render: (s) => money(s.sales) },
+            { key: "c", header: "Comisión", align: "right", render: (s) => money(s.commission) },
+            { key: "p", header: "% real", align: "right", render: (s) => `${s.effectivePct}%` },
+          ]} />
+        </Card>
+      ))}
+    </>
   );
 }
 

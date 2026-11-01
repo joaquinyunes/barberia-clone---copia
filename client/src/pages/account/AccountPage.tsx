@@ -1,9 +1,9 @@
-import { useQuery } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { Link, useNavigate } from "react-router-dom";
 import { paths } from "@/app/router/paths";
-import { Badge, Button, Card, Container, EmptyState, PageLoader, Section } from "@/components/ui";
+import { Badge, Button, Card, Container, EmptyState, PageLoader, Section, toast } from "@/components/ui";
 import { useAuth } from "@/features/auth/useAuth";
-import { http } from "@/services/http";
+import { errorMessage, http } from "@/services/http";
 import type { Appointment, Movement } from "@/types";
 import { date, longDate, money, signedMoney, time } from "@/utils/format";
 import { STATUS_LABELS, STATUS_TONE } from "@/utils/labels";
@@ -16,6 +16,37 @@ interface MyData {
   appointments: (Appointment & { token: string })[];
   membership: { plan: { name: string }; usage: { label: string; total: number; used: number }[]; renewsAt: string } | null;
   packs: { _id: string; code: string; name: string; usage: { label: string; total: number; used: number }[]; expiresAt: string }[];
+}
+
+interface LastCut {
+  lastCut: { service: { _id: string; name: string }; barber: { name: string }; location: { name: string }; appointment: { startsAt: string }; note?: string } | null;
+  suggestions: { date: string; time: string }[];
+}
+
+/** «Lo mismo que la última vez»: mismo servicio y barbero, reservado con un toque. */
+function RepeatLastCut() {
+  const navigate = useNavigate();
+  const { data } = useQuery({ queryKey: ["me-last-cut"], queryFn: () => http.get<LastCut>("/me/client/last-cut").then((r) => r.data) });
+  const repeat = useMutation({
+    mutationFn: (slot: { date: string; time: string }) => http.post<{ code: string; token: string }>("/me/client/repeat-last-cut", slot).then((r) => r.data),
+    onSuccess: (r) => navigate(paths.bookingManage(r.code, r.token)),
+    onError: (e) => toast.error(errorMessage(e)),
+  });
+  if (!data?.lastCut) return null;
+  const { service, barber, location, appointment, note } = data.lastCut;
+  return (
+    <Card title="Lo mismo que la última vez">
+      <p><strong>{service.name}</strong> con {barber.name} · {location.name} <small>({date(appointment.startsAt)})</small></p>
+      {note && <p className={styles.note}>“{note}”</p>}
+      {data.suggestions.length === 0 ? <p className={styles.note}>No hay horarios libres en los próximos días: probá reservar desde el asistente.</p> : (
+        <div className={styles.headActions}>
+          {data.suggestions.map((s) => (
+            <Button key={`${s.date}${s.time}`} variant="ghost" disabled={repeat.isPending} onClick={() => repeat.mutate(s)}>{longDate(`${s.date}T${s.time}:00-03:00`)} · {s.time}</Button>
+          ))}
+        </div>
+      )}
+    </Card>
+  );
 }
 
 export default function AccountPage() {
@@ -48,6 +79,7 @@ export default function AccountPage() {
               </Link>
             ))}
           </Card>
+          <RepeatLastCut />
           <Card title="Mi saldo">
             <p className={data.balance < 0 ? styles.debt : styles.credit}>{data.balance < 0 ? `Debés ${money(-data.balance)}` : data.balance > 0 ? `${money(data.balance)} a favor` : "Estás al día"}</p>
             <ul className={styles.moves}>

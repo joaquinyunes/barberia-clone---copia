@@ -42,6 +42,8 @@ export const bookingApi = {
     http.get<Availability>("/public/availability", { params: p }).then((r) => r.data),
   validatePromo: (p: { code: string; service: string; date: string; time: string }) =>
     http.post<{ valid: boolean; name?: string; discount: number; total: number }>("/public/promotions/validate", p).then((r) => r.data),
+  joinWaitlist: (p: { location: string; service: string; barber: string; date: string; customer: { name: string; phone: string } }) =>
+    http.post<{ position: number }>("/public/waitlist", p).then((r) => r.data),
   create: (p: BookingPayload) => http.post<BookingResult>("/public/bookings", p).then((r) => r.data),
   get: (code: string, token: string) => http.get(`/public/bookings/${code}`, { params: { token } }).then((r) => r.data),
   cancel: (code: string, token: string) => http.post<{ status: string; depositRetained?: boolean }>(`/public/bookings/${code}/cancel`, {}, { params: { token } }).then((r) => r.data),

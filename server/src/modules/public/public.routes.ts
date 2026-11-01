@@ -17,6 +17,7 @@ import * as orders from "../orders/order.service.js";
 import * as mp from "../payments/mercadopago.service.js";
 import { Service } from "../services/service.model.js";
 import { getSettings } from "../settings/settings.model.js";
+import * as waitlist from "../waitlist/waitlist.service.js";
 import { ContactMessage } from "./contact.model.js";
 
 export const publicRouter = Router();
@@ -134,6 +135,25 @@ publicRouter.post(
       bank: { alias: r.location.bankAlias, cbu: r.location.bankCbu, holder: r.location.bankHolder },
       referralCode: r.client.referralCode,
     });
+  },
+);
+
+/** Lista de espera: para un día lleno, avisa por WhatsApp si alguien cancela. */
+publicRouter.post(
+  "/waitlist",
+  publicWriteLimiter,
+  validate({
+    body: z.object({
+      location: objectId,
+      service: objectId,
+      barber: z.union([objectId, z.literal("any")]),
+      date,
+      customer: z.object({ name: z.string().trim().min(2, "Ingresá tu nombre"), phone: z.string().trim().min(8, "Ingresá un teléfono válido") }),
+    }),
+  }),
+  async (req, res) => {
+    const { position } = await waitlist.join(req.body);
+    res.status(201).json({ position });
   },
 );
 

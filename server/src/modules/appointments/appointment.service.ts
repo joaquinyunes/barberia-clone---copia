@@ -11,6 +11,7 @@ import {
   businessDayString,
 } from "../../lib/dates.js";
 import { env } from "../../config/env.js";
+import { logger } from "../../lib/logger.js";
 import { signLink } from "../../lib/tokens.js";
 import { buildBookingMessage } from "../../lib/whatsapp/buildMessage.js";
 import { waLink } from "../../lib/whatsapp/waLink.js";
@@ -27,6 +28,7 @@ import { Service } from "../services/service.model.js";
 import { getSettings, type PaymentMethod, type Tender } from "../settings/settings.model.js";
 import { Product } from "../inventory/inventory.models.js";
 import { moveStock } from "../inventory/inventory.service.js";
+import * as waitlist from "../waitlist/waitlist.service.js";
 import { Appointment, BLOCKING_STATUSES } from "./appointment.model.js";
 
 type Actor = ledger.Actor;
@@ -133,6 +135,8 @@ export interface BookingInput {
   referralCode?: string;
   source?: "web" | "admin" | "walkin" | "whatsapp";
   skipDeposit?: boolean;
+  /** Minutos que se guarda el horario esperando la seña (por defecto, el de la configuración). */
+  holdMinutes?: number;
 }
 
 export async function createBooking(input: BookingInput, actor?: Actor) {
@@ -202,7 +206,7 @@ export async function createBooking(input: BookingInput, actor?: Actor) {
       promo,
       total,
       deposit: { required: depositRequired },
-      holdExpiresAt: depositRequired > 0 ? new Date(Date.now() + settings.holdMinutes * 60_000) : undefined,
+      holdExpiresAt: depositRequired > 0 ? new Date(Date.now() + (input.holdMinutes ?? settings.holdMinutes) * 60_000) : undefined,
       notes: input.notes,
       createdBy: actor?.name ?? "Web",
     });
@@ -302,6 +306,7 @@ export async function approveDeposit(id: string, input: { amount?: number; metho
   appt.status = "confirmed";
   appt.holdExpiresAt = undefined;
   await appt.save();
+  await waitlist.markBooked(appt._id);
   return appt;
 }
 
@@ -466,6 +471,8 @@ export async function cancel(id: string, input: { by: "client" | "business" | "n
   appt.cancellation = { by: input.by, reason: input.reason, at: new Date(), noticeHours, depositRetained: retained };
   appt.holdExpiresAt = undefined;
   await appt.save();
+  // El horario quedó libre: si hay lista de espera, se ofrece (un fallo acá no debe frenar la cancelación).
+  if (input.by !== "no_show") await waitlist.onSlotFreed(appt).catch((err) => logger.error({ err }, "falló la lista de espera"));
   return appt;
 }
 
