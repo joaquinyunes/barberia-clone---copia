@@ -58,7 +58,7 @@ export function SettlementPanel({ barberId, history }: { barberId: string; histo
             <p className={styles.total}><span>TOTAL A PAGAR</span><span>{money(Math.max(0, p.total))}</span></p>
             {p.total < 0 && <p className={styles.dangerText}>El saldo es negativo: no se paga nada y la diferencia pasa al próximo período.</p>}
             <div className={styles.row}>
-              <Select tone="light" value={method} onChange={(e) => setMethod(e.target.value)} options={["cash", "transfer", "mercadopago"].map((m) => ({ value: m, label: METHOD_LABELS[m] }))} />
+              <Select tone="light" aria-label="Medio de pago" value={method} onChange={(e) => setMethod(e.target.value)} options={["cash", "transfer", "mercadopago"].map((m) => ({ value: m, label: METHOD_LABELS[m] }))} />
               <Button loading={close.isPending} onClick={() => window.confirm("¿Cerrar la liquidación y registrar el pago?") && close.mutate(undefined)}>Cerrar liquidación</Button>
             </div>
           </div>

@@ -10,6 +10,10 @@ html {
   -webkit-text-size-adjust: 100%;
 }
 /* Scroll suave con Lenis: él maneja la inercia, así que el navegador no debe suavizar por su cuenta */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}
 html.lenis {
   scroll-behavior: auto;
 }

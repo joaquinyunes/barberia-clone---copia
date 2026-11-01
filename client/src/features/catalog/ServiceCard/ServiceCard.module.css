@@ -11,4 +11,4 @@
 .desc { color: var(--c-text-muted); font-size: var(--fs-sm); flex: 1; }
 .includes { list-style: none; padding: 0; margin: 0 0 var(--space-4); display: flex; flex-wrap: wrap; gap: 0.35rem; }
 .includes li { font-size: 0.72rem; border: 1px solid var(--c-border); padding: 0.1rem 0.5rem; border-radius: var(--radius-pill); color: var(--c-text-muted); }
-.book { font-family: var(--font-label); letter-spacing: 0.15em; text-transform: uppercase; font-size: var(--fs-xs); color: var(--c-gold); }
+.book { display: inline-flex; align-items: center; min-height: 44px; font-family: var(--font-label); letter-spacing: 0.15em; text-transform: uppercase; font-size: var(--fs-xs); color: var(--c-gold); }

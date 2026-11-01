@@ -75,7 +75,7 @@ function GeneralSettings() {
           ]} />
         </Card>
         <Card tone="light" title="Categorías de gastos">
-          <Input tone="light" defaultValue={data.expenseCategories.join(", ")} {...form.register("expenseCategories")} hint="Separadas por comas" />
+          <Input tone="light" aria-label="Categorías de gastos" defaultValue={data.expenseCategories.join(", ")} {...form.register("expenseCategories")} hint="Separadas por comas" />
         </Card>
       </div>
     </>

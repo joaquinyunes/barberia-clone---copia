@@ -26,7 +26,7 @@ export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputE
   const fid = id ?? auto;
   return (
     <Wrapper id={fid} label={label} error={error} hint={hint} tone={tone} className={className}>
-      <input ref={ref} id={fid} className={cx(styles.control, error && styles.invalid)} aria-invalid={!!error} {...rest} />
+      <input ref={ref} id={fid} className={cx(styles.control, error && styles.invalid)} aria-invalid={!!error} aria-label={label ? undefined : rest.placeholder} {...rest} />
     </Wrapper>
   );
 });
@@ -37,7 +37,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSel
     const fid = id ?? auto;
     return (
       <Wrapper id={fid} label={label} error={error} hint={hint} tone={tone} className={className}>
-        <select ref={ref} id={fid} className={cx(styles.control, error && styles.invalid)} aria-invalid={!!error} {...rest}>
+        <select ref={ref} id={fid} className={cx(styles.control, error && styles.invalid)} aria-invalid={!!error} aria-label={label ? undefined : placeholder} {...rest}>
           {placeholder !== undefined && <option value="">{placeholder}</option>}
           {options.map((o) => (
             <option key={o.value} value={o.value}>{o.label}</option>

@@ -18,6 +18,9 @@
   --c-info: #5a8dc2;
   --c-whatsapp: #25d366;
 
+  /* Etiquetas (Badge) sobre el fondo oscuro del sitio; el panel y los modales claros las redefinen */
+  --bd-neutral: #b8b0a0; --bd-warning: #e0a94a; --bd-info: #7fb0e6; --bd-success: #7fc788; --bd-danger: #f08a83; --bd-gold: #d9b872;
+
   /* Panel de administración (claro para uso intensivo) */
   --a-bg: #f6f3ee;
   --a-surface: #ffffff;

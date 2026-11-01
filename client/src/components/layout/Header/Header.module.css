@@ -3,6 +3,7 @@
 .hidden { transform: translateY(-100%); }
 .header:focus-within { transform: none; }
 .inner { max-width: 1320px; margin: 0 auto; height: 100%; padding: 0 var(--space-4); display: flex; align-items: center; gap: var(--space-5); }
+.logo { display: inline-flex; align-items: center; min-height: 44px; }
 .logo img { height: 46px; width: auto; transition: height 0.6s var(--ease-out); }
 .scrolled .logo img { height: 38px; }
 .nav { display: flex; align-items: center; gap: var(--space-1); margin-left: auto; }
@@ -20,10 +21,10 @@
 .menuItem span { font-size: var(--fs-xs); color: var(--c-text-dim); }
 .menuAll { display: block; padding: 0.6rem 0.8rem; color: var(--c-gold); font-size: var(--fs-sm); border-top: 1px solid var(--c-border); margin-top: var(--space-1); }
 .actions { display: flex; align-items: center; gap: var(--space-2); }
-.icon { position: relative; background: none; border: 0; color: var(--c-text); cursor: pointer; padding: 0.4rem; display: flex; }
+.icon { position: relative; background: none; border: 0; color: var(--c-text); cursor: pointer; padding: 0.4rem; display: flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; }
 .icon:hover { color: var(--c-gold); }
 .count { position: absolute; top: -2px; right: -4px; background: var(--c-gold); color: #17130c; font-size: 0.65rem; font-weight: 700; min-width: 17px; height: 17px; border-radius: 999px; display: grid; place-items: center; }
-.burger { display: none; background: none; border: 0; color: var(--c-text); cursor: pointer; }
+.burger { display: none; background: none; border: 0; color: var(--c-text); cursor: pointer; min-width: 44px; min-height: 44px; align-items: center; justify-content: center; }
 @media (max-width: 1080px) {
   .nav { display: none; }
   .burger { display: flex; }

@@ -3,7 +3,7 @@
 .main h2 { font-size: var(--fs-2xl); margin-bottom: var(--space-5); }
 .progress { list-style: none; display: flex; gap: var(--space-1); padding: 0; margin: 0 0 var(--space-6); overflow-x: auto; scrollbar-width: none; }
 .progress li { flex: 1; min-width: 104px; }
-.progress button { width: 100%; background: none; border: 0; border-top: 3px solid var(--c-border); padding: var(--space-2) 0 0; color: var(--c-text-dim); font-size: var(--fs-xs); text-align: left; cursor: pointer; display: flex; gap: 0.35rem; align-items: center; font-family: var(--font-label); letter-spacing: 0.1em; text-transform: uppercase; }
+.progress button { min-height: 44px; width: 100%; background: none; border: 0; border-top: 3px solid var(--c-border); padding: var(--space-2) 0 0; color: var(--c-text-dim); font-size: var(--fs-xs); text-align: left; cursor: pointer; display: flex; gap: 0.35rem; align-items: center; font-family: var(--font-label); letter-spacing: 0.1em; text-transform: uppercase; }
 .progress button:disabled { cursor: default; }
 .progress span { display: inline-grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; border: 1px solid currentColor; font-size: 0.7rem; }
 .past button { border-top-color: var(--c-gold-dark); color: var(--c-text-muted); }

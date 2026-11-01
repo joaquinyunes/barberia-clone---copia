@@ -7,7 +7,9 @@
   border: 1px solid;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
-.control:focus { outline: none; border-color: var(--c-gold); box-shadow: 0 0 0 3px rgb(201 164 92 / 0.2); }
+.control:focus { outline: 2px solid var(--c-gold); outline-offset: 1px; border-color: var(--c-gold); box-shadow: 0 0 0 3px rgb(201 164 92 / 0.2); }
+.light .control:focus { outline-color: #7a5f28; }
+@media (pointer: coarse), (max-width: 960px) { .control { min-height: 44px; } }
 .textarea { min-height: 96px; resize: vertical; }
 .invalid { border-color: var(--c-danger) !important; }
 .error { color: var(--c-danger); font-size: var(--fs-xs); }

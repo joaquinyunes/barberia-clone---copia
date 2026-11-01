@@ -3,7 +3,7 @@
 .sm { max-width: 420px; }
 .md { max-width: 620px; }
 .lg { max-width: 960px; }
-.light { background: var(--a-surface); color: var(--a-text); }
+.light { --bd-neutral: #5a5a5a; --bd-warning: #8a5a0c; --bd-info: #285d94; --bd-success: #2f6a37; --bd-danger: #a3322c; --bd-gold: #7a5f28; background: var(--a-surface); color: var(--a-text); }
 .dark { background: var(--c-surface); color: var(--c-text); border: 1px solid var(--c-border); }
 .header { display: flex; justify-content: space-between; align-items: center; padding: var(--space-4) var(--space-5); border-bottom: 1px solid rgb(128 128 128 / 0.2); }
 .title { font-family: var(--font-body); font-size: var(--fs-lg); font-weight: 600; margin: 0; }

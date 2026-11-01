@@ -67,7 +67,7 @@ export default function CheckoutPage() {
   if (!items.length) {
     return (
       <Section className={styles.page}>
-        <Container narrow><EmptyState title="Tu carrito está vacío"><Button to={paths.shop}>Ir a la tienda</Button></EmptyState></Container>
+        <Container narrow><EmptyState as="h1" title="Tu carrito está vacío"><Button to={paths.shop}>Ir a la tienda</Button></EmptyState></Container>
       </Section>
     );
   }

@@ -32,5 +32,11 @@
 .receipt { max-width: 100%; max-height: 420px; border: 1px solid var(--a-border); border-radius: var(--radius-sm); }
 .dangerText { color: #b03a33; }
 .okText { color: #2f7a39; }
-@media (max-width: 1100px) { .twoCols, .threeCols { grid-template-columns: 1fr; } }
+@media (max-width: 1100px) { .twoCols, .threeCols { grid-template-columns: minmax(0, 1fr); } }
 @media (max-width: 600px) { .formGrid { grid-template-columns: 1fr; } }
+
+/* Táctil y tablet: filtros, chips y campos de al menos 44 px */
+@media (pointer: coarse), (max-width: 960px) {
+  .chip, .input { min-height: 44px; }
+  .link { display: inline-flex; align-items: center; min-height: 44px; }
+}

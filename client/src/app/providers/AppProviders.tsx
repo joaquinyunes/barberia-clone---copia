@@ -19,8 +19,8 @@ function SessionBootstrap() {
 export function AppProviders({ children }: { children: ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Las animaciones son parte de la identidad del sitio: no se apagan con la preferencia "reducir movimiento" del sistema. */}
-      <MotionConfig reducedMotion="never">
+      {/* Las animaciones son parte de la identidad del sitio y siguen por defecto; solo se atenúan si la persona pidió "reducir movimiento" en su sistema (WCAG 2.3.3). */}
+      <MotionConfig reducedMotion="user">
         <SessionBootstrap />
         {children}
         <Toaster />

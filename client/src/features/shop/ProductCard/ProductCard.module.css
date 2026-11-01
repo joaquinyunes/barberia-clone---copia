@@ -9,5 +9,5 @@
 .body h3 { font-family: var(--font-body); font-size: var(--fs-md); font-weight: 600; margin: 0; flex: 1; }
 .foot { display: flex; justify-content: space-between; align-items: center; margin-top: var(--space-3); }
 .foot strong { color: var(--c-gold); font-size: var(--fs-lg); }
-.add { width: 40px; height: 40px; border: 1px solid var(--c-gold); background: none; color: var(--c-gold); display: grid; place-items: center; cursor: pointer; border-radius: var(--radius-sm); }
+.add { width: 44px; height: 44px; border: 1px solid var(--c-gold); background: none; color: var(--c-gold); display: grid; place-items: center; cursor: pointer; border-radius: var(--radius-sm); }
 .add:hover { background: var(--c-gold); color: #17130c; }

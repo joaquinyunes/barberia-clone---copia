@@ -18,6 +18,7 @@
 .btn:active:not(:disabled) { transform: translateY(1px); }
 .btn:disabled { opacity: 0.55; cursor: not-allowed; }
 .sm { padding: 0.4rem 0.8rem; font-size: 0.72rem; }
+@media (pointer: coarse), (max-width: 960px) { .sm, .md, .lg { min-height: 44px; } }
 .md { padding: 0.7rem 1.35rem; font-size: 0.82rem; }
 .lg { padding: 0.95rem 2rem; font-size: 0.95rem; }
 .block { width: 100%; }
