@@ -1,0 +1,54 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verificar:
+    name: Typecheck, tests y build (cliente y servidor)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+  secretos:
+    name: Escaneo de secretos
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # Busca formas de claves reales en los archivos versionados. Imprime solo
+      # archivo, línea y tipo: nunca el valor. Si falla, rotar la clave antes de borrarla.
+      - name: Buscar patrones de secretos
+        run: |
+          fallo=0
+          buscar() {
+            r=$(git grep -InP -e "$2" -- . ':!*package-lock.json' ':!*composer.lock' | cut -d: -f1,2 | sed "s|\$| [$1]|") || true
+            if [ -n "$r" ]; then echo "$r"; fallo=1; fi
+          }
+          buscar 'clave privada' '-----BEGIN (RSA |EC |OPENSSH |DSA |PGP )?PRIVATE KEY-----'
+          buscar 'AWS AKIA' 'AKIA[0-9A-Z]{16}'
+          buscar 'token de GitHub' 'gh[pousr]_[A-Za-z0-9]{36,}|github_pat_[A-Za-z0-9_]{30,}'
+          buscar 'Stripe sk_live' 'sk_live_[A-Za-z0-9]{10,}'
+          buscar 'Mercado Pago APP_USR' 'APP_USR-[0-9A-Za-z-]{30,}'
+          buscar 'JWT eyJ' 'eyJ[A-Za-z0-9_-]{15,}\.eyJ[A-Za-z0-9_-]{15,}\.[A-Za-z0-9_-]{15,}'
+          buscar 'Supabase sb_secret' 'sb_secret_[A-Za-z0-9_-]{20,}'
+          buscar 'Google AIza' 'AIza[0-9A-Za-z_-]{35}'
+          buscar 'Slack' 'xox[abprs]-[0-9A-Za-z-]{10,}'
+          buscar 'URL de base con clave' '(mongodb(\+srv)?|postgres(ql)?)://[^:/@\s"'"'"'<$]+:(?!(?i:password|clave|contrase|xxx|tu_|your))[^@\s"'"'"'<$\{]{6,}@[A-Za-z0-9.-]+\.(mongodb\.net|neon\.tech|supabase\.(co|com)|render\.com|rds\.amazonaws\.com)'
+          exit $fallo
