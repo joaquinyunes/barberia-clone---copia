@@ -23,8 +23,8 @@ jobs:
     env:
       MONGO_TEST_URI: mongodb://127.0.0.1:27017/jeb-test
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: 22
           cache: npm
@@ -40,7 +40,7 @@ jobs:
     name: Escaneo de secretos
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # Busca formas de claves reales en los archivos versionados. Imprime solo
       # archivo, línea y tipo: nunca el valor. Si falla, rotar la clave antes de borrarla.
       - name: Buscar patrones de secretos
