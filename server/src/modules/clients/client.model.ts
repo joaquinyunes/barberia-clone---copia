@@ -31,6 +31,10 @@ const clientSchema = new Schema(
         appointment: { type: Schema.Types.ObjectId, ref: "Appointment" },
       },
     ],
+    /** Puntos de fidelidad canjeables por saldo a favor. */
+    points: { type: Number, default: 0, min: 0 },
+    /** Consentimiento para campañas (solo opt-in explícito; nunca se completa solo). */
+    marketing: { whatsapp: { type: Boolean, default: false }, email: { type: Boolean, default: false }, at: Date, source: String },
     blocked: { type: Boolean, default: false },
     active: { type: Boolean, default: true },
   },

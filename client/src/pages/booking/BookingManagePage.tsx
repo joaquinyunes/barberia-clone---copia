@@ -15,6 +15,57 @@ import { dateTime, longDate, money, time } from "@/utils/format";
 import { STATUS_LABELS, STATUS_TONE } from "@/utils/labels";
 import styles from "./BookingManagePage.module.css";
 
+/** Después del corte: opinión verificada (con encuesta) y propina online. */
+function AfterVisit({ code, token }: { code: string; token: string }) {
+  const [rating, setRating] = useState(0);
+  const [recommend, setRecommend] = useState<number>();
+  const [comment, setComment] = useState("");
+  const [sent, setSent] = useState(false);
+  const review = useMutation({
+    mutationFn: () => bookingApi.review(code, token, { rating, recommend, comment: comment.trim() || undefined }),
+    onSuccess: () => { setSent(true); toast.success("¡Gracias por tu opinión!"); },
+    onError: (e) => toast.error(errorMessage(e)),
+  });
+  const tip = useMutation({
+    mutationFn: (amount: number) => bookingApi.tip(code, token, amount),
+    onSuccess: (r) => window.location.assign(r.initPoint),
+    onError: (e) => toast.error(errorMessage(e)),
+  });
+  return (
+    <>
+      <Card className={styles.card} title="¿Cómo te fue?">
+        {sent ? <p>¡Gracias! Tu opinión ayuda a otros clientes.</p> : (
+          <>
+            <div role="radiogroup" aria-label="Tu calificación" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {[1, 2, 3, 4, 5].map((n) => (
+                <Button key={n} variant={rating === n ? "dark" : "outline"} size="sm" role="radio" aria-checked={rating === n} onClick={() => setRating(n)}>{n} ★</Button>
+              ))}
+            </div>
+            <p style={{ marginTop: 16 }}>¿Qué tan probable es que nos recomiendes? (0 = nada, 10 = totalmente)</p>
+            <div role="radiogroup" aria-label="Probabilidad de recomendar" style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+              {Array.from({ length: 11 }, (_, n) => (
+                <Button key={n} variant={recommend === n ? "dark" : "outline"} size="sm" role="radio" aria-checked={recommend === n} onClick={() => setRecommend(n)}>{n}</Button>
+              ))}
+            </div>
+            <label style={{ display: "block", marginTop: 16 }}>
+              Comentario (opcional)
+              <textarea value={comment} maxLength={500} onChange={(e) => setComment(e.target.value)} style={{ display: "block", width: "100%", minHeight: 80, marginTop: 6 }} />
+            </label>
+            <Button style={{ marginTop: 16 }} disabled={!rating} loading={review.isPending} onClick={() => review.mutate()}>Enviar opinión</Button>
+          </>
+        )}
+      </Card>
+      {useSite().data?.mercadoPago && (
+        <Card className={styles.card} title="Dejale una propina a tu barbero">
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {[1000, 2000, 5000].map((n) => <Button key={n} variant="outline" loading={tip.isPending} onClick={() => tip.mutate(n)}>{money(n)}</Button>)}
+          </div>
+        </Card>
+      )}
+    </>
+  );
+}
+
 export default function BookingManagePage() {
   const { code = "" } = useParams();
   const [params] = useSearchParams();
@@ -98,6 +149,7 @@ export default function BookingManagePage() {
             <PaymentPanel kind="bookings" code={code} token={token} amount={data.deposit.required} bank={{}} initialStatus="payment_review" />
           </Card>
         )}
+        {data.status === "completed" && <AfterVisit code={code} token={token} />}
         <Button variant="outline" to={paths.booking}>Hacer otra reserva</Button>
       </Container>
 

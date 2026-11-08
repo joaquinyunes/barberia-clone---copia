@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { validate } from "../../middlewares/validate.js";
-import { bookingLinkLimiter, publicWriteLimiter, webhookLimiter } from "../../middlewares/rateLimiters.js";
+import { bookingLinkLimiter, publicReadLimiter, publicWriteLimiter, webhookLimiter } from "../../middlewares/rateLimiters.js";
 import { AppError } from "../../lib/AppError.js";
 import { readStored, saveReceipt, uploadReceipt } from "../../lib/storage.js";
 import { verifyLink } from "../../lib/tokens.js";
@@ -19,6 +19,10 @@ import { Service } from "../services/service.model.js";
 import { getSettings } from "../settings/settings.model.js";
 import * as waitlist from "../waitlist/waitlist.service.js";
 import { ContactMessage } from "./contact.model.js";
+import QRCode from "qrcode";
+import * as engagement from "../engagement/engagement.service.js";
+import { Review } from "../engagement/review.model.js";
+import { GiftCard } from "../commercial/commercial.models.js";
 
 export const publicRouter = Router();
 
@@ -39,7 +43,7 @@ publicRouter.get("/locations", async (_req, res) => {
 publicRouter.get("/locations/:slug", async (req, res) => {
   const loc = await Location.findOne({ slug: req.params.slug, active: true }).select("-bankCbu").lean();
   if (!loc) throw AppError.notFound("Sede");
-  const barbers = await Barber.find({ location: loc._id, public: true, status: { $in: ["active", "vacation"] } }).select("name slug photo bio specialties instagram status").sort({ order: 1 }).lean();
+  const barbers = await Barber.find({ location: loc._id, public: true, status: { $in: ["active", "vacation"] } }).select("name slug photo bio specialties instagram gallery status").sort({ order: 1 }).lean();
   res.json({ ...loc, barbers });
 });
 
@@ -56,7 +60,7 @@ publicRouter.get("/barbers", async (req, res) => {
   const filter: Record<string, unknown> = { public: true, status: "active" };
   if (location) filter.location = location;
   if (service) filter.$or = [{ services: { $size: 0 } }, { services: service }];
-  res.json(await Barber.find(filter).select("name slug photo bio specialties instagram location").sort({ order: 1 }).lean());
+  res.json(await Barber.find(filter).select("name slug photo bio specialties instagram gallery location").sort({ order: 1 }).lean());
 });
 
 publicRouter.get("/shop", async (_req, res) => {
@@ -113,6 +117,7 @@ publicRouter.post(
       notes: z.string().max(300).optional(),
       promoCode: z.string().optional(),
       referralCode: z.string().optional(),
+      marketingConsent: z.boolean().optional(),
     }),
   }),
   async (req, res) => {
@@ -304,9 +309,59 @@ publicRouter.post("/mercadopago/preference", publicWriteLimiter, validate({ body
 publicRouter.post("/mercadopago/webhook", webhookLimiter, async (req, res) => {
   const dataId = String(req.query["data.id"] ?? req.body?.data?.id ?? "");
   const type = String(req.query.type ?? req.body?.type ?? "");
-  if (type !== "payment" || !dataId) return res.status(200).json({ ignored: true });
+  if (!["payment", "subscription_preapproval"].includes(type) || !dataId) return res.status(200).json({ ignored: true });
   if (!mp.verifySignature(req.headers, dataId)) return res.status(401).json({ error: "Firma inválida" });
-  res.json(await mp.handleNotification(dataId));
+  res.json(type === "payment" ? await mp.handleNotification(dataId) : await mp.handleSubscription(dataId));
+});
+
+/* ── Reseñas verificadas y encuesta ── */
+publicRouter.post(
+  "/bookings/:code/review",
+  publicWriteLimiter,
+  validate({ body: z.object({ rating: z.number().int().min(1).max(5), recommend: z.number().int().min(0).max(10).optional(), comment: z.string().trim().max(500).optional() }) }),
+  async (req, res) => {
+    bookingCode(req.query.token, String(req.params.code));
+    await engagement.createReview(String(req.params.code), req.body);
+    res.status(201).json({ ok: true });
+  },
+);
+
+publicRouter.get("/reviews", publicReadLimiter, validate({ query: z.object({ barber: objectId.optional() }) }), async (req, res) => {
+  const barber = (req.query as { barber?: string }).barber;
+  const items = await Review.find({ status: "published", ...(barber ? { barber } : {}) })
+    .sort({ createdAt: -1 })
+    .limit(30)
+    .populate("client barber", "name")
+    .lean();
+  res.json({
+    summary: await engagement.reviewSummary(barber),
+    // Solo el primer nombre: no se publican datos personales completos.
+    items: items.map((r) => ({ rating: r.rating, comment: r.comment, createdAt: r.createdAt, client: String((r.client as { name?: string })?.name ?? "Cliente").split(" ")[0], barber: (r.barber as { name?: string })?.name })),
+  });
+});
+
+/** Baja de campañas con el mismo link de la reserva. */
+publicRouter.post("/bookings/:code/unsubscribe", publicWriteLimiter, async (req, res) => {
+  bookingCode(req.query.token, String(req.params.code));
+  const a = await Appointment.findOne({ code: req.params.code }, "client");
+  if (!a) throw AppError.notFound("Turno");
+  await engagement.setConsent(a.client, { whatsapp: false, email: false }, "baja-por-link");
+  res.status(204).end();
+});
+
+/* ── QR de la gift card (lo escanea el personal en caja) ── */
+publicRouter.get("/giftcards/:code/qr.svg", publicReadLimiter, async (req, res) => {
+  const gc = await GiftCard.findOne({ code: String(req.params.code).toUpperCase(), status: "active" }, "code");
+  if (!gc) throw AppError.notFound("Gift card");
+  res.setHeader("Content-Type", "image/svg+xml");
+  res.setHeader("Cache-Control", "private, max-age=3600");
+  res.send(await QRCode.toString(gc.code, { type: "svg", margin: 1, errorCorrectionLevel: "M" }));
+});
+
+/** Propina online (Mercado Pago) para un turno ya realizado. */
+publicRouter.post("/bookings/:code/tip", publicWriteLimiter, validate({ body: z.object({ amount: z.number().int().min(100).max(100_000) }) }), async (req, res) => {
+  bookingCode(req.query.token, String(req.params.code));
+  res.json(await mp.createTipPreference(String(req.params.code), req.body.amount));
 });
 
 /* ── Contacto ── */

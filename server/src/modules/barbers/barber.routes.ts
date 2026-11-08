@@ -27,6 +27,7 @@ const schema = z.object({
   bio: z.string().optional(),
   specialties: z.array(z.string()).optional(),
   instagram: z.string().optional(),
+  gallery: z.array(z.string().url().max(500)).max(24).optional(),
   services: z.array(z.string()).optional(),
   schedule: z
     .array(

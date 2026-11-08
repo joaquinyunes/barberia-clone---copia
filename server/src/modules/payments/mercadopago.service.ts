@@ -1,5 +1,5 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { MercadoPagoConfig, Payment, Preference } from "mercadopago";
+import { MercadoPagoConfig, Payment, PreApproval, Preference } from "mercadopago";
 import { env } from "../../config/env.js";
 import { AppError } from "../../lib/AppError.js";
 import { Appointment } from "../appointments/appointment.model.js";
@@ -8,6 +8,14 @@ import { Order } from "../orders/order.model.js";
 import { approveOrder } from "../orders/order.service.js";
 import { audit } from "../audit/audit.service.js";
 import { PaymentEvent } from "./paymentEvent.model.js";
+import * as cash from "../cash/cash.service.js";
+import * as ledger from "../ledger/ledger.service.js";
+import { Client } from "../clients/client.model.js";
+import { Membership, MembershipPlan } from "../commercial/commercial.models.js";
+import * as commercial from "../commercial/commercial.service.js";
+import { Location } from "../locations/location.model.js";
+import { User } from "../users/user.model.js";
+import { Types } from "mongoose";
 
 /**
  * Etapa 2 — Mercado Pago Checkout Pro.
@@ -41,6 +49,68 @@ export async function createPreference(kind: "appointment" | "order", code: stri
     },
   });
   return { initPoint: pref.init_point, preferenceId: pref.id };
+}
+
+/** Propina online: se cobra por Mercado Pago y, al aprobarse, se acredita al barbero. */
+export async function createTipPreference(code: string, amount: number) {
+  const appt = await Appointment.findOne({ code });
+  if (!appt) throw AppError.notFound("Turno");
+  if (appt.status !== "completed") throw AppError.conflict("Podés dejar propina cuando el turno ya se realizó");
+  const pref = await new Preference(client()).create({
+    body: {
+      items: [{ id: `tip-${code}`, title: `Propina turno ${code}`, quantity: 1, unit_price: amount, currency_id: "ARS" }],
+      external_reference: `tip:${code}`,
+      back_urls: { success: `${env.CLIENT_URL}/pago/resultado?code=${code}&kind=tip`, failure: `${env.CLIENT_URL}/pago/resultado?code=${code}&kind=tip&error=1`, pending: `${env.CLIENT_URL}/pago/resultado?code=${code}&kind=tip&pending=1` },
+      auto_return: "approved",
+      notification_url: `${env.PUBLIC_API_URL}/api/v1/public/mercadopago/webhook`,
+    },
+  });
+  return { initPoint: pref.init_point, preferenceId: pref.id };
+}
+
+/**
+ * Cobro recurrente de la membresía (Suscripciones de Mercado Pago, 'preapproval').
+ * El cliente autoriza una vez; Mercado Pago cobra cada mes y avisa por webhook.
+ * Verificar en sandbox con credenciales de prueba antes de ofrecerlo (docs/MERCADOPAGO.md).
+ */
+export async function createMembershipCheckout(userId: string, planId: string) {
+  const [user, plan] = await Promise.all([User.findById(userId), MembershipPlan.findOne({ _id: planId, active: true })]);
+  if (!user?.client) throw AppError.forbidden("Tu usuario no tiene ficha de cliente");
+  if (!plan) throw AppError.notFound("Plan de membresía");
+  if (await Membership.exists({ client: user.client, status: "active" })) throw AppError.conflict("Ya tenés una membresía activa");
+  const sub = await new PreApproval(client()).create({
+    body: {
+      reason: `Membresía ${plan.name}`,
+      external_reference: `membership:${user.client}:${plan._id}`,
+      payer_email: user.email,
+      auto_recurring: { frequency: 1, frequency_type: "months", transaction_amount: plan.price, currency_id: "ARS" },
+      back_url: `${env.CLIENT_URL}/cuenta`,
+      status: "pending",
+    },
+  });
+  return { initPoint: sub.init_point, preapprovalId: sub.id };
+}
+
+/** Aviso de la suscripción: autorizada → crea la membresía; pausada/cancelada → la frena. */
+export async function handleSubscription(preapprovalId: string) {
+  const sub = await new PreApproval(client()).get({ id: preapprovalId });
+  const [kind, clientId, planId] = String(sub.external_reference ?? "").split(":");
+  if (kind !== "membership" || !Types.ObjectId.isValid(clientId) || !Types.ObjectId.isValid(planId)) return { handled: false, reason: "referencia desconocida" };
+  const existing = await Membership.findOne({ client: clientId, mpPreapprovalId: preapprovalId });
+  if (sub.status === "authorized") {
+    if (existing) {
+      if (existing.status === "paused") await Membership.updateOne({ _id: existing._id }, { status: "active" });
+      return { handled: true, status: sub.status, duplicate: true };
+    }
+    const m = await commercial.subscribe({ plan: planId, client: clientId, actor: { name: "Mercado Pago" } });
+    await Membership.updateOne({ _id: m._id }, { mpPreapprovalId: preapprovalId });
+    return { handled: true, status: sub.status };
+  }
+  if (existing && (sub.status === "cancelled" || sub.status === "paused")) {
+    await Membership.updateOne({ _id: existing._id }, { status: sub.status === "cancelled" ? "cancelled" : "paused" });
+    return { handled: true, status: sub.status };
+  }
+  return { handled: false, status: sub.status };
 }
 
 /** Valida la firma x-signature (ts + v1 HMAC-SHA256) según la documentación de Mercado Pago. */
@@ -103,6 +173,29 @@ export async function handleNotification(paymentId: string) {
         order.payment = { ...order.payment, mpPaymentId: id };
         await order.save();
         await approveOrder(String(order._id), "mercadopago", actor);
+        return await finish("confirmed");
+      }
+    }
+    if (kind === "tip") {
+      const appt = await Appointment.findOne({ code, status: "completed" });
+      if (appt && paid > 0) {
+        await cash.record({ location: appt.location, direction: "in", method: "mercadopago", amount: paid, category: "tip", concept: `Propina online ${code}`, ref: { kind: "Appointment", id: appt._id }, actor });
+        await ledger.post({ ownerType: "barber", owner: appt.barber, type: "tip", amount: paid, concept: `Propina online ${code}`, ref: { kind: "Appointment", id: appt._id }, actor });
+        await Appointment.updateOne({ _id: appt._id }, { $inc: { tip: paid, paidAmount: paid } });
+        return await finish("confirmed");
+      }
+    } else if (kind === "membership") {
+      // Cobro mensual de una suscripción: el primero se registra sin extender (la membresía ya nació con su período); los siguientes renuevan.
+      const m = await Membership.findOne({ client: code, mpPreapprovalId: { $exists: true }, status: { $in: ["active", "paused", "expired"] } }).sort({ createdAt: -1 });
+      const location = await Location.findOne({ active: true }).sort({ order: 1 });
+      if (m && location && paid > 0) {
+        if (m.payments.length === 0) {
+          m.payments.push({ date: new Date(), amount: paid, method: "mercadopago" });
+          await m.save();
+          await cash.record({ location: location._id, direction: "in", method: "mercadopago", amount: paid, category: "membership", concept: "Membresía (cobro automático)", party: { kind: "Client", id: m.client }, ref: { kind: "Membership", id: m._id }, actor });
+        } else {
+          await commercial.renewMembership(String(m._id), { method: "mercadopago", location: String(location._id) }, actor);
+        }
         return await finish("confirmed");
       }
     }

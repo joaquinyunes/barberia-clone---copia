@@ -9,6 +9,9 @@
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/server.js",
     "seed": "tsx src/seed/seed.ts",
+    "backup": "tsx src/tools/backup.ts backup",
+    "restore": "tsx src/tools/backup.ts restore",
+    "backup:verify": "tsx src/tools/backup.ts verify",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
@@ -27,6 +30,7 @@
     "node-cron": "^4.6.0",
     "pino": "^10.3.1",
     "pino-http": "^11.0.0",
+    "qrcode": "^1.5.4",
     "zod": "^4.6.7"
   },
   "devDependencies": {
@@ -37,6 +41,7 @@
     "@types/multer": "^2.2.0",
     "@types/node": "^26.6.3",
     "@types/node-cron": "^3.0.11",
+    "@types/qrcode": "^1.5.6",
     "@types/supertest": "^7.2.1",
     "pino-pretty": "^13.1.3",
     "supertest": "^7.3.0",

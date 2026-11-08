@@ -10,6 +10,8 @@ import { Client } from "../clients/client.model.js";
 import * as lastCuts from "../clients/lastCut.service.js";
 import { ClientPack, GiftCard, Membership } from "../commercial/commercial.models.js";
 import * as ledger from "../ledger/ledger.service.js";
+import * as engagement from "../engagement/engagement.service.js";
+import * as mp from "../payments/mercadopago.service.js";
 import { Goal, Settlement } from "../staff/staff.models.js";
 import * as staff from "../staff/staff.service.js";
 
@@ -50,6 +52,16 @@ meRouter.post(
   },
 );
 
+/** Membresía con cobro mensual automático por Mercado Pago. */
+meRouter.post("/client/membership/checkout", validate({ body: z.object({ plan: z.string().regex(/^[a-f\d]{24}$/i) }) }), async (req, res) => {
+  res.json(await mp.createMembershipCheckout(String(req.user!._id), req.body.plan));
+});
+
+/** El cliente canjea sus puntos por saldo a favor. */
+meRouter.post("/client/points/redeem", validate({ body: z.object({ points: z.number().int().positive().max(1_000_000) }) }), async (req, res) => {
+  res.json(await engagement.redeemPoints(String(clientIdOf(req)), req.body.points, req.user!));
+});
+
 meRouter.get("/client", async (req, res) => {
   const client = req.user?.client ? await Client.findById(req.user.client).lean() : null;
   if (!client) throw AppError.forbidden("Tu usuario no tiene ficha de cliente");
@@ -61,7 +73,7 @@ meRouter.get("/client", async (req, res) => {
     GiftCard.find({ buyer: client._id }).lean(),
   ]);
   res.json({
-    client: { name: client.name, phone: client.phone, email: client.email, tier: client.tier, visits: client.visits, referralCode: client.referralCode, cutNotes: client.cutNotes },
+    client: { name: client.name, phone: client.phone, email: client.email, tier: client.tier, visits: client.visits, points: client.points ?? 0, referralCode: client.referralCode, cutNotes: client.cutNotes },
     balance: account.balance,
     movements: account.movements.slice(0, 30),
     appointments: appointments.map((a) => ({ ...a, token: manageToken(a.code), commission: undefined, commissionRule: undefined })),

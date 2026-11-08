@@ -1,4 +1,5 @@
 import { Router } from "express";
+import mongoose from "mongoose";
 import { appointmentsRouter } from "../modules/appointments/appointment.routes.js";
 import { auditRouter } from "../modules/audit/audit.routes.js";
 import { authRouter } from "../modules/auth/auth.routes.js";
@@ -17,11 +18,21 @@ import { servicesAdminRouter } from "../modules/services/service.routes.js";
 import { settingsRouter } from "../modules/settings/settings.routes.js";
 import { attendanceKioskRouter, staffRouter } from "../modules/staff/staff.routes.js";
 import { usersRouter } from "../modules/users/user.routes.js";
+import { engagementRouter } from "../modules/engagement/engagement.routes.js";
 import { waitlistRouter } from "../modules/waitlist/waitlist.routes.js";
 
 export const api = Router();
 
+// Liveness liviana (sin base): la usa Render y el chequeo de uptime. /health/ready además confirma la conexión a Mongo.
 api.get("/health", (_req, res) => res.json({ ok: true, time: new Date().toISOString() }));
+api.get("/health/ready", async (_req, res) => {
+  try {
+    await mongoose.connection.db!.admin().ping();
+    res.json({ ok: true, db: "up", time: new Date().toISOString() });
+  } catch {
+    res.status(503).json({ ok: false, db: "down" });
+  }
+});
 api.use("/public", publicRouter);
 api.use("/auth", authRouter);
 api.use("/me", meRouter);
@@ -34,6 +45,7 @@ api.use("/admin/barbers", barbersAdminRouter);
 api.use("/admin/clients", clientsRouter);
 api.use("/admin/appointments", appointmentsRouter);
 api.use("/admin/waitlist", waitlistRouter);
+api.use("/admin/engagement", engagementRouter);
 api.use("/admin/ledger", ledgerRouter);
 api.use("/admin/cash", cashRouter);
 api.use("/admin/staff", staffRouter);

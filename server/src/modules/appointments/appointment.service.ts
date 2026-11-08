@@ -29,6 +29,7 @@ import { Service } from "../services/service.model.js";
 import { getSettings, type PaymentMethod, type Tender } from "../settings/settings.model.js";
 import { Product } from "../inventory/inventory.models.js";
 import { moveStock } from "../inventory/inventory.service.js";
+import * as engagement from "../engagement/engagement.service.js";
 import * as waitlist from "../waitlist/waitlist.service.js";
 import { Appointment, BLOCKING_STATUSES } from "./appointment.model.js";
 
@@ -134,6 +135,7 @@ export interface BookingInput {
   notes?: string;
   promoCode?: string;
   referralCode?: string;
+  marketingConsent?: boolean;
   source?: "web" | "admin" | "walkin" | "whatsapp";
   skipDeposit?: boolean;
   /** Minutos que se guarda el horario esperando la seña (por defecto, el de la configuración). */
@@ -170,6 +172,7 @@ async function createBookingUnlocked(input: BookingInput, actor?: Actor) {
   const { client, isNew } = await clients.findOrCreate({
     ...input.customer,
     referralCode: input.referralCode,
+    marketingConsent: input.marketingConsent,
     source: input.source,
     trustEmail: !!input.source && input.source !== "web",
   });
@@ -470,6 +473,7 @@ export async function complete(id: string, input: CompleteInput, actor: Actor) {
   if (!client.preferredBarber) client.preferredBarber = barber._id;
   await client.save();
   await clients.afterVisit(client._id, appt.startsAt, actor);
+  await engagement.awardPoints(client._id, Math.max(0, appt.total - prepaidCovered));
 
   return { appointment: appt, clientBalance: await ledger.balanceOf("client", client._id), charge, commission };
 }

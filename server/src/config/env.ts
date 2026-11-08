@@ -16,6 +16,10 @@ const schema = z.object({
   BUSINESS_UTC_OFFSET: z.string().regex(/^[+-]\d{2}:\d{2}$/).default("-03:00"),
   MP_ACCESS_TOKEN: z.string().optional(),
   MP_WEBHOOK_SECRET: z.string().optional(),
+  /** Opcional: URL de un webhook (Slack, Discord, Better Stack…) que recibe los errores 500. */
+  ERROR_WEBHOOK_URL: z.string().url().optional(),
+  /** Proveedor de factura electrónica: none (comprobante interno) | otro, ver modules/billing. */
+  FACTURACION_PROVIDER: z.string().default("none"),
 });
 
 const raw: Record<string, string | undefined> = Object.fromEntries(

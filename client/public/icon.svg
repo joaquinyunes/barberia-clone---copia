@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Jack el Barbero">
+  <rect width="512" height="512" fill="#0f0d0a"/>
+  <g fill="none" stroke="#c9a45c">
+    <circle cx="256" cy="256" r="150" stroke-width="10"/>
+    <circle cx="256" cy="256" r="124" stroke-width="4"/>
+  </g>
+  <text x="256" y="300" text-anchor="middle" font-family="Georgia, serif" font-size="150" font-weight="700" fill="#c9a45c">J</text>
+</svg>

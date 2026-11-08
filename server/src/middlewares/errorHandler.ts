@@ -3,12 +3,20 @@ import mongoose from "mongoose";
 import multer from "multer";
 import { AppError } from "../lib/AppError.js";
 import { logger } from "../lib/logger.js";
+import { env } from "../config/env.js";
 
 export function notFound(req: Request, _res: Response, next: NextFunction) {
   next(new AppError(404, `Ruta no encontrada: ${req.method} ${req.path}`, "ROUTE_NOT_FOUND"));
 }
 
-export function errorHandler(err: unknown, _req: Request, res: Response, _next: NextFunction) {
+/** V7: avisa los errores 500 a un panel externo, sin datos personales (solo método, ruta sin query y mensaje). */
+function reportError(err: unknown, req: Request) {
+  if (!env.ERROR_WEBHOOK_URL) return;
+  const text = `🔴 ${req.method} ${req.path}: ${err instanceof Error ? err.message : String(err)}`.slice(0, 500);
+  void fetch(env.ERROR_WEBHOOK_URL, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ text, content: text }) }).catch(() => undefined);
+}
+
+export function errorHandler(err: unknown, req: Request, res: Response, _next: NextFunction) {
   if (err instanceof AppError) {
     return res.status(err.status).json({ error: { code: err.code, message: err.message, details: err.details } });
   }
@@ -33,5 +41,6 @@ export function errorHandler(err: unknown, _req: Request, res: Response, _next: 
     return res.status(400).json({ error: { code: "BAD_JSON", message: "JSON inválido" } });
   }
   logger.error(err);
+  reportError(err, req);
   res.status(500).json({ error: { code: "INTERNAL", message: "Error interno del servidor" } });
 }

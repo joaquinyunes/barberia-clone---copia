@@ -29,6 +29,7 @@ export const ADMIN_MENU: { group: string; items: MenuItem[] }[] = [
     items: [
       { to: "/admin/turnos", label: "Turnos", icon: IoCalendarOutline, perms: ["appointments.manage", "appointments.own"] },
       { to: "/admin/cancelaciones", label: "Cancelaciones", icon: IoCloseCircleOutline, perms: ["appointments.manage"] },
+      { to: "/admin/fidelizacion", label: "Fidelización", icon: IoHourglassOutline, perms: ["clients.manage", "reports.view"] },
       { to: "/admin/lista-de-espera", label: "Lista de espera", icon: IoHourglassOutline, perms: ["appointments.manage"] },
       { to: "/admin/clientes", label: "Clientes", icon: IoPeopleOutline, perms: ["clients.manage"] },
       { to: "/admin/asistencia", label: "Asistencia", icon: IoTimeOutline, perms: ["barbers.manage"] },

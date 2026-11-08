@@ -1,0 +1,39 @@
+name: Backup
+
+# S10: respaldo semanal de la base, cifrado, guardado 30 días como artefacto privado del repo.
+# Requiere los secretos MONGO_URI y BACKUP_PASSPHRASE. Sin ellos no hace nada.
+# Guía de restauración y prueba: docs/BACKUPS.md
+on:
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  respaldar:
+    runs-on: ubuntu-latest
+    env:
+      MONGO_URI: ${{ secrets.MONGO_URI }}
+      BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+    steps:
+      - uses: actions/checkout@v4
+        if: ${{ env.MONGO_URI != '' && env.BACKUP_PASSPHRASE != '' }}
+      - uses: actions/setup-node@v4
+        if: ${{ env.MONGO_URI != '' && env.BACKUP_PASSPHRASE != '' }}
+        with:
+          node-version: 22
+          cache: npm
+      - name: Respaldar y cifrar
+        if: ${{ env.MONGO_URI != '' && env.BACKUP_PASSPHRASE != '' }}
+        run: |
+          npm ci
+          npm run backup -w server -- "$RUNNER_TEMP/bk"
+          tar -C "$RUNNER_TEMP" -czf - bk | openssl enc -aes-256-cbc -pbkdf2 -salt -pass env:BACKUP_PASSPHRASE -out "$RUNNER_TEMP/backup.tgz.enc"
+      - uses: actions/upload-artifact@v4
+        if: ${{ env.MONGO_URI != '' && env.BACKUP_PASSPHRASE != '' }}
+        with:
+          name: backup-${{ github.run_id }}
+          path: ${{ runner.temp }}/backup.tgz.enc
+          retention-days: 30

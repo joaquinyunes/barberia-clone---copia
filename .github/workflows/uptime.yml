@@ -1,0 +1,23 @@
+name: Uptime
+
+# V7 / B9: cada 10 minutos consulta el sitio y la API. Sirve de aviso de caída (GitHub manda mail al fallar)
+# y, en un plan de Render que se duerme, evita el arranque en frío de ~30 s.
+# Se activa cargando las variables del repo (Settings → Variables): API_URL (…/api/v1) y SITE_URL.
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  chequear:
+    runs-on: ubuntu-latest
+    if: ${{ vars.API_URL != '' }}
+    steps:
+      - name: API viva y con base
+        run: curl --fail --silent --show-error --max-time 60 --retry 2 --retry-delay 5 "${{ vars.API_URL }}/health/ready"
+      - name: Sitio responde
+        if: ${{ vars.SITE_URL != '' }}
+        run: curl --fail --silent --show-error --max-time 30 --retry 2 --retry-delay 5 --output /dev/null "${{ vars.SITE_URL }}"

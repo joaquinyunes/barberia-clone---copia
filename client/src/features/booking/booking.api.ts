@@ -17,6 +17,7 @@ export interface BookingPayload {
   notes?: string;
   promoCode?: string;
   referralCode?: string;
+  marketingConsent?: boolean;
 }
 
 export interface BookingResult {
@@ -49,5 +50,9 @@ export const bookingApi = {
   cancel: (code: string, token: string) => http.post<{ status: string; depositRetained?: boolean }>(`/public/bookings/${code}/cancel`, {}, { params: { token } }).then((r) => r.data),
   reschedule: (code: string, token: string, date: string, time: string) =>
     http.post(`/public/bookings/${code}/reschedule`, { date, time }, { params: { token } }).then((r) => r.data),
+  review: (code: string, token: string, p: { rating: number; recommend?: number; comment?: string }) =>
+    http.post(`/public/bookings/${code}/review`, p, { params: { token } }).then((r) => r.data),
+  tip: (code: string, token: string, amount: number) =>
+    http.post<{ initPoint: string }>(`/public/bookings/${code}/tip`, { amount }, { params: { token } }).then((r) => r.data),
   calendarUrl: (code: string, token: string) => `${http.defaults.baseURL}/public/bookings/${code}/calendar.ics?token=${encodeURIComponent(token)}`,
 };

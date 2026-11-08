@@ -27,11 +27,15 @@ export async function ensureReferralCode(client: InstanceType<typeof Client>) {
  * Busca el cliente por celular o lo crea. `trustEmail` solo desde el panel: un formulario
  * público no puede escribir el email de una ficha ajena (el registro vincula la cuenta por email).
  */
-export async function findOrCreate(input: { name: string; phone: string; email?: string; referralCode?: string; source?: string; trustEmail?: boolean }) {
+export async function findOrCreate(input: { name: string; phone: string; email?: string; referralCode?: string; source?: string; trustEmail?: boolean; marketingConsent?: boolean }) {
   const phone = normalizePhone(input.phone);
   let client = await Client.findOne({ phone });
   if (client) {
     if (client.blocked) throw AppError.forbidden("No es posible reservar online. Comunicate con la barbería.");
+    if (input.marketingConsent && !client.marketing?.whatsapp) {
+      client.marketing = { whatsapp: true, email: client.marketing?.email ?? false, at: new Date(), source: input.source ?? "web" };
+      await client.save();
+    }
     if (input.trustEmail && input.email && !client.email) {
       client.email = input.email;
       await client.save();
@@ -43,7 +47,15 @@ export async function findOrCreate(input: { name: string; phone: string; email?:
     const ref = await Client.findOne({ referralCode: input.referralCode.toUpperCase() });
     if (ref) referredBy = ref._id;
   }
-  client = await Client.create({ name: input.name, phone, email: input.email, referredBy, source: referredBy ? "referido" : (input.source ?? "web") });
+  client = await Client.create({
+    name: input.name,
+    phone,
+    email: input.email,
+    referredBy,
+    source: referredBy ? "referido" : (input.source ?? "web"),
+    // Opt-in explícito en el formulario; sin tilde no hay consentimiento.
+    ...(input.marketingConsent ? { marketing: { whatsapp: true, email: !!input.email, at: new Date(), source: input.source ?? "web" } } : {}),
+  });
   await ensureReferralCode(client);
   return { client, isNew: true };
 }

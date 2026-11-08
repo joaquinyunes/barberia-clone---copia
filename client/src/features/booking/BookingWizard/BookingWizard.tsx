@@ -7,7 +7,7 @@ import { z } from "zod";
 import { IoArrowBack, IoCheckmarkCircle } from "react-icons/io5";
 import { Link } from "react-router-dom";
 import { paths } from "@/app/router/paths";
-import { Button, Input, Skeleton, Textarea, toast } from "@/components/ui";
+import { Button, Checkbox, Input, Skeleton, Textarea, toast } from "@/components/ui";
 import { useBarbers, useLocations, useServices } from "@/features/catalog/useCatalog";
 import { errorCode, errorMessage } from "@/services/http";
 import type { Location, Service } from "@/types";
@@ -30,6 +30,7 @@ const detailsSchema = z.object({
   notes: z.string().max(300).optional(),
   promoCode: z.string().optional(),
   referralCode: z.string().optional(),
+  marketingConsent: z.boolean().optional(),
 });
 type Details = z.infer<typeof detailsSchema>;
 
@@ -83,7 +84,7 @@ export function BookingWizard({ initialLocation, initialService }: { initialLoca
     return availability.barbers.find((b) => b.barber._id === barberId)?.slots ?? [];
   }, [availability, barberId]);
 
-  const form = useForm<Details>({ resolver: zodResolver(detailsSchema), defaultValues: { name: "", phone: "", email: "", notes: "", promoCode: "", referralCode: "" } });
+  const form = useForm<Details>({ resolver: zodResolver(detailsSchema), defaultValues: { name: "", phone: "", email: "", notes: "", promoCode: "", referralCode: "", marketingConsent: false } });
 
   const create = useMutation({
     mutationFn: (d: Details) =>
@@ -97,6 +98,7 @@ export function BookingWizard({ initialLocation, initialService }: { initialLoca
         notes: d.notes || undefined,
         promoCode: d.promoCode || undefined,
         referralCode: d.referralCode || undefined,
+        marketingConsent: d.marketingConsent || undefined,
       }),
     onSuccess: (r) => {
       setResult(r);
@@ -230,6 +232,7 @@ export function BookingWizard({ initialLocation, initialService }: { initialLoca
                   <Input label="Código de descuento" {...form.register("promoCode")} error={form.formState.errors.promoCode?.message} hint={promo ? `✓ ${promo.name}: −${money(promo.discount)}` : undefined} />
                   <Button type="button" variant="dark" onClick={checkPromo}>Aplicar</Button>
                 </div>
+                <Checkbox label="Quiero recibir promociones y novedades por WhatsApp (opcional; podés darte de baja cuando quieras)" {...form.register("marketingConsent")} />
                 <Input label="¿Te recomendó alguien? Código de referido (opcional)" {...form.register("referralCode")} hint="Tu amigo suma crédito y vos tenés descuento en tu primera visita." />
                 <p className={styles.legal}>
                   Al reservar aceptás la <Link to={paths.legal("cancelaciones")}>política de cancelación</Link>: podés cancelar o reprogramar gratis hasta 12 h antes.

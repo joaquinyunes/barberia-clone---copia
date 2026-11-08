@@ -42,6 +42,9 @@ const settingsSchema = new Schema(
     referredDiscountPct: { type: Number, default: 10 },
     overtimeHourRate: { type: Number, default: 5000 },
     blindCashClose: { type: Boolean, default: true },
+    /** Puntos que gana el cliente por cada $1.000 cobrados, y cuántos pesos vale cada punto al canjear. */
+    pointsPerThousand: { type: Number, default: 10 },
+    pointValue: { type: Number, default: 1 },
     tiers: {
       type: [
         {

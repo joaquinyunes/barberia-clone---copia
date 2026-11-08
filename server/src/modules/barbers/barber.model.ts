@@ -31,6 +31,8 @@ const barberSchema = new Schema(
     bio: String,
     specialties: [String],
     instagram: String,
+    /** Galería de trabajos del barbero (URLs de imagen). */
+    gallery: [String],
     /** Servicios que puede hacer. Vacío = todos. */
     services: [{ type: Schema.Types.ObjectId, ref: "Service" }],
     schedule: [scheduleDaySchema],
