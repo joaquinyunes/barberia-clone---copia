@@ -39,7 +39,7 @@ export async function issueGiftCard(input: {
   actor: Actor;
 }) {
   const gc = await GiftCard.create({
-    code: randomCode("GFT"),
+    code: randomCode("GFT", 10), // 50 bits: no se puede adivinar; las tarjetas viejas de 5 caracteres siguen valiendo
     initialValue: input.value,
     balance: input.value,
     buyer: input.buyer,

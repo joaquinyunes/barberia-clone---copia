@@ -13,8 +13,8 @@ export default function EngagementPage() {
   return (
     <>
       <PageHeader title="Fidelización" subtitle="Opiniones verificadas, clientes que no vuelven y campañas (solo a quienes aceptaron recibirlas)." />
-      <Tabs value={tab} onChange={setTab} tabs={[{ value: "lapsed", label: "No vuelven" }, { value: "reviews", label: "Opiniones" }]} />
-      {tab === "lapsed" ? <LapsedTab /> : <ReviewsTab />}
+      <Tabs value={tab} onChange={setTab} tabs={[{ value: "lapsed", label: "No vuelven" }, { value: "reviews", label: "Opiniones" }, { value: "import", label: "Importar clientes" }]} />
+      {tab === "lapsed" ? <LapsedTab /> : tab === "reviews" ? <ReviewsTab /> : <ImportTab />}
     </>
   );
 }
@@ -60,6 +60,36 @@ function ReviewsTab() {
           { key: "a", header: "", render: (r) => <Button size="sm" variant="light" onClick={() => toggle.mutate(r)}>{r.status === "hidden" ? "Publicar" : "Ocultar"}</Button> },
         ]}
       />
+    </Card>
+  );
+}
+
+interface ImportResult { created: number; skipped: number; invalid: { line: number; reason: string }[] }
+
+/** Trae los clientes de la herramienta anterior: CSV con columnas nombre, teléfono y email. */
+function ImportTab() {
+  const [result, setResult] = useState<ImportResult>();
+  const run = useAdminAction((csv: string) => adminApi.post<ImportResult>("clients/import", { csv }), { success: "Importación terminada", onSuccess: setResult });
+  return (
+    <Card tone="light" title="Importar clientes desde un CSV">
+      <p>Exportá tus clientes de la herramienta anterior a CSV con las columnas <strong>nombre</strong>, <strong>teléfono</strong> y <strong>email</strong> (en cualquier orden). Los que ya existen por teléfono no se pisan. Los importados <strong>no</strong> quedan con permiso para recibir campañas.</p>
+      <input
+        type="file"
+        accept=".csv,text/csv"
+        aria-label="Archivo CSV de clientes"
+        onChange={async (e) => {
+          const file = e.target.files?.[0];
+          if (file) run.mutate(await file.text());
+          e.target.value = "";
+        }}
+      />
+      {run.isPending && <p>Importando…</p>}
+      {result && (
+        <div role="status">
+          <p><strong>{result.created}</strong> clientes nuevos · <strong>{result.skipped}</strong> ya existían · <strong>{result.invalid.length}</strong> filas con error</p>
+          {result.invalid.length > 0 && <ul>{result.invalid.map((i) => <li key={i.line}>Fila {i.line}: {i.reason}</li>)}</ul>}
+        </div>
+      )}
     </Card>
   );
 }

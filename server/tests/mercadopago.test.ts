@@ -30,13 +30,13 @@ const webhook = (dataId: string, headers: Record<string, string> = { "x-signatur
   request(app).post("/api/v1/public/mercadopago/webhook").query({ type: "payment", "data.id": dataId }).set(headers).send({});
 
 let ctx: Awaited<ReturnType<typeof seedBase>>;
-const date = nextWeekday(1, 2);
+const dates = [nextWeekday(1, 2), nextWeekday(2, 2)];
 let n = 0;
 async function newBooking() {
   n += 1;
   const r = await request(app)
     .post("/api/v1/public/bookings")
-    .send({ location: String(ctx.location._id), service: String(ctx.fade._id), barber: String(ctx.lucas._id), date, time: `${String(9 + n).padStart(2, "0")}:00`, customer: { name: `MP ${n}`, phone: `11 9000-${1000 + n}` } });
+    .send({ location: String(ctx.location._id), service: String(ctx.fade._id), barber: String(ctx.lucas._id), date: dates[Math.floor((n - 1) / 10)], time: `${String(9 + ((n - 1) % 10)).padStart(2, "0")}:00`, customer: { name: `MP ${n}`, phone: `11 9000-${1000 + n}` } });
   expect(r.status).toBe(201);
   return r.body as { code: string; token: string; deposit: number };
 }
@@ -134,6 +134,26 @@ describe("Mercado Pago: webhook (S6)", () => {
     expect(first.status).toBe(500);
     approved("pay-7", b.code, b.deposit);
     expect((await webhook("pay-7")).body.handled).toBe(true);
+  });
+
+  it("el webhook y el «Aprobar» manual del admin al mismo tiempo suman la seña UNA sola vez", async () => {
+    const b = await newBooking();
+    approved("pay-race", b.code, b.deposit);
+    const appt = await Appointment.findOne({ code: b.code });
+    const rs = await Promise.all([webhook("pay-race"), request(app).post(`/api/v1/admin/appointments/${appt!._id}/approve-deposit`).set(ctx.auth).send({})]);
+    expect(rs.some((r) => r.status === 200)).toBe(true);
+    expect(await CashMovement.countDocuments({ concept: `Seña ${b.code}` })).toBe(1);
+    expect((await Appointment.findOne({ code: b.code }))!.status).toBe("confirmed");
+  });
+
+  it("si un proceso se cayó a mitad y dejó el evento «processing», pasados 5 minutos el reintento lo retoma", async () => {
+    const b = await newBooking();
+    approved("pay-stuck", b.code, b.deposit);
+    await PaymentEvent.create({ paymentId: "pay-stuck" });
+    expect((await webhook("pay-stuck")).body.duplicate).toBe(true); // recién reclamado: otro proceso lo está atendiendo
+    await PaymentEvent.collection.updateOne({ paymentId: "pay-stuck" }, { $set: { updatedAt: new Date(Date.now() - 10 * 60_000) } });
+    expect((await webhook("pay-stuck")).body.handled).toBe(true);
+    expect((await Appointment.findOne({ code: b.code }))!.status).toBe("confirmed");
   });
 
   it("avisos que no son de pago se ignoran sin consultar nada", async () => {

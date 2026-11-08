@@ -24,16 +24,25 @@ describe("S3: bloqueo de cuenta tras intentos fallidos", () => {
     await User.create({ name: "Recep", email: "lock@jack.test", passwordHash: await bcrypt.hash("clave-larga-12345", 4), role: "reception" });
     for (let i = 0; i < 5; i++) expect((await login("lock@jack.test", "mal")).status).toBe(401);
     const blocked = await login("lock@jack.test", "clave-larga-12345");
-    expect(blocked.status).toBe(429);
-    expect(blocked.body.error.code).toBe("ACCOUNT_LOCKED");
+    expect(blocked.status).toBe(401); // mismo mensaje que una contraseña mala: no se revela que está bloqueada
+    expect(blocked.body.error.message).toBe((await login("noexiste@jack.test", "x")).body.error.message);
     await User.updateOne({ email: "lock@jack.test" }, { lockUntil: new Date(Date.now() - 1000) });
     expect((await login("lock@jack.test", "clave-larga-12345")).status).toBe(200);
   });
 
   it("un email inexistente responde igual que una contraseña mala (no revela cuentas)", async () => {
+    const real = await login("larga@jack.test", "mal-mal-mal-mal-1");
     const r = await login("noexiste@jack.test", "lo-que-sea");
     expect(r.status).toBe(401);
-    expect(r.body.error.message).toBe("Email o contraseña incorrectos");
+    expect(r.body.error.message).toBe(real.body.error.message);
+  });
+
+  it("intentos fallidos en paralelo también cuentan (el contador es atómico)", async () => {
+    await User.create({ name: "Par", email: "par@jack.test", passwordHash: await bcrypt.hash("clave-larga-12345", 4), role: "reception" });
+    await Promise.all(Array.from({ length: 6 }, () => login("par@jack.test", "mal")));
+    const u = await User.findOne({ email: "par@jack.test" });
+    expect(u!.lockUntil!.getTime()).toBeGreaterThan(Date.now());
+    expect((await login("par@jack.test", "clave-larga-12345")).status).toBe(401);
   });
 });
 
@@ -82,16 +91,23 @@ describe("S4: contraseña del personal y 2FA (TOTP)", () => {
     const first = await login(email, "clave-larga-12345");
     expect(first.status).toBe(200);
     const auth = { Authorization: `Bearer ${first.body.accessToken}` };
-    const setup = await request(app).post("/api/v1/auth/2fa/setup").set(auth);
+    expect((await request(app).post("/api/v1/auth/2fa/setup").set(auth).send({ password: "otra-clave-cualquiera" })).status).toBe(400); // pide la contraseña
+    const setup = await request(app).post("/api/v1/auth/2fa/setup").set(auth).send({ password: "clave-larga-12345" });
     expect(setup.status).toBe(200);
     const secret = setup.body.secret as string;
     expect(setup.body.otpauthUrl).toContain("otpauth://totp/");
-    const stored = await User.findOne({ email }).select("+totpSecret");
-    expect(stored!.totpSecret).not.toContain(secret); // cifrado en la base
+    const stored = await User.findOne({ email }).select("+totpPending");
+    expect(stored!.totpPending).not.toContain(secret); // cifrado en la base
+    expect(stored!.totpEnabled).toBe(false);
     expect((await request(app).post("/api/v1/auth/2fa/enable").set(auth).send({ code: "000000" })).status).toBe(400);
     const now = () => Math.floor(Date.now() / 30_000);
     expect((await request(app).post("/api/v1/auth/2fa/enable").set(auth).send({ code: totpCode(secret, now()) })).status).toBe(204);
 
+    // con 2FA activo, un access token robado NO puede reemplazarlo: setup se rechaza aunque traiga la contraseña
+    const newer = await login(email, "clave-larga-12345", totpCode(secret, now()));
+    const hijack = await request(app).post("/api/v1/auth/2fa/setup").set({ Authorization: `Bearer ${newer.body.accessToken}` }).send({ password: "clave-larga-12345" });
+    expect(hijack.status).toBe(409);
+    expect((await User.findOne({ email }))!.totpEnabled).toBe(true);
     const noCode = await login(email, "clave-larga-12345");
     expect(noCode.status).toBe(401);
     expect(noCode.body.error.code).toBe("TOTP_REQUIRED");
@@ -156,6 +172,21 @@ describe("S7: la auditoría no se puede editar ni borrar", () => {
 });
 
 describe("S12: datos personales", () => {
+  it("la configuración no se le muestra a un cliente con sesión", async () => {
+    const reg = await request(app).post("/api/v1/auth/register").send({ name: "Cli Ente", email: "cli@mail.com", phone: "11 6666-0001", password: "12345678" });
+    expect((await request(app).get("/api/v1/admin/settings").set({ Authorization: `Bearer ${reg.body.accessToken}` })).status).toBe(403);
+    expect((await request(app).get("/api/v1/admin/settings").set(ctx.auth)).status).toBe(200);
+  });
+
+  it("el consentimiento de campañas no se puede dar sobre la ficha de otra persona por su teléfono", async () => {
+    const phone = "11 6666-0002";
+    const first = await request(app).post("/api/v1/public/bookings").send({ location: String(ctx.location._id), service: String(ctx.fade._id), barber: "any", date, time: "16:00", customer: { name: "Dueña Real", phone } });
+    expect(first.status).toBe(201);
+    const second = await request(app).post("/api/v1/public/bookings").send({ location: String(ctx.location._id), service: String(ctx.fade._id), barber: "any", date, time: "17:00", customer: { name: "Otro", phone }, marketingConsent: true });
+    expect(second.status).toBe(201);
+    expect((await Client.findOne({ name: "Dueña Real" }))!.marketing?.whatsapp).toBeFalsy();
+  });
+
   it("exportar y anonimizar: solo quien administra usuarios, y la ficha queda sin datos identificables", async () => {
     const b = await request(app).post("/api/v1/public/bookings").send({ location: String(ctx.location._id), service: String(ctx.fade._id), barber: "any", date, time: "15:00", customer: { name: "Pedro Privado", phone: "11 5555-3434", email: "pedro@mail.com" } });
     expect(b.status).toBe(201);
@@ -177,6 +208,7 @@ describe("S12: datos personales", () => {
     const after = await Client.findById(client!._id).lean();
     expect(JSON.stringify(after)).not.toMatch(/Pedro|pedro@mail|5555-?3434|15553434/);
     expect(after!.active).toBe(false);
+    expect(await AuditLog.countDocuments({ summary: /Pedro/ })).toBe(0); // la bitácora inmutable no guarda el nombre
   });
 });
 

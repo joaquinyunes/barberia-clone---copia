@@ -313,9 +313,25 @@ export async function whatsappFor(id: unknown) {
 /* ───────────────────────── Seña: aprobar / rechazar ───────────────────────── */
 
 export async function approveDeposit(id: string, input: { amount?: number; method?: PaymentMethod }, actor: Actor) {
-  const appt = await Appointment.findById(id);
-  if (!appt) throw AppError.notFound("Turno");
-  if (!["payment_review", "pending_payment"].includes(appt.status)) throw AppError.conflict("El turno no está esperando la seña");
+  const before = await Appointment.findById(id);
+  if (!before) throw AppError.notFound("Turno");
+  if (!["payment_review", "pending_payment"].includes(before.status)) throw AppError.conflict("El turno no está esperando la seña");
+  // Una reserva vencida que todavía no barrió el job no puede confirmarse encima de otro turno.
+  if (before.status === "pending_payment" && (!before.holdExpiresAt || before.holdExpiresAt < new Date()) && (await overlapping(before.barber, before.startsAt, before.endsAt, before._id))) {
+    throw AppError.conflict("El horario ya fue tomado por otra persona.");
+  }
+  // Reclamo atómico: si el webhook y el admin aprueban a la vez, solo uno sigue (no se duplica caja ni saldo).
+  const appt = await Appointment.findOneAndUpdate({ _id: id, status: { $in: ["payment_review", "pending_payment"] } }, { status: "confirmed" }, { new: true });
+  if (!appt) throw AppError.conflict("El turno no está esperando la seña");
+  try {
+    return await approveDepositClaimed(appt, before.status, input, actor);
+  } catch (err) {
+    await Appointment.updateOne({ _id: id, status: "confirmed", "deposit.approvedAt": { $exists: false } }, { status: before.status });
+    throw err;
+  }
+}
+
+async function approveDepositClaimed(appt: InstanceType<typeof Appointment>, _previous: string, input: { amount?: number; method?: PaymentMethod }, actor: Actor) {
   const amount = input.amount ?? appt.deposit.required ?? 0;
   const method = input.method ?? (appt.deposit.method as PaymentMethod) ?? "transfer";
   if (amount > 0) {

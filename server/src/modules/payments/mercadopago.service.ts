@@ -102,8 +102,16 @@ export async function handleSubscription(preapprovalId: string) {
       if (existing.status === "paused") await Membership.updateOne({ _id: existing._id }, { status: "active" });
       return { handled: true, status: sub.status, duplicate: true };
     }
-    const m = await commercial.subscribe({ plan: planId, client: clientId, actor: { name: "Mercado Pago" } });
-    await Membership.updateOne({ _id: m._id }, { mpPreapprovalId: preapprovalId });
+    let created: { _id: unknown } | undefined;
+    try {
+      created = await commercial.subscribe({ plan: planId, client: clientId, actor: { name: "Mercado Pago" } });
+      await Membership.updateOne({ _id: created._id }, { mpPreapprovalId: preapprovalId });
+    } catch (err) {
+      // Dos avisos «authorized» a la vez: gana el índice único; la membresía sobrante de este aviso se descarta.
+      if (created) await Membership.deleteOne({ _id: created._id, mpPreapprovalId: { $exists: false } });
+      if (await Membership.exists({ client: clientId, mpPreapprovalId: preapprovalId })) return { handled: true, status: sub.status, duplicate: true };
+      throw err;
+    }
     return { handled: true, status: sub.status };
   }
   if (existing && (sub.status === "cancelled" || sub.status === "paused")) {
@@ -141,8 +149,10 @@ export async function handleNotification(paymentId: string) {
   try {
     await PaymentEvent.create({ paymentId: id });
   } catch (err) {
-    if ((err as { code?: number }).code === 11000) return { handled: false, duplicate: true, status: payment.status };
-    throw err;
+    if ((err as { code?: number }).code !== 11000) throw err;
+    // Si un proceso anterior se cayó a mitad (reinicio/deploy) el reclamo queda «processing»: pasados 5 min se retoma.
+    const stale = await PaymentEvent.findOneAndUpdate({ paymentId: id, outcome: "processing", updatedAt: { $lt: new Date(Date.now() - 5 * 60_000) } }, { detail: "retomado" });
+    if (!stale) return { handled: false, duplicate: true, status: payment.status };
   }
   const finish = (outcome: "confirmed" | "ignored" | "needs_review", detail?: string) =>
     PaymentEvent.updateOne({ paymentId: id }, { outcome, detail }).then(() => ({ handled: outcome === "confirmed", status: payment.status, outcome }));
@@ -188,6 +198,8 @@ export async function handleNotification(paymentId: string) {
       // Cobro mensual de una suscripción: el primero se registra sin extender (la membresía ya nació con su período); los siguientes renuevan.
       const m = await Membership.findOne({ client: code, mpPreapprovalId: { $exists: true }, status: { $in: ["active", "paused", "expired"] } }).sort({ createdAt: -1 });
       const location = await Location.findOne({ active: true }).sort({ order: 1 });
+      // Cobro que llega antes que el aviso de la suscripción: se libera el reclamo y Mercado Pago reintenta.
+      if (!m) throw new AppError(409, "La membresía todavía no está registrada: reintentar", "MEMBERSHIP_PENDING");
       if (m && location && paid > 0) {
         if (m.payments.length === 0) {
           m.payments.push({ date: new Date(), amount: paid, method: "mercadopago" });

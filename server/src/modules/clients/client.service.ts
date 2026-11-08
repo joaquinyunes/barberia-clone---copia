@@ -32,10 +32,7 @@ export async function findOrCreate(input: { name: string; phone: string; email?:
   let client = await Client.findOne({ phone });
   if (client) {
     if (client.blocked) throw AppError.forbidden("No es posible reservar online. Comunicate con la barbería.");
-    if (input.marketingConsent && !client.marketing?.whatsapp) {
-      client.marketing = { whatsapp: true, email: client.marketing?.email ?? false, at: new Date(), source: input.source ?? "web" };
-      await client.save();
-    }
+    // El consentimiento NO se puede dar por teléfono ajeno sobre una ficha existente (quien se dio de baja no vuelve a suscribirse solo).
     if (input.trustEmail && input.email && !client.email) {
       client.email = input.email;
       await client.save();

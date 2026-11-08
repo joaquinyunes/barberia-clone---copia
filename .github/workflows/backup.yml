@@ -1,7 +1,8 @@
 name: Backup
 
 # S10: respaldo semanal de la base, cifrado, guardado 30 días como artefacto privado del repo.
-# Requiere los secretos MONGO_URI y BACKUP_PASSPHRASE. Sin ellos no hace nada.
+# Requiere los secretos MONGO_URI y BACKUP_PASSPHRASE (de 32+ caracteres al azar) y un repositorio PRIVADO:
+# en un repo público los artefactos los puede bajar cualquiera, por eso el trabajo no corre si el repo es público.
 # Guía de restauración y prueba: docs/BACKUPS.md
 on:
   schedule:
@@ -14,6 +15,7 @@ permissions:
 jobs:
   respaldar:
     runs-on: ubuntu-latest
+    if: ${{ github.event.repository.private }}
     env:
       MONGO_URI: ${{ secrets.MONGO_URI }}
       BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
@@ -30,7 +32,7 @@ jobs:
         run: |
           npm ci
           npm run backup -w server -- "$RUNNER_TEMP/bk"
-          tar -C "$RUNNER_TEMP" -czf - bk | openssl enc -aes-256-cbc -pbkdf2 -salt -pass env:BACKUP_PASSPHRASE -out "$RUNNER_TEMP/backup.tgz.enc"
+          tar -C "$RUNNER_TEMP" -czf - bk | openssl enc -aes-256-cbc -pbkdf2 -iter 600000 -salt -pass env:BACKUP_PASSPHRASE -out "$RUNNER_TEMP/backup.tgz.enc"
       - uses: actions/upload-artifact@v4
         if: ${{ env.MONGO_URI != '' && env.BACKUP_PASSPHRASE != '' }}
         with:

@@ -88,6 +88,8 @@ const membershipSchema = new Schema(
   { timestamps: true },
 );
 membershipSchema.index({ client: 1, status: 1 });
+// Una suscripción de Mercado Pago = una sola membresía, aunque lleguen avisos repetidos o simultáneos.
+membershipSchema.index({ mpPreapprovalId: 1 }, { unique: true, partialFilterExpression: { mpPreapprovalId: { $type: "string" } } });
 
 const promotionSchema = new Schema(
   {

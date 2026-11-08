@@ -19,6 +19,7 @@ const userSchema = new Schema(
     lockUntil: Date,
     totpEnabled: { type: Boolean, default: false },
     totpSecret: { type: String, select: false }, // cifrado, ver lib/totp.ts
+    totpPending: { type: String, select: false }, // secreto generado y todavía no confirmado
   },
   { timestamps: true },
 );
@@ -28,6 +29,7 @@ userSchema.set("toJSON", {
     delete ret.passwordHash;
     delete ret.tokenVersion;
     delete ret.totpSecret;
+    delete ret.totpPending;
     delete ret.failedLogins;
     delete ret.lockUntil;
     return ret;

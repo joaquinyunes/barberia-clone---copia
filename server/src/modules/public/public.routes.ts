@@ -19,10 +19,8 @@ import { Service } from "../services/service.model.js";
 import { getSettings } from "../settings/settings.model.js";
 import * as waitlist from "../waitlist/waitlist.service.js";
 import { ContactMessage } from "./contact.model.js";
-import QRCode from "qrcode";
 import * as engagement from "../engagement/engagement.service.js";
 import { Review } from "../engagement/review.model.js";
-import { GiftCard } from "../commercial/commercial.models.js";
 
 export const publicRouter = Router();
 
@@ -347,15 +345,6 @@ publicRouter.post("/bookings/:code/unsubscribe", publicWriteLimiter, async (req,
   if (!a) throw AppError.notFound("Turno");
   await engagement.setConsent(a.client, { whatsapp: false, email: false }, "baja-por-link");
   res.status(204).end();
-});
-
-/* ── QR de la gift card (lo escanea el personal en caja) ── */
-publicRouter.get("/giftcards/:code/qr.svg", publicReadLimiter, async (req, res) => {
-  const gc = await GiftCard.findOne({ code: String(req.params.code).toUpperCase(), status: "active" }, "code");
-  if (!gc) throw AppError.notFound("Gift card");
-  res.setHeader("Content-Type", "image/svg+xml");
-  res.setHeader("Cache-Control", "private, max-age=3600");
-  res.send(await QRCode.toString(gc.code, { type: "svg", margin: 1, errorCorrectionLevel: "M" }));
 });
 
 /** Propina online (Mercado Pago) para un turno ya realizado. */

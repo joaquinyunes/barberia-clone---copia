@@ -131,10 +131,11 @@ describe("B6: puntos canjeables", () => {
 });
 
 describe("B6: QR de gift card", () => {
-  it("devuelve un SVG para una tarjeta activa y 404 para una inexistente", async () => {
-    await GiftCard.create({ code: "GC-TEST-0001", initialValue: 10000, balance: 10000, status: "active" });
+  it("lo genera solo el personal autorizado (no hay endpoint público que confirme si un código existe)", async () => {
+    const gc = await GiftCard.create({ code: "GFT-TESTCODE01", initialValue: 10000, balance: 10000, status: "active" });
     const ok = await request(app)
-      .get("/api/v1/public/giftcards/gc-test-0001/qr.svg")
+      .get(`/api/v1/admin/commercial/giftcards/${gc._id}/qr.svg`)
+      .set(ctx.auth)
       .buffer(true)
       .parse((res, cb) => {
         let d = "";
@@ -144,7 +145,8 @@ describe("B6: QR de gift card", () => {
     expect(ok.status).toBe(200);
     expect(ok.headers["content-type"]).toContain("image/svg+xml");
     expect(String(ok.body)).toContain("<svg");
-    expect((await request(app).get("/api/v1/public/giftcards/NOEXISTE/qr.svg")).status).toBe(404);
+    expect((await request(app).get(`/api/v1/admin/commercial/giftcards/${gc._id}/qr.svg`)).status).toBe(401);
+    expect((await request(app).get("/api/v1/public/giftcards/GFT-TESTCODE01/qr.svg")).status).toBe(404);
   });
 });
 
@@ -212,6 +214,17 @@ describe("B7: cobro recurrente de la membresía", () => {
     mp.subs.set("sub-1", { id: "sub-1", status: "cancelled", external_reference: `membership:${clientId}:${planId}` });
     await webhook("subscription_preapproval", "sub-1");
     expect((await Membership.findOne({ client: clientId }))!.status).toBe("cancelled");
+  });
+
+  it("un cobro que llega ANTES que el aviso de la suscripción no se pierde: devuelve 409 y el reintento lo procesa", async () => {
+    await Membership.deleteMany({ client: clientId });
+    mp.payments.set("pay-early", { id: "pay-early", status: "approved", external_reference: `membership:${clientId}:${planId}`, transaction_amount: 20000 });
+    mp.subs.set("sub-2", { id: "sub-2", status: "authorized", external_reference: `membership:${clientId}:${planId}` });
+    expect((await webhook("payment", "pay-early")).status).toBe(409);
+    await Promise.all([webhook("subscription_preapproval", "sub-2"), webhook("subscription_preapproval", "sub-2")]);
+    expect(await Membership.countDocuments({ client: clientId })).toBe(1);
+    expect((await webhook("payment", "pay-early")).body.handled).toBe(true);
+    expect((await Membership.findOne({ client: clientId }))!.payments).toHaveLength(1);
   });
 
   it("no deja suscribirse dos veces ni con un plan inexistente", async () => {

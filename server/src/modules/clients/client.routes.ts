@@ -12,6 +12,9 @@ import { ClientPack, GiftCard, Membership } from "../commercial/commercial.model
 import * as ledger from "../ledger/ledger.service.js";
 import { PAYMENT_METHODS } from "../settings/settings.model.js";
 import { User } from "../users/user.model.js";
+import { Order } from "../orders/order.model.js";
+import { Review } from "../engagement/review.model.js";
+import { importClients } from "./csvImport.js";
 import { Client, normalizePhone } from "./client.model.js";
 import { ensureReferralCode, recomputeTier } from "./client.service.js";
 
@@ -153,7 +156,7 @@ clientsRouter.get("/:id/export", authorize("users.manage"), async (req, res) => 
     client.user ? User.findById(client.user).lean() : null,
   ]);
   const { internalNotes, ...ficha } = client; // las notas internas son del negocio, no del titular
-  await audit(req, { action: "custom", entity: "Cliente", entityId: client._id, summary: `exportó los datos personales de ${client.name}` });
+  await audit(req, { action: "custom", entity: "Cliente", entityId: client._id, summary: "exportó los datos personales de la ficha" });
   res.setHeader("Content-Disposition", `attachment; filename="datos-${client._id}.json"`);
   res.json({ exportedAt: new Date(), ficha, cuenta: user ? { email: user.email, phone: user.phone, name: user.name, createdAt: user.createdAt } : null, turnos: appointments, giftCards, membresias: memberships, packs, movimientos: movements });
 });
@@ -165,11 +168,19 @@ clientsRouter.get("/:id/export", authorize("users.manage"), async (req, res) => 
 clientsRouter.post("/:id/anonymize", authorize("users.manage"), validate({ body: z.object({ confirm: z.literal(true) }) }), async (req, res) => {
   const client = await Client.findById(req.params.id);
   if (!client) throw AppError.notFound("Cliente");
-  const label = client.name;
   if (client.user) await User.deleteOne({ _id: client.user, role: "customer" });
-  client.set({ name: "Cliente eliminado", phone: `eliminado-${client._id}`, email: undefined, dni: undefined, birthday: undefined, user: undefined, internalNotes: [], cutNotes: [], tags: [], referralCode: undefined, blocked: false, active: false });
+  client.set({ name: "Cliente eliminado", phone: `eliminado-${client._id}`, email: undefined, dni: undefined, birthday: undefined, user: undefined, internalNotes: [], cutNotes: [], tags: [], referralCode: undefined, active: false }); // `blocked` no se toca: un cliente vetado no recupera la reserva online al pedir la supresión
   await client.save();
   await Appointment.updateMany({ client: client._id }, { $unset: { notes: 1 } });
-  await audit(req, { action: "delete", entity: "Cliente", entityId: client._id, summary: `anonimizó los datos personales de ${label} (pedido del titular)` });
+  await Order.updateMany({ client: client._id }, { $unset: { recipient: 1, notes: 1 } });
+  await Review.updateMany({ client: client._id }, { $unset: { comment: 1 } });
+  await audit(req, { action: "delete", entity: "Cliente", entityId: client._id, summary: "anonimizó los datos personales de la ficha (pedido del titular)" });
   res.json({ ok: true });
+});
+
+/** Importar clientes desde un CSV de la herramienta anterior (nombre, teléfono, email). */
+clientsRouter.post("/import", authorize("clients.manage"), validate({ body: z.object({ csv: z.string().min(10).max(900_000) }) }), async (req, res) => {
+  const result = await importClients(req.body.csv);
+  await audit(req, { action: "create", entity: "Cliente", summary: `importó clientes por CSV (${result.created} nuevos, ${result.skipped} ya existían, ${result.invalid.length} con error)` });
+  res.json(result);
 });

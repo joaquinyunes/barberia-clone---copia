@@ -21,6 +21,7 @@ const readOnly = () => { throw new Error("La auditoría es de solo lectura"); };
 for (const op of ["updateOne", "updateMany", "findOneAndUpdate", "findOneAndReplace", "replaceOne", "deleteOne", "deleteMany", "findOneAndDelete"] as const) {
   auditSchema.pre(op, readOnly);
 }
+auditSchema.pre("bulkWrite" as never, readOnly as never);
 auditSchema.pre("save", function () {
   if (!this.isNew) readOnly();
 });

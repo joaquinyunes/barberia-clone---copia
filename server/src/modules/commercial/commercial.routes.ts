@@ -1,4 +1,5 @@
 import { Router } from "express";
+import QRCode from "qrcode";
 import { z } from "zod";
 import { crudRouter } from "../../core/crudRouter.js";
 import { authenticate } from "../../middlewares/authenticate.js";
@@ -93,6 +94,15 @@ commercialRouter.post(
     res.status(201).json(gc);
   },
 );
+/** QR con el código de la gift card (para imprimir o mandar al destinatario; solo personal autorizado). */
+commercialRouter.get("/giftcards/:id/qr.svg", async (req, res) => {
+  const gc = await GiftCard.findById(req.params.id, "code status");
+  if (!gc || gc.status !== "active") throw AppError.notFound("Gift card");
+  res.setHeader("Content-Type", "image/svg+xml");
+  res.setHeader("Cache-Control", "private, no-store");
+  res.send(await QRCode.toString(gc.code, { type: "svg", margin: 1, errorCorrectionLevel: "M" }));
+});
+
 commercialRouter.post("/giftcards/:id/void", async (req, res) => {
   const gc = await GiftCard.findByIdAndUpdate(req.params.id, { status: "void" }, { new: true });
   if (!gc) throw AppError.notFound("Gift card");

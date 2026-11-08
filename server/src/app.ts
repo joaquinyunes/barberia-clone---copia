@@ -22,7 +22,8 @@ export function createApp() {
   app.use(express.json({ limit: "1mb" }));
   app.use(cookieParser());
   app.use(rejectMongoOperators);
-  if (env.NODE_ENV !== "test") app.use(pinoHttp({ logger, autoLogging: { ignore: (req) => req.url === "/api/v1/health" } }));
+  // Los links de reserva llevan el token en la query (?token=…): no se registra la query ni cabeceras.
+  if (env.NODE_ENV !== "test") app.use(pinoHttp({ logger, serializers: { req: (req: { method: string; url: string }) => ({ method: req.method, url: req.url.split("?")[0] }), res: (res: { statusCode: number }) => ({ statusCode: res.statusCode }) }, autoLogging: { ignore: (req) => req.url === "/api/v1/health" } }));
   app.use("/api/v1", api);
   app.use(notFound);
   app.use(errorHandler);

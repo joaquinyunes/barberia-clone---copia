@@ -37,53 +37,66 @@ const LOCK_MS = 15 * 60_000;
 /** Contraseña de personal (todo menos clientes): mínimo 12 caracteres. */
 export const STAFF_MIN_PASSWORD = 12;
 
+// Hash de relleno: si la cuenta no existe se compara igual, para que no se note por el tiempo de respuesta.
+const DUMMY_HASH = bcrypt.hashSync("relleno-sin-cuenta", 10);
+const GENERIC_LOGIN_ERROR = "Email o contraseña incorrectos, o la cuenta está bloqueada unos minutos.";
+
 authRouter.post(
   "/login",
   authLimiter,
   validate({ body: z.object({ email: z.string().email(), password: z.string().min(1), totp: z.string().optional() }) }),
   async (req, res) => {
     const user = await User.findOne({ email: req.body.email.toLowerCase() }).select("+totpSecret");
-    // Bloqueo temporal por cuenta (además del límite por IP): tras 5 fallos seguidos, 15 minutos.
-    if (user?.lockUntil && user.lockUntil > new Date()) {
-      throw new AppError(429, "Demasiados intentos fallidos. Probá de nuevo en unos minutos.", "ACCOUNT_LOCKED");
-    }
+    const passwordOk = await bcrypt.compare(req.body.password, user?.passwordHash ?? DUMMY_HASH);
+    // Un solo mensaje para: no existe, contraseña mala, cuenta inactiva o bloqueada (no se revela cuál).
     const fail = async () => {
       if (user) {
-        user.failedLogins += 1;
-        if (user.failedLogins >= MAX_FAILED) {
-          user.lockUntil = new Date(Date.now() + LOCK_MS);
-          user.failedLogins = 0;
-          await audit(undefined, { action: "custom", entity: "Seguridad", entityId: user._id, summary: `cuenta ${user.email} bloqueada 15 min por intentos fallidos` });
+        // Contador atómico: pedidos en paralelo no pueden saltearse el límite.
+        const u = await User.findOneAndUpdate({ _id: user._id }, { $inc: { failedLogins: 1 } }, { new: true });
+        if (u && u.failedLogins >= MAX_FAILED) {
+          await User.updateOne({ _id: user._id }, { lockUntil: new Date(Date.now() + LOCK_MS), failedLogins: 0 });
+          await audit(undefined, { action: "custom", entity: "Seguridad", entityId: user._id, summary: `cuenta bloqueada 15 min por intentos fallidos` });
         }
-        await user.save();
       }
-      throw AppError.unauthorized("Email o contraseña incorrectos");
+      throw AppError.unauthorized(GENERIC_LOGIN_ERROR);
     };
-    if (!user || !user.active || !(await bcrypt.compare(req.body.password, user.passwordHash))) return fail();
+    if (!user || !passwordOk || !user.active) return fail();
+    if (user.lockUntil && user.lockUntil > new Date()) throw AppError.unauthorized(GENERIC_LOGIN_ERROR);
     if (user.totpEnabled) {
       if (!req.body.totp) throw new AppError(401, "Ingresá el código de tu app de autenticación", "TOTP_REQUIRED");
       if (!verifyTotp(openSecret(user.totpSecret!), req.body.totp)) return fail();
     }
-    user.failedLogins = 0;
-    user.lockUntil = undefined;
-    user.lastLoginAt = new Date();
-    await user.save();
-    res.cookie(COOKIE, signRefresh(String(user._id), user.tokenVersion), cookieOpts);
-    res.json(session(user));
+    // Entrada atómica: solo si la cuenta no se bloqueó mientras tanto (intentos en vuelo).
+    const entered = await User.findOneAndUpdate(
+      { _id: user._id, $or: [{ lockUntil: { $exists: false } }, { lockUntil: null }, { lockUntil: { $lte: new Date() } }] },
+      { $set: { failedLogins: 0, lastLoginAt: new Date() }, $unset: { lockUntil: 1 } },
+      { new: true },
+    );
+    if (!entered) throw AppError.unauthorized(GENERIC_LOGIN_ERROR);
+    res.cookie(COOKIE, signRefresh(String(entered._id), entered.tokenVersion), cookieOpts);
+    res.json(session(entered));
   },
 );
 
-/** 2FA (TOTP) para el personal: 1) pide el secreto, 2) confirma con un código y queda activo. */
-authRouter.post("/2fa/setup", authenticate, async (req, res) => {
+/**
+ * 2FA (TOTP) para el personal: 1) con la contraseña actual pide un secreto NUEVO (queda pendiente, el 2FA vigente no se toca),
+ * 2) confirma con un código y recién ahí queda activo. Si ya hay 2FA activo hay que desactivarlo primero (contraseña + código).
+ */
+authRouter.post("/2fa/setup", authLimiter, authenticate, validate({ body: z.object({ password: z.string().min(1) }) }), async (req, res) => {
   if (req.user!.role === "customer") throw AppError.forbidden();
+  const user = await User.findById(req.user!._id);
+  if (!user || !(await bcrypt.compare(req.body.password, user.passwordHash))) throw AppError.badRequest("La contraseña no es correcta");
+  if (user.totpEnabled) throw AppError.conflict("La verificación en dos pasos ya está activa. Desactivala primero para cambiarla.");
   const secret = newSecret();
-  await User.updateOne({ _id: req.user!._id }, { totpSecret: sealSecret(secret), totpEnabled: false });
-  res.json({ secret, otpauthUrl: otpauthUrl(secret, req.user!.email) });
+  await User.updateOne({ _id: user._id }, { totpPending: sealSecret(secret) });
+  res.json({ secret, otpauthUrl: otpauthUrl(secret, user.email) });
 });
 
-authRouter.post("/2fa/enable", authenticate, validate({ body: z.object({ code: z.string().length(6) }) }), async (req, res) => {
-  const user = await User.findById(req.user!._id).select("+totpSecret");
-  if (!user?.totpSecret || !verifyTotp(openSecret(user.totpSecret), req.body.code)) throw AppError.badRequest("Código incorrecto");
+authRouter.post("/2fa/enable", authLimiter, authenticate, validate({ body: z.object({ code: z.string().length(6) }) }), async (req, res) => {
+  const user = await User.findById(req.user!._id).select("+totpPending");
+  if (!user?.totpPending || user.totpEnabled || !verifyTotp(openSecret(user.totpPending), req.body.code)) throw AppError.badRequest("Código incorrecto");
+  user.totpSecret = user.totpPending;
+  user.totpPending = undefined;
   user.totpEnabled = true;
   user.tokenVersion += 1; // cierra las demás sesiones
   await user.save();
@@ -91,7 +104,7 @@ authRouter.post("/2fa/enable", authenticate, validate({ body: z.object({ code: z
   res.status(204).end();
 });
 
-authRouter.post("/2fa/disable", authenticate, validate({ body: z.object({ password: z.string(), code: z.string().length(6) }) }), async (req, res) => {
+authRouter.post("/2fa/disable", authLimiter, authenticate, validate({ body: z.object({ password: z.string(), code: z.string().length(6) }) }), async (req, res) => {
   const user = await User.findById(req.user!._id).select("+totpSecret");
   if (!user?.totpEnabled || !(await bcrypt.compare(req.body.password, user.passwordHash)) || !verifyTotp(openSecret(user.totpSecret!), req.body.code)) {
     throw AppError.badRequest("Contraseña o código incorrectos");
@@ -102,7 +115,6 @@ authRouter.post("/2fa/disable", authenticate, validate({ body: z.object({ passwo
   await audit(req, { action: "update", entity: "Seguridad", entityId: user._id, summary: "desactivó la verificación en dos pasos" });
   res.status(204).end();
 });
-
 
 authRouter.post(
   "/register",

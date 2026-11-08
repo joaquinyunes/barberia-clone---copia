@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { validate } from "../../middlewares/validate.js";
+import { AppError } from "../../lib/AppError.js";
 import { authenticate } from "../../middlewares/authenticate.js";
 import { authorize } from "../../middlewares/authorize.js";
 import { audit, diff } from "../audit/audit.service.js";
@@ -8,7 +9,8 @@ import { PAYMENT_METHODS, getSettings } from "./settings.model.js";
 
 export const settingsRouter = Router();
 
-settingsRouter.get("/", authenticate, async (_req, res) => {
+settingsRouter.get("/", authenticate, async (req, res) => {
+  if (req.user!.role === "customer") throw AppError.forbidden();
   res.json(await getSettings());
 });
 
@@ -33,8 +35,8 @@ const settingsBody = z
     referredDiscountPct: pct,
     overtimeHourRate: nat,
     blindCashClose: z.boolean(),
-    pointsPerThousand: z.number().min(0).max(1000),
-    pointValue: z.number().min(0).max(1000),
+    pointsPerThousand: z.number().min(0).max(100),
+    pointValue: z.number().min(0).max(10),
     tiers: z.array(z.object({ key: z.string().max(30), label: z.string().max(40), minVisits: nat.nullish(), minReferrals: nat.nullish(), minDaysSinceFirstVisit: nat.nullish(), withMembership: z.boolean().nullish(), discountPct: pct, benefits: z.string().max(200).optional() })),
     expenseCategories: z.array(z.string().max(40)).max(50),
   })
