@@ -29,12 +29,36 @@ services:
         sync: false
       - key: MP_WEBHOOK_SECRET
         sync: false
+      - key: ERROR_WEBHOOK_URL # opcional: avisa los errores 500 a Slack/Discord/Better Stack
+        sync: false
+      - key: FACTURACION_PROVIDER # none = comprobante interno; ver server/src/modules/billing
+        value: none
 
   - type: web
     name: jack-el-barbero-web
     runtime: static
     buildCommand: npm ci --include=dev && npm run build -w client
     staticPublishPath: client/dist
+    # Mismas cabeceras que vercel.json (CSP en modo bloqueo incluida).
+    headers:
+      - path: /*
+        name: X-Content-Type-Options
+        value: "nosniff"
+      - path: /*
+        name: X-Frame-Options
+        value: "DENY"
+      - path: /*
+        name: Referrer-Policy
+        value: "strict-origin-when-cross-origin"
+      - path: /*
+        name: Permissions-Policy
+        value: "camera=(), microphone=(), geolocation=(), payment=()"
+      - path: /*
+        name: Content-Security-Policy
+        value: "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https://*.onrender.com https://maps.gstatic.com https://*.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; media-src 'self' blob:; connect-src 'self' https://*.onrender.com; worker-src 'self' blob:; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; frame-src https://maps.google.com https://www.google.com; upgrade-insecure-requests"
+      - path: /*
+        name: Strict-Transport-Security
+        value: "max-age=63072000; includeSubDomains"
     routes:
       - type: rewrite
         source: /*

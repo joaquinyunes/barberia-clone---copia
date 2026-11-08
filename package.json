@@ -14,6 +14,8 @@
     "typecheck": "npm run typecheck -w server && npm run typecheck -w client",
     "lint": "npm run lint -w client",
     "seed": "npm run seed -w server",
+    "provision": "npm run provision -w server --",
+    "smoke": "node tools/smoke.mjs",
     "db:up": "docker compose up -d mongo"
   },
   "devDependencies": {

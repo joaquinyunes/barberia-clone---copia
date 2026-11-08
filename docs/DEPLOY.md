@@ -1,7 +1,7 @@
 # Despliegue y variables de entorno
 
 Base de datos en **MongoDB Atlas**, API en **Render** (`render.yaml`) y sitio en **Vercel** (`vercel.json`).
-Este repo **no versiona ningún `.env` ni `.env.example`**: los valores se cargan a mano en cada servicio
+Este repo **no versiona ningún `.env`** (solo `server/.env.example` y `client/.env.example`, sin valores): los valores se cargan a mano en cada servicio
 (Render → *Environment*, Vercel → *Settings → Environment Variables*, y un `server/.env` local que está en `.gitignore`).
 Esta tabla lista solo los **nombres**; nunca pegues valores acá.
 
@@ -19,14 +19,20 @@ Esta tabla lista solo los **nombres**; nunca pegues valores acá.
 | `LINK_SECRET` | sí en producción | Firma de links de gestión de reservas y comprobantes. |
 | `UPLOAD_DIR` | no | Carpeta de comprobantes subidos (por defecto `uploads`). |
 | `BUSINESS_UTC_OFFSET` | no | Huso horario del negocio, formato `-03:00`. |
-| `MP_ACCESS_TOKEN` | no | Mercado Pago. Lo cubre otro paquete de trabajo (WP-13). |
-| `MP_WEBHOOK_SECRET` | no | Mercado Pago, firma del webhook (WP-13). |
+| `MP_ACCESS_TOKEN` | no | Mercado Pago (seña, propina, membresía mensual). Guía: [MERCADOPAGO.md](MERCADOPAGO.md). |
+| `MP_WEBHOOK_SECRET` | no | Mercado Pago, firma del webhook (obligatoria si hay token). |
+| `ERROR_WEBHOOK_URL` | no | Slack/Discord/Better Stack: recibe los errores 500 (sin datos personales). |
+| `FACTURACION_PROVIDER` | no | `none` (comprobante interno) u otro proveedor registrado en `server/src/modules/billing`. |
 
 ## Cliente (Vercel o `client/.env` local)
 
 | Variable | Obligatoria | Para qué sirve |
 |---|---|---|
 | `VITE_API_URL` | sí | URL base de la API, terminada en `/api/v1`. |
+
+## Alta de un cliente nuevo, backups y monitoreo
+
+Ver [ENTREGA.md](ENTREGA.md) (alta repetible con `npm run provision` y prueba de humo con `npm run smoke`), [BACKUPS.md](BACKUPS.md) y [SEGURIDAD.md](SEGURIDAD.md). La CSP se aplica en modo **bloqueo** (`vercel.json` y `render.yaml`): si la API vive fuera de `*.onrender.com`, hay que agregarla a `connect-src` e `img-src`.
 
 ## Variables nuevas de este cambio
 

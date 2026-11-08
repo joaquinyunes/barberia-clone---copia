@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="es-AR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Turnos online para barberías · sin cuota por barbero</title>
+  <meta name="description" content="Sistema de turnos para barberías: lista de espera, recordatorios, comisiones por barbero, membresías y gift cards. El sistema es tuyo, sin una cuota que crece con cada barbero." />
+  <meta name="robots" content="noindex" />
+  <style>
+    :root { --bg:#0f0d0a; --panel:#1a1712; --line:#2e2a22; --text:#f2ece0; --muted:#b9b09f; --gold:#c9a45c; --ok:#7fbf7f; }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body { margin:0; background:var(--bg); color:var(--text); font:17px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+    a { color:var(--gold); }
+    .wrap { max-width:980px; margin:0 auto; padding:0 20px; }
+    header.hero { padding:72px 0 56px; border-bottom:1px solid var(--line); }
+    .eyebrow { color:var(--gold); letter-spacing:.14em; text-transform:uppercase; font-size:13px; font-weight:600; }
+    h1 { font:700 clamp(32px,6vw,54px)/1.1 Georgia,"Times New Roman",serif; margin:12px 0 18px; }
+    h2 { font:700 clamp(24px,4vw,34px)/1.2 Georgia,serif; margin:0 0 14px; }
+    h3 { margin:0 0 6px; font-size:18px; }
+    p.lead { font-size:19px; color:var(--muted); max-width:680px; }
+    .btn { display:inline-block; background:var(--gold); color:#16120b; font-weight:700; padding:14px 24px; border-radius:6px; text-decoration:none; min-height:44px; }
+    .btn.ghost { background:transparent; color:var(--gold); border:1px solid var(--gold); margin-left:10px; }
+    section { padding:56px 0; border-bottom:1px solid var(--line); }
+    .grid { display:grid; gap:18px; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); }
+    .card { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:22px; }
+    .card p { margin:0; color:var(--muted); font-size:16px; }
+    .price { font:700 28px Georgia,serif; color:var(--gold); margin:4px 0 10px; }
+    ul { padding-left:20px; margin:8px 0 0; color:var(--muted); font-size:16px; }
+    table { width:100%; border-collapse:collapse; margin-top:14px; font-size:16px; }
+    th, td { text-align:left; padding:10px 12px; border-bottom:1px solid var(--line); }
+    th { color:var(--gold); font-weight:600; }
+    td.num, th.num { text-align:right; white-space:nowrap; }
+    .note { color:var(--muted); font-size:15px; margin-top:12px; }
+    .pending { border:1px dashed var(--gold); border-radius:10px; padding:20px; color:var(--muted); }
+    footer { padding:40px 0 60px; color:var(--muted); font-size:15px; }
+    @media (max-width:560px) { .btn.ghost { margin:10px 0 0; } th:nth-child(3), td:nth-child(3) { display:none; } }
+    :focus-visible { outline:3px solid var(--gold); outline-offset:3px; }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior:auto; } }
+  </style>
+</head>
+<body>
+  <header class="hero">
+    <div class="wrap">
+      <div class="eyebrow">Para barberías y peluquerías</div>
+      <h1>Turnos online para barberías: lista de espera, recordatorios, comisiones por barbero, membresías y gift cards, sin pagar una cuota por barbero.</h1>
+      <p class="lead">El cliente reserva solo, paga la seña por Mercado Pago o transferencia y vos ves la agenda, la caja y lo que le corresponde a cada barbero. Un sistema tuyo: tus datos, tu dominio, tu base.</p>
+      <p><a class="btn" href="#contacto">Pedir una demo en vivo</a><a class="btn ghost" href="#precio">Ver precio</a></p>
+    </div>
+  </header>
+
+  <section id="problema">
+    <div class="wrap">
+      <h2>El problema</h2>
+      <div class="grid">
+        <div class="card"><h3>Turnos por WhatsApp</h3><p>Mensajes de ida y vuelta, horarios que se pisan y clientes que no avisan que no vienen.</p></div>
+        <div class="card"><h3>Cuentas a mano</h3><p>Comisiones, propinas, adelantos y liquidaciones en planillas que nadie controla.</p></div>
+        <div class="card"><h3>Una cuota por cada barbero</h3><p>Las herramientas de suscripción suben el precio cada vez que sumás un profesional.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="solucion">
+    <div class="wrap">
+      <h2>Qué hace el sistema</h2>
+      <div class="grid">
+        <div class="card"><h3>Reserva sin doble turno</h3><p>Dos clientes no pueden tomar el mismo horario (probado con pedidos simultáneos). Lista de espera que avisa si alguien cancela.</p></div>
+        <div class="card"><h3>Seña y cobros</h3><p>Seña por Mercado Pago o transferencia, propina online, cobro mensual de membresía. Los pagos repetidos no se duplican.</p></div>
+        <div class="card"><h3>Comisiones y caja</h3><p>Comisión automática por servicio y barbero, caja diaria, liquidaciones, adelantos y deudas con registro de auditoría.</p></div>
+        <div class="card"><h3>Fidelización</h3><p>Membresías, packs, gift cards con QR, puntos canjeables y opiniones verificadas de turnos reales.</p></div>
+        <div class="card"><h3>Recordatorios</h3><p>Aviso antes del turno y «lo mismo que la última vez» para reservar en dos toques.</p></div>
+        <div class="card"><h3>Seguridad real</h3><p>Verificación en dos pasos para el dueño, bloqueo ante intentos fallidos, backups cifrados con prueba de restauración y herramientas para exportar o borrar los datos de un cliente (Ley 25.326).</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="demo">
+    <div class="wrap">
+      <h2>Demo</h2>
+      <div class="pending">
+        <p><strong>Entorno de demo en preparación.</strong> La demo se muestra en un entorno separado, con cartel «DEMO» y datos de ejemplo, nunca con los datos de un cliente. Mientras tanto, la mostramos en una videollamada de 20 minutos. Capturas y video de 30 segundos: se agregan cuando esté el entorno.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="precio">
+    <div class="wrap">
+      <h2>Precio</h2>
+      <p class="note" style="margin-top:0">Precios de partida, a confirmar en la primera reunión.</p>
+      <div class="grid">
+        <div class="card"><h3>Instalación</h3><div class="price">USD 2.500 – 3.500</div><p>Una sola vez.</p><ul><li>Base, API y sitio a nombre tuyo</li><li>Tus datos reales cargados</li><li>Capacitación de 2 horas</li></ul></div>
+        <div class="card"><h3>Mensual</h3><div class="price">USD 90 – 120 / mes</div><p>Por sede.</p><ul><li>Hosting y backups</li><li>Actualizaciones de seguridad</li><li>Soporte con respuesta en 4 h hábiles</li></ul></div>
+        <div class="card"><h3>Completo</h3><div class="price">≈ USD 10.000</div><p>Una sola vez, 12 meses de Mensual incluidos.</p><ul><li>Mercado Pago, WhatsApp y factura electrónica con tus cuentas</li><li>Migración de tus clientes y agenda</li><li>Código fuente y cuentas a tu nombre</li></ul></div>
+      </div>
+      <h3 style="margin-top:34px">Comparado con una suscripción, a 3 años</h3>
+      <table>
+        <thead><tr><th>Opción</th><th class="num">3 barberos</th><th class="num">8 barberos</th></tr></thead>
+        <tbody>
+          <tr><td>AgendaPro (planes Full / PRO IA)</td><td class="num">≈ USD 340 – 550</td><td class="num">≈ USD 4.400</td></tr>
+          <tr><td>Instalación USD 3.500 + Mensual USD 90</td><td class="num">USD 6.740</td><td class="num">USD 6.740</td></tr>
+          <tr><td>Completo + 24 meses de Mensual</td><td class="num">USD 12.880</td><td class="num">USD 12.880</td></tr>
+        </tbody>
+      </table>
+      <p class="note">Fuente: planes de AgendaPro Argentina (agendapro.com/ar/planes), consultados el 08/11/2026, con dólar a $1.560. Sin maquillaje: <strong>con pocos barberos una suscripción sale más barata en dinero</strong>. Elegís este sistema si querés que los datos y el sistema sean tuyos, integraciones propias y una cuota que no crece con cada barbero (conviene desde unos 13 barberos con Instalación + Mensual). Detalle y cálculo en el documento de costos.</p>
+    </div>
+  </section>
+
+  <section id="caso">
+    <div class="wrap">
+      <h2>Caso real</h2>
+      <div class="pending">
+        <p><strong>Barbería piloto: en búsqueda.</strong> No publicamos testimonios ni cifras inventadas. Cuando la primera barbería lo use en producción, acá van su historia, sus números y su permiso por escrito. Si querés ser la primera, el piloto tiene condiciones especiales.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="contacto">
+    <div class="wrap">
+      <h2>Contacto</h2>
+      <p class="lead">Escribinos y coordinamos una videollamada de 20 minutos.</p>
+      <p><a class="btn" href="https://wa.me/54911CAMBIAR?text=Hola%2C%20quiero%20ver%20una%20demo%20del%20sistema%20de%20turnos%20para%20barber%C3%ADas">WhatsApp</a><a class="btn ghost" href="mailto:CAMBIAR@dominio.com">Email</a></p>
+    </div>
+  </section>
+
+  <footer>
+    <div class="wrap">Sistema de turnos para barberías · Los datos de contacto de arriba y los términos se completan antes de publicar (ver docs/PENDIENTES-USUARIO.md).</div>
+  </footer>
+</body>
+</html>

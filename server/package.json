@@ -12,6 +12,7 @@
     "backup": "tsx src/tools/backup.ts backup",
     "restore": "tsx src/tools/backup.ts restore",
     "backup:verify": "tsx src/tools/backup.ts verify",
+    "provision": "tsx src/tools/provision.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },

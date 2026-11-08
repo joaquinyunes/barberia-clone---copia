@@ -9,3 +9,6 @@ server/uploads/
 .DS_Store
 tools/site-audit/output/
 server/uploads-test/
+
+*.generated
+cliente.json

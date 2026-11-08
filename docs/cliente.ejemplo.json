@@ -1,0 +1,20 @@
+{
+  "businessName": "Barbería Ejemplo",
+  "whatsapp": "5491100000000",
+  "owner": { "name": "Nombre del Dueño", "email": "dueno@ejemplo.com" },
+  "location": {
+    "slug": "centro",
+    "name": "Sede Centro",
+    "address": "Calle 123, Ciudad",
+    "city": "Ciudad",
+    "hours": { "open": "09:00", "close": "20:00", "days": [1, 2, 3, 4, 5, 6] },
+    "depositAmount": 3000,
+    "bankAlias": "alias.del.negocio",
+    "bankHolder": "Titular de la cuenta"
+  },
+  "services": [
+    { "slug": "corte", "name": "Corte", "category": "corte", "durationMin": 40, "price": 12000 },
+    { "slug": "barba", "name": "Barba", "category": "barba", "durationMin": 30, "price": 8000 }
+  ],
+  "barbers": [{ "name": "Barbero Uno", "commissionPct": 50 }]
+}
