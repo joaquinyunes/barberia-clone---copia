@@ -1,0 +1,27 @@
+# Actualizaciones semanales agrupadas: un PR por semana y ecosistema en vez de uno por paquete.
+# Los PR de Dependabot no tocan producción: el deploy de Vercel/Render solo corre desde main tras merge manual.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    groups:
+      seguridad:
+        applies-to: security-updates
+        patterns: ["*"]
+      menores-y-parches:
+        update-types: [minor, patch]
+    ignore:
+      # Mayores a mano: pasan por una rama de prueba (React, Vite, Express, Mongoose, TypeScript).
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      acciones:
+        patterns: ["*"]

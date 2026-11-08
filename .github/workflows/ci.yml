@@ -16,6 +16,12 @@ jobs:
   verificar:
     name: Typecheck, tests y build (cliente y servidor)
     runs-on: ubuntu-latest
+    services:
+      mongo:
+        image: mongo:7
+        ports: ["27017:27017"]
+    env:
+      MONGO_TEST_URI: mongodb://127.0.0.1:27017/jeb-test
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -24,8 +30,11 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run typecheck
+      - run: npm run lint
       - run: npm test
       - run: npm run build
+      # S11: falla si hay una vulnerabilidad alta o crítica en dependencias de producción.
+      - run: npm audit --omit=dev --audit-level=high
 
   secretos:
     name: Escaneo de secretos

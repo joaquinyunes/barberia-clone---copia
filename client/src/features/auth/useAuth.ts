@@ -11,7 +11,7 @@ export function useAuth() {
   // Al cambiar de usuario se vacía la caché: en recepción la misma PC la usan varias personas
   // y no deben verse (ni por un instante) los datos de la sesión anterior.
   const login = useMutation({
-    mutationFn: ({ email, password }: { email: string; password: string }) => authApi.login(email, password),
+    mutationFn: ({ email, password, totp }: { email: string; password: string; totp?: string }) => authApi.login(email, password, totp),
     onSuccess: (s) => {
       queryClient.clear();
       setSession(s.accessToken, s.user);

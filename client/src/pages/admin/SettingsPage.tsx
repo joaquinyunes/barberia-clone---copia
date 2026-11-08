@@ -7,6 +7,7 @@ import { PageHeader } from "@/features/admin/components/PageHeader/PageHeader";
 import { useAdminAction, useAdminQuery } from "@/features/admin/hooks/useAdmin";
 import type { Location } from "@/types";
 import { money } from "@/utils/format";
+import { SecurityCard } from "./SecurityCard";
 import styles from "./admin.module.css";
 
 interface Settings {
@@ -21,8 +22,8 @@ export default function SettingsPage() {
   const [tab, setTab] = useState("general");
   return (
     <>
-      <Tabs value={tab} onChange={setTab} tabs={[{ value: "general", label: "General" }, { value: "sedes", label: "Sedes" }]} />
-      {tab === "general" ? <GeneralSettings /> : <LocationsSettings />}
+      <Tabs value={tab} onChange={setTab} tabs={[{ value: "general", label: "General" }, { value: "sedes", label: "Sedes" }, { value: "seguridad", label: "Seguridad" }]} />
+      {tab === "general" ? <GeneralSettings /> : tab === "sedes" ? <LocationsSettings /> : <SecurityCard />}
     </>
   );
 }

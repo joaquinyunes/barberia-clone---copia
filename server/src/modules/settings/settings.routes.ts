@@ -33,7 +33,7 @@ const settingsBody = z
     referredDiscountPct: pct,
     overtimeHourRate: nat,
     blindCashClose: z.boolean(),
-    tiers: z.array(z.object({ key: z.string().max(30), label: z.string().max(40), minVisits: nat.optional(), minReferrals: nat.optional(), minDaysSinceFirstVisit: nat.optional(), withMembership: z.boolean().optional(), discountPct: pct, benefits: z.string().max(200).optional() })),
+    tiers: z.array(z.object({ key: z.string().max(30), label: z.string().max(40), minVisits: nat.nullish(), minReferrals: nat.nullish(), minDaysSinceFirstVisit: nat.nullish(), withMembership: z.boolean().nullish(), discountPct: pct, benefits: z.string().max(200).optional() })),
     expenseCategories: z.array(z.string().max(40)).max(50),
   })
   .partial();
