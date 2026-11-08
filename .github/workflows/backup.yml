@@ -20,9 +20,9 @@ jobs:
       MONGO_URI: ${{ secrets.MONGO_URI }}
       BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         if: ${{ env.MONGO_URI != '' && env.BACKUP_PASSPHRASE != '' }}
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         if: ${{ env.MONGO_URI != '' && env.BACKUP_PASSPHRASE != '' }}
         with:
           node-version: 22
@@ -33,7 +33,7 @@ jobs:
           npm ci
           npm run backup -w server -- "$RUNNER_TEMP/bk"
           tar -C "$RUNNER_TEMP" -czf - bk | openssl enc -aes-256-cbc -pbkdf2 -iter 600000 -salt -pass env:BACKUP_PASSPHRASE -out "$RUNNER_TEMP/backup.tgz.enc"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: ${{ env.MONGO_URI != '' && env.BACKUP_PASSPHRASE != '' }}
         with:
           name: backup-${{ github.run_id }}
