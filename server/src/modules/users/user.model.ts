@@ -15,6 +15,10 @@ const userSchema = new Schema(
     active: { type: Boolean, default: true },
     tokenVersion: { type: Number, default: 0 },
     lastLoginAt: Date,
+    failedLogins: { type: Number, default: 0 },
+    lockUntil: Date,
+    totpEnabled: { type: Boolean, default: false },
+    totpSecret: { type: String, select: false }, // cifrado, ver lib/totp.ts
   },
   { timestamps: true },
 );
@@ -23,6 +27,9 @@ userSchema.set("toJSON", {
   transform: (_doc, ret: Record<string, unknown>) => {
     delete ret.passwordHash;
     delete ret.tokenVersion;
+    delete ret.totpSecret;
+    delete ret.failedLogins;
+    delete ret.lockUntil;
     return ret;
   },
 });

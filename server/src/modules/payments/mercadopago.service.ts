@@ -6,6 +6,8 @@ import { Appointment } from "../appointments/appointment.model.js";
 import { approveDeposit } from "../appointments/appointment.service.js";
 import { Order } from "../orders/order.model.js";
 import { approveOrder } from "../orders/order.service.js";
+import { audit } from "../audit/audit.service.js";
+import { PaymentEvent } from "./paymentEvent.model.js";
 
 /**
  * Etapa 2 — Mercado Pago Checkout Pro.
@@ -21,7 +23,9 @@ export const mpEnabled = () => !!env.MP_ACCESS_TOKEN;
 export async function createPreference(kind: "appointment" | "order", code: string) {
   const doc = kind === "appointment" ? await Appointment.findOne({ code }) : await Order.findOne({ code });
   if (!doc) throw AppError.notFound(kind === "appointment" ? "Turno" : "Pedido");
+  if (!["pending_payment", "payment_review"].includes((doc as any).status)) throw AppError.conflict("Este pedido o turno ya no admite pago");
   const amount = kind === "appointment" ? (doc as any).deposit.required : (doc as any).total;
+  if (!(amount > 0)) throw AppError.badRequest("No hay nada para cobrar online");
   const title = kind === "appointment" ? `Seña turno ${code}` : `Pedido ${code}`;
   const pref = await new Preference(client()).create({
     body: {
@@ -53,26 +57,60 @@ export function verifySignature(headers: Record<string, string | string[] | unde
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
-/** Nunca se confía en el body: se consulta el pago a la API y recién ahí se confirma. */
+/**
+ * Nunca se confía en el body: se consulta el pago a la API y recién ahí se confirma.
+ * Idempotente: el primer aviso de cada pago "reclama" el evento (índice único); los repetidos o
+ * simultáneos devuelven `duplicate` sin tocar la caja. Si el procesamiento falla se libera el
+ * reclamo para que el reintento de Mercado Pago lo vuelva a intentar.
+ */
 export async function handleNotification(paymentId: string) {
   const payment = await new Payment(client()).get({ id: paymentId });
+  const id = String(payment.id ?? paymentId);
   if (payment.status !== "approved" || !payment.external_reference) return { handled: false, status: payment.status };
-  const [kind, code] = payment.external_reference.split(":");
-  const actor = { name: "Mercado Pago" };
-  if (kind === "appointment") {
-    const appt = await Appointment.findOne({ code });
-    if (appt && ["pending_payment", "payment_review"].includes(appt.status)) {
-      appt.deposit.mpPaymentId = String(payment.id);
-      await appt.save();
-      await approveDeposit(String(appt._id), { amount: payment.transaction_amount, method: "mercadopago" }, actor);
-    }
-  } else if (kind === "order") {
-    const order = await Order.findOne({ code });
-    if (order && ["pending_payment", "payment_review"].includes(order.status)) {
-      order.payment = { ...order.payment, mpPaymentId: String(payment.id) };
-      await order.save();
-      await approveOrder(String(order._id), "mercadopago", actor);
-    }
+
+  try {
+    await PaymentEvent.create({ paymentId: id });
+  } catch (err) {
+    if ((err as { code?: number }).code === 11000) return { handled: false, duplicate: true, status: payment.status };
+    throw err;
   }
-  return { handled: true, status: payment.status };
+  const finish = (outcome: "confirmed" | "ignored" | "needs_review", detail?: string) =>
+    PaymentEvent.updateOne({ paymentId: id }, { outcome, detail }).then(() => ({ handled: outcome === "confirmed", status: payment.status, outcome }));
+
+  try {
+    const [kind, code] = payment.external_reference.split(":");
+    const actor = { name: "Mercado Pago" };
+    const paid = Number(payment.transaction_amount ?? 0);
+    if (kind === "appointment") {
+      const appt = await Appointment.findOne({ code });
+      if (appt && ["pending_payment", "payment_review"].includes(appt.status)) {
+        if (paid < (appt.deposit.required ?? 0)) {
+          await audit(actor, { action: "custom", entity: "Pago", entityId: id, summary: `Mercado Pago aprobó $${paid} pero la seña de ${code} es $${appt.deposit.required}: revisar a mano` });
+          return await finish("needs_review", "monto menor a la seña");
+        }
+        appt.deposit.mpPaymentId = id;
+        await appt.save();
+        await approveDeposit(String(appt._id), { amount: paid, method: "mercadopago" }, actor);
+        return await finish("confirmed");
+      }
+    } else if (kind === "order") {
+      const order = await Order.findOne({ code });
+      if (order && ["pending_payment", "payment_review"].includes(order.status)) {
+        if (paid < order.total) {
+          await audit(actor, { action: "custom", entity: "Pago", entityId: id, summary: `Mercado Pago aprobó $${paid} pero el pedido ${code} es $${order.total}: revisar a mano` });
+          return await finish("needs_review", "monto menor al pedido");
+        }
+        order.payment = { ...order.payment, mpPaymentId: id };
+        await order.save();
+        await approveOrder(String(order._id), "mercadopago", actor);
+        return await finish("confirmed");
+      }
+    }
+    // Pago aprobado de algo que ya no está pendiente (reserva vencida, cancelada, referencia desconocida): hay plata cobrada sin turno.
+    await audit(actor, { action: "custom", entity: "Pago", entityId: id, summary: `Mercado Pago aprobó el pago ${id} (${payment.external_reference}) pero no hay turno/pedido pendiente: reembolsar o reubicar` });
+    return await finish("needs_review", "sin turno o pedido pendiente");
+  } catch (err) {
+    await PaymentEvent.deleteOne({ paymentId: id });
+    throw err;
+  }
 }

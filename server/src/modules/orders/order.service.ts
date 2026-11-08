@@ -65,7 +65,7 @@ export async function orderWhatsapp(id: unknown) {
   const settings = await getSettings();
   const loc = order.location as any;
   const receiptUrl = order.payment?.receiptPath
-    ? `${env.PUBLIC_API_URL}/api/v1/public/receipts/${order.code}?t=${signLink({ code: order.code, scope: "receipt" }, "30d")}`
+    ? `${env.PUBLIC_API_URL}/api/v1/public/receipts/${order.code}?t=${signLink({ code: order.code, scope: "receipt" }, "7d")}`
     : null;
   const text = buildOrderMessage({
     businessName: settings.businessName,

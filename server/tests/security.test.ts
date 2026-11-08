@@ -49,11 +49,11 @@ describe("usuarios: users.manage sin ser admin no escala privilegios", () => {
     const login = await request(app).post("/api/v1/auth/login").send({ email: "enc@jack.test", password: "secreto123" });
     const auth = { Authorization: `Bearer ${login.body.accessToken}` };
 
-    const admin = await request(app).post("/api/v1/admin/users").set(auth).send({ name: "Nuevo admin", email: "nuevo@jack.test", role: "admin", password: "12345678" });
+    const admin = await request(app).post("/api/v1/admin/users").set(auth).send({ name: "Nuevo admin", email: "nuevo@jack.test", role: "admin", password: "clave-larga-12345" });
     expect(admin.status).toBe(403);
-    const grant = await request(app).post("/api/v1/admin/users").set(auth).send({ name: "Recep", email: "recep@jack.test", role: "reception", extraPermissions: ["users.manage"], password: "12345678" });
+    const grant = await request(app).post("/api/v1/admin/users").set(auth).send({ name: "Recep", email: "recep@jack.test", role: "reception", extraPermissions: ["users.manage"], password: "clave-larga-12345" });
     expect(grant.status).toBe(403);
-    const ok = await request(app).post("/api/v1/admin/users").set(auth).send({ name: "Recep", email: "recep@jack.test", role: "reception", password: "12345678" });
+    const ok = await request(app).post("/api/v1/admin/users").set(auth).send({ name: "Recep", email: "recep@jack.test", role: "reception", password: "clave-larga-12345" });
     expect(ok.status).toBe(201);
 
     const owner = await User.findOne({ role: "admin" });

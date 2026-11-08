@@ -11,6 +11,7 @@ import * as cash from "../cash/cash.service.js";
 import { ClientPack, GiftCard, Membership } from "../commercial/commercial.models.js";
 import * as ledger from "../ledger/ledger.service.js";
 import { PAYMENT_METHODS } from "../settings/settings.model.js";
+import { User } from "../users/user.model.js";
 import { Client, normalizePhone } from "./client.model.js";
 import { ensureReferralCode, recomputeTier } from "./client.service.js";
 
@@ -135,4 +136,40 @@ clientsRouter.post(
 
 clientsRouter.post("/:id/recompute-tier", async (req, res) => {
   res.json({ tier: await recomputeTier(req.params.id) });
+});
+
+/* ── Datos personales (Ley 25.326): exportar y anonimizar a pedido del titular ── */
+
+/** Todo lo que el sistema guarda de un cliente, para entregárselo en un archivo. */
+clientsRouter.get("/:id/export", authorize("users.manage"), async (req, res) => {
+  const client = await Client.findById(req.params.id).lean();
+  if (!client) throw AppError.notFound("Cliente");
+  const [appointments, giftCards, memberships, packs, movements, user] = await Promise.all([
+    Appointment.find({ client: client._id }).select("-commission -commissionRule").lean(),
+    GiftCard.find({ buyer: client._id }).lean(),
+    Membership.find({ client: client._id }).lean(),
+    ClientPack.find({ client: client._id }).lean(),
+    ledger.statement("client", String(client._id)).catch(() => []),
+    client.user ? User.findById(client.user).lean() : null,
+  ]);
+  const { internalNotes, ...ficha } = client; // las notas internas son del negocio, no del titular
+  await audit(req, { action: "custom", entity: "Cliente", entityId: client._id, summary: `exportó los datos personales de ${client.name}` });
+  res.setHeader("Content-Disposition", `attachment; filename="datos-${client._id}.json"`);
+  res.json({ exportedAt: new Date(), ficha, cuenta: user ? { email: user.email, phone: user.phone, name: user.name, createdAt: user.createdAt } : null, turnos: appointments, giftCards, membresias: memberships, packs, movimientos: movements });
+});
+
+/**
+ * Derecho de supresión: borra los datos que identifican a la persona y conserva los registros
+ * contables sin nombre (las ventas y la caja se guardan por obligación fiscal).
+ */
+clientsRouter.post("/:id/anonymize", authorize("users.manage"), validate({ body: z.object({ confirm: z.literal(true) }) }), async (req, res) => {
+  const client = await Client.findById(req.params.id);
+  if (!client) throw AppError.notFound("Cliente");
+  const label = client.name;
+  if (client.user) await User.deleteOne({ _id: client.user, role: "customer" });
+  client.set({ name: "Cliente eliminado", phone: `eliminado-${client._id}`, email: undefined, dni: undefined, birthday: undefined, user: undefined, internalNotes: [], cutNotes: [], tags: [], referralCode: undefined, blocked: false, active: false });
+  await client.save();
+  await Appointment.updateMany({ client: client._id }, { $unset: { notes: 1 } });
+  await audit(req, { action: "delete", entity: "Cliente", entityId: client._id, summary: `anonimizó los datos personales de ${label} (pedido del titular)` });
+  res.json({ ok: true });
 });

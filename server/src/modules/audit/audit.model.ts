@@ -16,4 +16,13 @@ const auditSchema = new Schema(
 auditSchema.index({ createdAt: -1 });
 auditSchema.index({ entity: 1, entityId: 1 });
 
+// Bitácora inmutable: ninguna ruta ni código de la app puede modificar o borrar registros.
+const readOnly = () => { throw new Error("La auditoría es de solo lectura"); };
+for (const op of ["updateOne", "updateMany", "findOneAndUpdate", "findOneAndReplace", "replaceOne", "deleteOne", "deleteMany", "findOneAndDelete"] as const) {
+  auditSchema.pre(op, readOnly);
+}
+auditSchema.pre("save", function () {
+  if (!this.isNew) readOnly();
+});
+
 export const AuditLog = model("AuditLog", auditSchema);

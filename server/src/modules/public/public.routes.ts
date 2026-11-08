@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { validate } from "../../middlewares/validate.js";
-import { publicWriteLimiter } from "../../middlewares/rateLimiters.js";
+import { bookingLinkLimiter, publicWriteLimiter, webhookLimiter } from "../../middlewares/rateLimiters.js";
 import { AppError } from "../../lib/AppError.js";
 import { readStored, saveReceipt, uploadReceipt } from "../../lib/storage.js";
 import { verifyLink } from "../../lib/tokens.js";
@@ -167,7 +167,7 @@ function bookingCode(token: unknown, code: string) {
   }
 }
 
-publicRouter.get("/bookings/:code", async (req, res) => {
+publicRouter.get("/bookings/:code", bookingLinkLimiter, async (req, res) => {
   bookingCode(req.query.token, String(req.params.code));
   const a = await Appointment.findOne({ code: req.params.code }).populate("location service barber", "name address durationMin whatsapp").lean({ virtuals: true });
   if (!a) throw AppError.notFound("Turno");
@@ -182,14 +182,14 @@ publicRouter.post("/bookings/:code/receipt", publicWriteLimiter, uploadReceipt.s
   res.json({ status: a.status });
 });
 
-publicRouter.get("/bookings/:code/whatsapp", async (req, res) => {
+publicRouter.get("/bookings/:code/whatsapp", bookingLinkLimiter, async (req, res) => {
   bookingCode(req.query.token, String(req.params.code));
   const a = await Appointment.findOne({ code: req.params.code });
   if (!a) throw AppError.notFound("Turno");
   res.json(await appointments.whatsappFor(a._id));
 });
 
-publicRouter.post("/bookings/:code/cancel", async (req, res) => {
+publicRouter.post("/bookings/:code/cancel", bookingLinkLimiter, async (req, res) => {
   bookingCode(req.query.token, String(req.params.code));
   const a = await Appointment.findOne({ code: req.params.code });
   if (!a) throw AppError.notFound("Turno");
@@ -197,7 +197,7 @@ publicRouter.post("/bookings/:code/cancel", async (req, res) => {
   res.json({ status: r.status, depositRetained: r.cancellation?.depositRetained });
 });
 
-publicRouter.post("/bookings/:code/reschedule", validate({ body: z.object({ date, time }) }), async (req, res) => {
+publicRouter.post("/bookings/:code/reschedule", bookingLinkLimiter, validate({ body: z.object({ date, time }) }), async (req, res) => {
   bookingCode(req.query.token, String(req.params.code));
   const a = await Appointment.findOne({ code: req.params.code });
   if (!a) throw AppError.notFound("Turno");
@@ -210,7 +210,7 @@ publicRouter.post("/bookings/:code/reschedule", validate({ body: z.object({ date
 });
 
 /** Descarga del calendario (.ics) para agregar el turno a Google / Apple Calendar. */
-publicRouter.get("/bookings/:code/calendar.ics", async (req, res) => {
+publicRouter.get("/bookings/:code/calendar.ics", bookingLinkLimiter, async (req, res) => {
   bookingCode(req.query.token, String(req.params.code));
   const a = await Appointment.findOne({ code: req.params.code }).populate("location service barber");
   if (!a) throw AppError.notFound("Turno");
@@ -279,7 +279,7 @@ publicRouter.get("/orders/:code/whatsapp", async (req, res) => {
 });
 
 /* ── Comprobantes (link firmado que viaja en el WhatsApp) ── */
-publicRouter.get("/receipts/:code", async (req, res) => {
+publicRouter.get("/receipts/:code", bookingLinkLimiter, async (req, res) => {
   let data: { code: string; scope: string };
   try {
     data = verifyLink(String(req.query.t ?? ""));
@@ -296,12 +296,12 @@ publicRouter.get("/receipts/:code", async (req, res) => {
 });
 
 /* ── Mercado Pago (etapa 2) ── */
-publicRouter.post("/mercadopago/preference", validate({ body: z.object({ kind: z.enum(["appointment", "order"]), code: z.string(), token: z.string() }) }), async (req, res) => {
+publicRouter.post("/mercadopago/preference", publicWriteLimiter, validate({ body: z.object({ kind: z.enum(["appointment", "order"]), code: z.string(), token: z.string() }) }), async (req, res) => {
   bookingCode(req.body.token, req.body.code);
   res.json(await mp.createPreference(req.body.kind, req.body.code));
 });
 
-publicRouter.post("/mercadopago/webhook", async (req, res) => {
+publicRouter.post("/mercadopago/webhook", webhookLimiter, async (req, res) => {
   const dataId = String(req.query["data.id"] ?? req.body?.data?.id ?? "");
   const type = String(req.query.type ?? req.body?.type ?? "");
   if (type !== "payment" || !dataId) return res.status(200).json({ ignored: true });

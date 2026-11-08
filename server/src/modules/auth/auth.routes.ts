@@ -8,6 +8,8 @@ import { validate } from "../../middlewares/validate.js";
 import { AppError } from "../../lib/AppError.js";
 import { signAccess, signRefresh, verifyRefresh } from "../../lib/tokens.js";
 import { permissionsFor, type Role } from "../../core/permissions.js";
+import { audit } from "../audit/audit.service.js";
+import { openSecret, otpauthUrl, newSecret, sealSecret, verifyTotp } from "../../lib/totp.js";
 import { Client, normalizePhone } from "../clients/client.model.js";
 import { findOrCreate } from "../clients/client.service.js";
 import { User } from "../users/user.model.js";
@@ -30,16 +32,77 @@ function session(user: InstanceType<typeof User>) {
   };
 }
 
-authRouter.post("/login", authLimiter, validate({ body: z.object({ email: z.string().email(), password: z.string().min(1) }) }), async (req, res) => {
-  const user = await User.findOne({ email: req.body.email.toLowerCase() });
-  if (!user || !user.active || !(await bcrypt.compare(req.body.password, user.passwordHash))) {
-    throw AppError.unauthorized("Email o contraseña incorrectos");
-  }
-  user.lastLoginAt = new Date();
-  await user.save();
-  res.cookie(COOKIE, signRefresh(String(user._id), user.tokenVersion), cookieOpts);
-  res.json(session(user));
+const MAX_FAILED = 5;
+const LOCK_MS = 15 * 60_000;
+/** Contraseña de personal (todo menos clientes): mínimo 12 caracteres. */
+export const STAFF_MIN_PASSWORD = 12;
+
+authRouter.post(
+  "/login",
+  authLimiter,
+  validate({ body: z.object({ email: z.string().email(), password: z.string().min(1), totp: z.string().optional() }) }),
+  async (req, res) => {
+    const user = await User.findOne({ email: req.body.email.toLowerCase() }).select("+totpSecret");
+    // Bloqueo temporal por cuenta (además del límite por IP): tras 5 fallos seguidos, 15 minutos.
+    if (user?.lockUntil && user.lockUntil > new Date()) {
+      throw new AppError(429, "Demasiados intentos fallidos. Probá de nuevo en unos minutos.", "ACCOUNT_LOCKED");
+    }
+    const fail = async () => {
+      if (user) {
+        user.failedLogins += 1;
+        if (user.failedLogins >= MAX_FAILED) {
+          user.lockUntil = new Date(Date.now() + LOCK_MS);
+          user.failedLogins = 0;
+          await audit(undefined, { action: "custom", entity: "Seguridad", entityId: user._id, summary: `cuenta ${user.email} bloqueada 15 min por intentos fallidos` });
+        }
+        await user.save();
+      }
+      throw AppError.unauthorized("Email o contraseña incorrectos");
+    };
+    if (!user || !user.active || !(await bcrypt.compare(req.body.password, user.passwordHash))) return fail();
+    if (user.totpEnabled) {
+      if (!req.body.totp) throw new AppError(401, "Ingresá el código de tu app de autenticación", "TOTP_REQUIRED");
+      if (!verifyTotp(openSecret(user.totpSecret!), req.body.totp)) return fail();
+    }
+    user.failedLogins = 0;
+    user.lockUntil = undefined;
+    user.lastLoginAt = new Date();
+    await user.save();
+    res.cookie(COOKIE, signRefresh(String(user._id), user.tokenVersion), cookieOpts);
+    res.json(session(user));
+  },
+);
+
+/** 2FA (TOTP) para el personal: 1) pide el secreto, 2) confirma con un código y queda activo. */
+authRouter.post("/2fa/setup", authenticate, async (req, res) => {
+  if (req.user!.role === "customer") throw AppError.forbidden();
+  const secret = newSecret();
+  await User.updateOne({ _id: req.user!._id }, { totpSecret: sealSecret(secret), totpEnabled: false });
+  res.json({ secret, otpauthUrl: otpauthUrl(secret, req.user!.email) });
 });
+
+authRouter.post("/2fa/enable", authenticate, validate({ body: z.object({ code: z.string().length(6) }) }), async (req, res) => {
+  const user = await User.findById(req.user!._id).select("+totpSecret");
+  if (!user?.totpSecret || !verifyTotp(openSecret(user.totpSecret), req.body.code)) throw AppError.badRequest("Código incorrecto");
+  user.totpEnabled = true;
+  user.tokenVersion += 1; // cierra las demás sesiones
+  await user.save();
+  await audit(req, { action: "update", entity: "Seguridad", entityId: user._id, summary: "activó la verificación en dos pasos" });
+  res.status(204).end();
+});
+
+authRouter.post("/2fa/disable", authenticate, validate({ body: z.object({ password: z.string(), code: z.string().length(6) }) }), async (req, res) => {
+  const user = await User.findById(req.user!._id).select("+totpSecret");
+  if (!user?.totpEnabled || !(await bcrypt.compare(req.body.password, user.passwordHash)) || !verifyTotp(openSecret(user.totpSecret!), req.body.code)) {
+    throw AppError.badRequest("Contraseña o código incorrectos");
+  }
+  user.totpEnabled = false;
+  user.totpSecret = undefined;
+  await user.save();
+  await audit(req, { action: "update", entity: "Seguridad", entityId: user._id, summary: "desactivó la verificación en dos pasos" });
+  res.status(204).end();
+});
+
 
 authRouter.post(
   "/register",
@@ -106,6 +169,7 @@ authRouter.post(
   authenticate,
   validate({ body: z.object({ current: z.string(), next: z.string().min(8) }) }),
   async (req, res) => {
+    if (req.user!.role !== "customer" && req.body.next.length < STAFF_MIN_PASSWORD) throw AppError.badRequest(`Para el personal la contraseña debe tener al menos ${STAFF_MIN_PASSWORD} caracteres`);
     const user = await User.findById(req.user!._id);
     if (!user || !(await bcrypt.compare(req.body.current, user.passwordHash))) throw AppError.badRequest("La contraseña actual no es correcta");
     user.passwordHash = await bcrypt.hash(req.body.next, 10);

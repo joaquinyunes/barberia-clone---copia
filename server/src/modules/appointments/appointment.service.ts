@@ -12,6 +12,7 @@ import {
 } from "../../lib/dates.js";
 import { env } from "../../config/env.js";
 import { logger } from "../../lib/logger.js";
+import { withLock } from "../../lib/mutex.js";
 import { signLink } from "../../lib/tokens.js";
 import { buildBookingMessage } from "../../lib/whatsapp/buildMessage.js";
 import { waLink } from "../../lib/whatsapp/waLink.js";
@@ -139,7 +140,22 @@ export interface BookingInput {
   holdMinutes?: number;
 }
 
-export async function createBooking(input: BookingInput, actor?: Actor) {
+/** Un solo turno a la vez por sede: la lectura de disponibilidad y la escritura no se pisan. */
+export const createBooking = (input: BookingInput, actor?: Actor) =>
+  withLock(`loc:${input.location}`, () => createBookingUnlocked(input, actor));
+
+/** Otro turno activo del mismo barbero que se superpone con [startsAt, endsAt). */
+const overlapping = (barber: unknown, startsAt: Date, endsAt: Date, excludeId?: unknown) =>
+  Appointment.exists({
+    ...(excludeId ? { _id: { $ne: excludeId } } : {}),
+    barber,
+    startsAt: { $lt: endsAt },
+    endsAt: { $gt: startsAt },
+    status: { $in: BLOCKING_STATUSES },
+    $or: [{ status: { $ne: "pending_payment" } }, { holdExpiresAt: { $gt: new Date() } }],
+  });
+
+async function createBookingUnlocked(input: BookingInput, actor?: Actor) {
   const settings = await getSettings();
   const [location, service] = await Promise.all([Location.findById(input.location), Service.findById(input.service)]);
   if (!location) throw AppError.notFound("Sede");
@@ -210,6 +226,11 @@ export async function createBooking(input: BookingInput, actor?: Actor) {
       notes: input.notes,
       createdBy: actor?.name ?? "Web",
     });
+    // Red de seguridad entre instancias: si igual quedó superpuesto con uno anterior, pierde este.
+    if (await overlapping(barber._id, startsAt, endsAt, appt._id)) {
+      await Appointment.deleteOne({ _id: appt._id });
+      throw AppError.conflict("Ese horario se acaba de ocupar. Elegí otro, por favor.");
+    }
     if (promo?.id) await Promotion.updateOne({ _id: promo.id }, { $inc: { uses: 1 } });
     return { appointment: appt, client, location, service, barber };
   } catch (err) {
@@ -262,7 +283,7 @@ export async function whatsappFor(id: unknown) {
   const loc = appt.location as any;
   const svc = appt.service as any;
   const receiptUrl = appt.deposit?.receiptPath
-    ? `${env.PUBLIC_API_URL}/api/v1/public/receipts/${appt.code}?t=${signLink({ code: appt.code, scope: "receipt" }, "30d")}`
+    ? `${env.PUBLIC_API_URL}/api/v1/public/receipts/${appt.code}?t=${signLink({ code: appt.code, scope: "receipt" }, "7d")}`
     : null;
   const text = buildBookingMessage({
     businessName: settings.businessName,
@@ -477,6 +498,12 @@ export async function cancel(id: string, input: { by: "client" | "business" | "n
 }
 
 export async function reschedule(id: string, input: { date: string; time: string; barber?: string }, actor?: Actor) {
+  const found = await Appointment.findById(id, "location");
+  if (!found) throw AppError.notFound("Turno");
+  return withLock(`loc:${found.location}`, () => rescheduleUnlocked(id, input, actor));
+}
+
+async function rescheduleUnlocked(id: string, input: { date: string; time: string; barber?: string }, actor?: Actor) {
   const appt = await Appointment.findById(id);
   if (!appt) throw AppError.notFound("Turno");
   if (!["pending_payment", "payment_review", "confirmed"].includes(appt.status)) throw AppError.conflict("Este turno no se puede reprogramar");
@@ -489,7 +516,13 @@ export async function reschedule(id: string, input: { date: string; time: string
   appt.endsAt = new Date(appt.startsAt.getTime() + duration);
   appt.barber = new Types.ObjectId(barber);
   appt.notes = [appt.notes, `Reprogramado desde ${businessDayString(oldStart)} por ${actor?.name ?? "cliente"}`].filter(Boolean).join(" · ");
-  await appt.save();
+  if (await overlapping(appt.barber, appt.startsAt, appt.endsAt, appt._id)) throw AppError.conflict("Ese horario ya no está disponible");
+  try {
+    await appt.save();
+  } catch (err) {
+    if ((err as { code?: number }).code === 11000) throw AppError.conflict("Ese horario se acaba de ocupar. Elegí otro, por favor.");
+    throw err;
+  }
   return appt;
 }
 

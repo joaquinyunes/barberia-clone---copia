@@ -31,6 +31,11 @@ const base = z.object({
   active: z.boolean().optional(),
 });
 
+/** Personal (todo menos clientes): contraseña de 12+ caracteres. */
+function assertPassword(role: string | undefined, password: string | undefined) {
+  if (password && role !== "customer" && password.length < 12) throw AppError.badRequest("Para el personal la contraseña debe tener al menos 12 caracteres");
+}
+
 /** Quien tiene users.manage sin ser admin no puede crear admins ni repartir users.manage (escalada). */
 function assertCanGrant(req: Request, target: { role?: string; extraPermissions?: string[] }) {
   if (req.user!.role === "admin") return;
@@ -41,6 +46,7 @@ function assertCanGrant(req: Request, target: { role?: string; extraPermissions?
 
 usersRouter.post("/", validate({ body: base.extend({ password: z.string().min(8) }) }), async (req, res) => {
   assertCanGrant(req, req.body);
+  assertPassword(req.body.role, req.body.password);
   const { password, ...data } = req.body;
   const user = await User.create({ ...data, passwordHash: await bcrypt.hash(password, 10) });
   await audit(req, { action: "create", entity: "Usuario", entityId: user._id, summary: `creó el usuario ${user.name} (${ROLE_LABELS[user.role]})` });
@@ -55,6 +61,7 @@ usersRouter.patch("/:id", validate({ body: base.partial().extend({ password: z.s
   if (String(user._id) === String(req.user!._id) && (req.body.role && req.body.role !== "admin" || req.body.active === false)) {
     throw AppError.badRequest("No podés quitarte a vos mismo el rol de administrador");
   }
+  assertPassword(req.body.role ?? user.role, req.body.password);
   const before = user.toObject();
   const { password, ...data } = req.body;
   user.set(data);
