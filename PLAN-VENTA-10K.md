@@ -1,4 +1,4 @@
-# Barbería (Jack el Barbero) — plan de venta (actualizado 08/11/2026)
+# Barbería (Jack el Barbero) — plan de venta (actualizado 09/11/2026)
 Leé primero `..\PLAN-VENTA-10K.md` (veredicto, paquetes **S** y **V**). Trabajo hecho en la rama `integracion` (desde `feat/backoffice-turnos`).
 
 **Frase de venta (a validar):** «Turnos online para barberías: lista de espera, recordatorios, comisiones por barbero, membresías y gift cards, sin pagar una cuota por barbero.» Competidor: AgendaPro (precio vigente tomado de agendapro.com/ar/planes el 08/11/2026, ver [docs/COSTO-3-ANIOS.md](docs/COSTO-3-ANIOS.md)).
@@ -9,8 +9,8 @@ Leé primero `..\PLAN-VENTA-10K.md` (veredicto, paquetes **S** y **V**). Trabajo
 | Chequeo | Resultado |
 |---|---|
 | `npm run typecheck` (servidor y cliente) | 0 errores |
-| `npm test` servidor | **100/100** (17 archivos; antes 50/50) |
-| `npm test` cliente | **14/14** (5 archivos) |
+| `npm test` servidor | **103/103** (18 archivos; antes 50/50) |
+| `npm test` cliente | **23/23** (7 archivos; incluye CSP y service worker) |
 | `npm run lint` | 0 avisos |
 | `npm run build` (servidor y cliente) | OK |
 | `npm audit --omit=dev` | **0 vulnerabilidades** (antes 0 críticas / 4 altas / 2 moderadas) |
@@ -19,6 +19,7 @@ Leé primero `..\PLAN-VENTA-10K.md` (veredicto, paquetes **S** y **V**). Trabajo
 | Alta de cliente nuevo desde cero (base vacía → API en producción → `smoke`) | `provision` 2,8 s; `smoke` 6/6 OK |
 | `backup:verify` | 28 colecciones, 6.813 documentos restaurados idénticos |
 | Revisión de seguridad independiente | 14 hallazgos verificados: 2 altas, 6 medias y 3 bajas corregidas con prueba; 3 parciales o documentadas (ver docs/SEGURIDAD.md) |
+| CSP / host de la API | `client/src/test/csp.test.ts`: `vercel.json` y `render.yaml` idénticos, sin «solo reporte», `connect-src` e `img-src` cubren `jack-el-barbero-api.onrender.com`. **No existe proyecto de Vercel de Barbería** en la cuenta (consultado 09/11): el push a `main` no despliega el sitio. Host real de Render sin confirmar (pide elegir espacio de trabajo) |
 | CSP en modo bloqueo | home, reservar e ingresar cargan sin violaciones en el navegador (cabeceras reales de `vercel.json`) |
 
 ## A. Pasos
@@ -28,7 +29,7 @@ Leé primero `..\PLAN-VENTA-10K.md` (veredicto, paquetes **S** y **V**). Trabajo
 - [x] **B4** 🤖 Doble reserva imposible: candado por sede + chequeo de solapamiento posterior + índice único `uniq_active_slot`; tests con 10 y 6 pedidos simultáneos, turnos que se pisan con distinto inicio y reprogramaciones simultáneas → un solo ganador. Límite documentado: el candado en memoria vale para una instancia de API; con varias quedan el índice único y el chequeo posterior.
 - [x] **B5** 🤖 Seguridad de cuentas: S2, S3, S4, S5, S7, S8, S9, S10, S11, S13 hechos (ver abajo y [docs/SEGURIDAD.md](docs/SEGURIDAD.md)). S12 hecho en lo técnico; el texto legal es 👤. Los links de reserva: expiran (30 días; receipts 7 días), la cancelación es terminal (un link no puede cancelar dos veces) y toda la gestión está limitada por tasa. La reprogramación sigue siendo repetible a propósito.
 - [x] **B6** 🤖 Reseñas verificadas + encuesta NPS (solo turnos realizados, una por turno, nombre de pila) · campañas con consentimiento (opt-in explícito, baja por link, link de WhatsApp solo para quienes aceptaron) · galería por barbero (campo y API) · puntos canjeables (atómicos) · QR en gift cards (solo personal, para que no sirva de oráculo de códigos) · propina online por Mercado Pago. Con pruebas. **Límite:** el envío masivo no es automático (solo arma links); la galería se carga por URL.
-- [ ] **B7** 🤖 (parcial: código y pruebas hechos; falta ver el service worker en un celular real y la suscripción en sandbox) Cobro recurrente de membresía con Mercado Pago (suscripción `preapproval` + cuotas por webhook, con pruebas simuladas) · PWA (manifest, ícono, service worker; el registro del service worker no se pudo comprobar en el navegador integrado, falta verlo en un celular — 👤). **Falta (👤):** verificar la suscripción en sandbox.
+- [ ] **B7** 🤖 (parcial: todo lo verificable por código está probado — service worker simulado, manifest, suscripción con SDK simulado, botón «Suscribirme» en Mi cuenta; falta el celular real y el sandbox, con pasos exactos en [docs/PRUEBAS-EN-CELULAR-Y-SANDBOX.md](docs/PRUEBAS-EN-CELULAR-Y-SANDBOX.md)) Cobro recurrente de membresía con Mercado Pago (suscripción `preapproval` + cuotas por webhook, con pruebas simuladas) · PWA (manifest, ícono, service worker; el registro del service worker no se pudo comprobar en el navegador integrado, falta verlo en un celular — 👤). **Falta (👤):** verificar la suscripción en sandbox.
 - [x] **B8** 🤖 Factura electrónica: solo la interfaz (`FacturacionProvider`, comprobante interno no fiscal, `FACTURACION_PROVIDER`), con prueba de contrato. El proveedor certificado es 👤.
 - [x] **B9** 🤖 Cold start: ruta liviana `/health` y `/health/ready`, workflow *Uptime* cada 10 min, `render.yaml` en plan *Starter*. Medido en local: 2,2 s; los ~33 s son del plan gratuito de Render al despertar. Objetivo < 5 s cumplido **solo con plan que no duerme** (👤 B11 contratarlo).
 - [ ] 👤 **B10** Atlas: `MONGO_URI`; mantener `CLIENT_URL`, `PUBLIC_API_URL`, `JWT_ACCESS_SECRET`, `JWT_REFRESH_SECRET`, `LINK_SECRET` (≥ 16).
@@ -36,14 +37,14 @@ Leé primero `..\PLAN-VENTA-10K.md` (veredicto, paquetes **S** y **V**). Trabajo
 - [ ] 👤 **B12** `MP_ACCESS_TOKEN` y `MP_WEBHOOK_SECRET` (al final) · privacidad y términos.
 
 ## S — Seguridad (resumen; detalle en `docs/SEGURIDAD.md`)
-- [x] S1 0 altas/críticas en producción · [x] S2 CSP en bloqueo (`vercel.json` y `render.yaml`; `style-src 'unsafe-inline'` queda por los estilos en línea de React/Framer Motion, scripts solo `'self'`) · [x] S3 límites por IP + bloqueo de cuenta (5 fallos → 15 min) · [x] S4 contraseñas del personal ≥ 12, 2FA TOTP con secreto cifrado, cierre de sesión en todos los dispositivos (ya existía), cookie `HttpOnly; Secure; SameSite=None` en producción por el front en otro dominio · [x] S5 zod en el borde, rechazo de operadores `$` y `.`, body 1 MB, comprobantes 5 MB con tipo real por firma de bytes · [x] S6 webhooks · [x] S7 auditoría inmutable + roles existentes · [x] S8 sin secretos en el historial (escaneo de 27 commits; ver hallazgo en SEGURIDAD.md), `server/.env.example` sin valores · [x] S9 CORS cerrado, HSTS, Permissions-Policy, `security.txt` (con texto a completar 👤) · [ ] S10 (parcial) backup + restauración probada **en local** (falta probarla con el Atlas real 👤) · [x] S11 Dependabot semanal agrupado + `npm audit` en CI · [ ] S12 técnica hecha (exportar/anonimizar, consentimiento, logs sin datos personales ni tokens), política y términos 👤 · [x] S13 revisión: ver docs/SEGURIDAD.md.
+- [x] S1 0 altas/críticas en producción · [x] S2 CSP en bloqueo (`vercel.json` y `render.yaml`; `style-src 'unsafe-inline'` queda por los estilos en línea de React/Framer Motion, scripts solo `'self'`) · [x] S3 límites por IP + bloqueo de cuenta (5 fallos → 15 min) · [x] S4 contraseñas del personal ≥ 12, 2FA TOTP con secreto cifrado, cierre de sesión en todos los dispositivos (ya existía), cookie `HttpOnly; Secure; SameSite=None` en producción por el front en otro dominio · [x] S5 zod en el borde, rechazo de operadores `$` y `.`, body 1 MB, comprobantes 5 MB con tipo real por firma de bytes · [x] S6 webhooks · [x] S7 auditoría inmutable + roles existentes · [x] S8 sin secretos en el historial (escaneo de 27 commits; ver hallazgo en SEGURIDAD.md), `server/.env.example` sin valores · [x] S9 CORS cerrado, HSTS, Permissions-Policy, `security.txt` (con texto a completar 👤) · [x] S10 backup + restauración probada **en local y con 3 pruebas automáticas** (contenido y tipos idénticos, base con datos rechazada, archivo alterado rechazado sin escribir; se corrigió un fallo de restauración parcial). Falta repetirla con el Atlas real 👤 · [x] S11 Dependabot semanal agrupado + `npm audit` en CI · [ ] S12 técnica hecha (exportar/anonimizar, consentimiento, logs sin datos personales ni tokens), política y términos 👤 · [x] S13 revisión: ver docs/SEGURIDAD.md.
 
 ## B. Para vender (de `..\PLAN-VENTA-10K.md` §4)
 - [x] V1 paquetes ([docs/PAQUETES-Y-PRECIOS.md](docs/PAQUETES-Y-PRECIOS.md)) · [x] V2 tabla a 3 años contra AgendaPro para 3 y 8 barberos, con precio vigente y fuente ([docs/COSTO-3-ANIOS.md](docs/COSTO-3-ANIOS.md)) · [ ] V3 demo aparte (👤) · [x] V4 despliegue repetible (`npm run provision` + `npm run smoke`, probado de cero; [docs/ENTREGA.md](docs/ENTREGA.md)) · [ ] V5 (parcial) manual del dueño y del barbero + runbook + checklist de traspaso ([MANUAL-DUENO.md](docs/MANUAL-DUENO.md), [MANUAL-BARBERO.md](docs/MANUAL-BARBERO.md)); **capturas y video quedan 👤** (necesitan el sistema real del cliente) · [ ] V7 (parcial) uptime y errores (workflow *Uptime*, `/health/ready`, `ERROR_WEBHOOK_URL`); la cuenta externa de uptime/Sentry es 👤 · [x] V8 página de venta (`ventas/index.html`; demo y caso real figuran como «en preparación», sin testimonios inventados) · [ ] V10 barbería piloto (👤)
 - [x] **Extra** Reporte «qué barbero rinde» (ya existía: Reportes → ranking) y «clientes que no vuelven hace N días» (Fidelización → No vuelven, 45 por defecto). Importar clientes por CSV (Fidelización → Importar clientes; con pruebas). **Falta:** importar la agenda/turnos históricos (no hecho: riesgo de fechas y solapamientos sin un caso real que lo guíe).
 
 ## Salida
-☑ integrado · ☑ tests (100 + 14) y 2 builds verdes · ☑ 0 altas/críticas en producción · ☐ reserva con seña de prueba en sandbox real (👤) · ☐ API < 5 s en frío en producción (👤 plan que no duerme) · ☐ backup restaurado en Atlas real (👤) · ☐ barbería piloto (👤)
+☑ integrado · ☑ tests (103 + 23) y 2 builds verdes · ☑ 0 altas/críticas en producción · ☐ reserva con seña de prueba en sandbox real (👤) · ☐ API < 5 s en frío en producción (👤 plan que no duerme) · ☐ backup restaurado en Atlas real (👤) · ☐ barbería piloto (👤)
 
 La lista completa de lo que solo puede hacer el usuario está en [docs/PENDIENTES-USUARIO.md](docs/PENDIENTES-USUARIO.md).
 

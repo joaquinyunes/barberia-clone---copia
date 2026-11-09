@@ -26,4 +26,4 @@ Todo lo que se podía hacer sin credenciales ni cuentas está hecho y verificado
 15. Probar la restauración del backup contra el Atlas real y anotar fecha y resultado en [BACKUPS.md](BACKUPS.md).
 16. Cuenta de uptime externa y Sentry si el cliente quiere aviso por WhatsApp/SMS o trazas ([ENTREGA.md](ENTREGA.md), sección D).
 17. Activar la verificación en dos pasos en la cuenta del dueño real (Configuración → Seguridad).
-18. Verificar el service worker de la PWA en un celular real (en el navegador integrado de esta sesión el registro fue rechazado; el manifest sí carga).
+18. Verificar el service worker de la PWA en un celular real y la suscripción en sandbox: pasos exactos y resultados esperados en [PRUEBAS-EN-CELULAR-Y-SANDBOX.md](PRUEBAS-EN-CELULAR-Y-SANDBOX.md). Ahí también está confirmado qué cubre la CSP y que **no hay proyecto de Vercel** de Barbería en tu cuenta.

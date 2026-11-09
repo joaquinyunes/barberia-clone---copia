@@ -16,7 +16,7 @@ Revisión hecha con el método de las skills `security-and-hardening` y `/securi
 | S9 | CORS y cabeceras | ✅ CORS cerrado a `CLIENT_URL`; HSTS, `nosniff`, `Referrer-Policy`, `Permissions-Policy` en API y sitio; `security.txt` | ⚠ completar contacto real (👤) |
 | S10 | Backups + restauración | ✅ herramienta + prueba local (28 colecciones, 6.813 documentos) | ⚠ probar con Atlas real (👤), ver `BACKUPS.md` |
 | S11 | Dependabot y CI | ✅ semanal y agrupado; CI con Mongo, lint y auditoría | |
-| S12 | Datos personales | 🟡 técnica hecha: exportar y anonimizar, consentimiento solo opt-in, logs sin datos personales ni tokens (la query `?token=` se recorta) | 👤 texto de privacidad y términos con abogado |
+| S12 | Datos personales | 🟡 técnica hecha: exportar y anonimizar, consentimiento solo opt-in, logs sin datos personales ni tokens (la query `?token=` se recorta); la política de privacidad del sitio (`/legal/privacidad`) ahora describe lo que el sistema realmente hace (datos, finalidad, plazos, derechos, AAIP) y se enlaza desde el formulario de reserva | 👤 el texto sigue marcado **BORRADOR**: lo revisa un profesional (responsable de la base, domicilio, inscripción) antes de publicarse |
 | S13 | Esta revisión | ✅ | |
 
 ## Hallazgos de la revisión independiente y qué se hizo
