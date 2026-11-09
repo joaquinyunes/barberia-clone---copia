@@ -235,7 +235,7 @@ export function BookingWizard({ initialLocation, initialService }: { initialLoca
                 <Checkbox label="Quiero recibir promociones y novedades por WhatsApp (opcional; podés darte de baja cuando quieras)" {...form.register("marketingConsent")} />
                 <Input label="¿Te recomendó alguien? Código de referido (opcional)" {...form.register("referralCode")} hint="Tu amigo suma crédito y vos tenés descuento en tu primera visita." />
                 <p className={styles.legal}>
-                  Al reservar aceptás la <Link to={paths.legal("cancelaciones")}>política de cancelación</Link>: podés cancelar o reprogramar gratis hasta 12 h antes.
+                  Al reservar aceptás la <Link to={paths.legal("cancelaciones")}>política de cancelación</Link> y la <Link to={paths.legal("privacidad")}>política de privacidad</Link>: podés cancelar o reprogramar gratis hasta 12 h antes.
                 </p>
                 <Button type="submit" size="lg" loading={create.isPending}>Reservar y pasar a la seña</Button>
               </form>

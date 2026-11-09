@@ -41,10 +41,18 @@ export async function restore(dir: string, uri: string, opts: { force?: boolean 
   }
   const manifest = JSON.parse(readFileSync(path.join(dir, "manifest.json"), "utf8")) as { collections: Record<string, { count: number; sha256: string }> };
   const restored: Record<string, number> = {};
-  for (const file of readdirSync(dir).filter((f) => f.endsWith(".ejson.gz"))) {
+  const files = readdirSync(dir).filter((f) => f.endsWith(".ejson.gz"));
+  // Primero se verifican TODOS los archivos: si uno está alterado no se escribe nada (restauración todo o nada).
+  for (const file of files) {
+    const raw = readFileSync(path.join(dir, file));
+    if (createHash("sha256").update(raw).digest("hex") !== manifest.collections[file.replace(".ejson.gz", "")]?.sha256) {
+      await conn.close();
+      throw new Error(`Archivo alterado o corrupto: ${file}`);
+    }
+  }
+  for (const file of files) {
     const name = file.replace(".ejson.gz", "");
     const raw = readFileSync(path.join(dir, file));
-    if (createHash("sha256").update(raw).digest("hex") !== manifest.collections[name]?.sha256) throw new Error(`Archivo alterado o corrupto: ${file}`);
     const docs = EJSON.parse(gunzipSync(raw).toString("utf8")) as Record<string, unknown>[];
     if (docs.length) await conn.db!.collection(name).insertMany(docs as never[]);
     restored[name] = docs.length;

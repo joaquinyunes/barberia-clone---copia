@@ -6,9 +6,13 @@ const PAGES: Record<string, { title: string; body: string[] }> = {
   privacidad: {
     title: "Política de privacidad",
     body: [
-      "Guardamos tu nombre, celular y email únicamente para gestionar tus turnos, compras y beneficios.",
-      "Los comprobantes de pago se almacenan de forma privada y solo se comparten con la sede mediante un link firmado que vence.",
-      "Podés pedir la baja o corrección de tus datos escribiendo a cualquiera de nuestras sedes. (Texto de ejemplo: revisar con un profesional antes de publicar.)",
+      "Qué datos guardamos: tu nombre, celular y, si lo dejás, tu email; tus turnos, compras, saldo, puntos y las opiniones que escribas; y los comprobantes de pago que subas. Si creás una cuenta, también tu contraseña (guardada cifrada, nunca en texto).",
+      "Para qué los usamos: gestionar tus turnos, cobros y beneficios, avisarte de tu turno y cumplir obligaciones contables. No vendemos ni cedemos tus datos a terceros; los procesan los proveedores que hacen funcionar el servicio (alojamiento, base de datos y, si pagás online, Mercado Pago).",
+      "Promociones: solo te escribimos con ofertas si marcaste la casilla al reservar o lo aceptaste en el local. Podés darte de baja cuando quieras desde el link de tu reserva o avisándonos.",
+      "Comprobantes: se guardan de forma privada y solo se comparten con la sede mediante un link firmado que vence.",
+      "Cuánto tiempo: mientras uses el servicio y el tiempo que la ley exija para registros contables. Las copias de seguridad se conservan hasta 30 días.",
+      "Tus derechos (Ley 25.326): podés acceder a tus datos, corregirlos o pedir que los eliminemos escribiéndonos; te entregamos una copia o anonimizamos tu ficha (los importes de ventas se conservan sin tu nombre porque la ley lo exige). Si considerás que no respondimos bien, podés reclamar ante la Agencia de Acceso a la Información Pública (AAIP).",
+      "Contacto para estos temas: el que figura en la sede o en security.txt. (BORRADOR: este texto describe cómo funciona el sistema, pero debe ser revisado y completado por un profesional —responsable de la base, domicilio, inscripción— antes de publicarse.)",
     ],
   },
   terminos: {

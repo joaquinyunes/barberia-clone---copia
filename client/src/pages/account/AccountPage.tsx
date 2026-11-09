@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { paths } from "@/app/router/paths";
 import { Badge, Button, Card, Container, EmptyState, PageLoader, Section, toast } from "@/components/ui";
 import { useAuth } from "@/features/auth/useAuth";
+import { useShop, useSite } from "@/features/catalog/useCatalog";
 import { errorMessage, http } from "@/services/http";
 import type { Appointment, Movement } from "@/types";
 import { date, longDate, money, signedMoney, time } from "@/utils/format";
@@ -49,6 +50,28 @@ function RepeatLastCut() {
   );
 }
 
+/** Suscripción con cobro mensual automático (Mercado Pago). Solo se ofrece si el negocio lo tiene activado y la persona no tiene membresía. */
+function Subscribe() {
+  const { data: site } = useSite();
+  const { data: shop } = useShop();
+  const go = useMutation({
+    mutationFn: (plan: string) => http.post<{ initPoint: string }>("/me/client/membership/checkout", { plan }).then((r) => r.data),
+    onSuccess: (r) => window.location.assign(r.initPoint),
+    onError: (e) => toast.error(errorMessage(e)),
+  });
+  if (!site?.mercadoPago || !shop?.memberships.length) return null;
+  return (
+    <Card title="Suscribite a una membresía">
+      {shop.memberships.map((m) => (
+        <div key={m._id} className={styles.pack}>
+          <strong>{m.name}</strong> <small>{money(m.price)} por mes, se cobra solo y podés cancelar cuando quieras</small>
+          <div><Button size="sm" loading={go.isPending} onClick={() => go.mutate(m._id)}>Suscribirme</Button></div>
+        </div>
+      ))}
+    </Card>
+  );
+}
+
 export default function AccountPage() {
   const { user, logout } = useAuth();
   const { data, isLoading } = useQuery({ queryKey: ["me-client"], queryFn: () => http.get<MyData>("/me/client").then((r) => r.data), enabled: !!user });
@@ -86,6 +109,7 @@ export default function AccountPage() {
               {data.movements.slice(0, 6).map((m) => <li key={m._id}><span>{date(m.date)} · {m.concept}</span><span>{signedMoney(m.amount)}</span></li>)}
             </ul>
           </Card>
+          {!data.membership && <Subscribe />}
           {(data.membership || data.packs.length > 0) && (
             <Card title="Membresía y packs">
               {data.membership && (
