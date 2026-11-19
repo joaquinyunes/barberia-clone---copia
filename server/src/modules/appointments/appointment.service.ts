@@ -216,6 +216,16 @@ async function createBookingUnlocked(input: BookingInput, actor?: Actor) {
   const total = service.price - discount;
   const depositRequired = input.skipDeposit ? 0 : Math.min(location.depositAmount ?? 0, total);
 
+  // El uso de la promo se reclama de forma condicional antes de crear el turno (dos reservas a la vez no pasan el tope).
+  let promoClaimed = false;
+  if (promo?.id) {
+    const got = await Promotion.findOneAndUpdate(
+      { _id: promo.id, $or: [{ maxUses: { $exists: false } }, { maxUses: null }, { maxUses: 0 }, { $expr: { $lt: ["$uses", "$maxUses"] } }] },
+      { $inc: { uses: 1 } },
+    );
+    if (!got) throw AppError.conflict("La promoción alcanzó el máximo de usos. Reservá sin código o probá con otro.");
+    promoClaimed = true;
+  }
   try {
     const appt = await Appointment.create({
       code: randomCode("JEB"),
@@ -243,9 +253,9 @@ async function createBookingUnlocked(input: BookingInput, actor?: Actor) {
       await Appointment.deleteOne({ _id: appt._id });
       throw AppError.conflict("Ese horario se acaba de ocupar. Elegí otro, por favor.");
     }
-    if (promo?.id) await Promotion.updateOne({ _id: promo.id }, { $inc: { uses: 1 } });
     return { appointment: appt, client, location, service, barber };
   } catch (err) {
+    if (promoClaimed) await Promotion.updateOne({ _id: promo!.id }, { $inc: { uses: -1 } }); // la reserva no se hizo: el uso se devuelve
     if ((err as { code?: number }).code === 11000) throw AppError.conflict("Ese horario se acaba de ocupar. Elegí otro, por favor.");
     throw err;
   }

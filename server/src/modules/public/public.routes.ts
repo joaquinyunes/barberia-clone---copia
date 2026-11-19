@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { validate } from "../../middlewares/validate.js";
-import { bookingCreateLimiter, bookingLinkLimiter, publicReadLimiter, publicWriteLimiter, webhookLimiter } from "../../middlewares/rateLimiters.js";
+import { bookingCreateLimiter, bookingLinkLimiter, promoLimiter, publicReadLimiter, publicWriteLimiter, webhookLimiter } from "../../middlewares/rateLimiters.js";
 import { AppError } from "../../lib/AppError.js";
 import { readStored, saveReceipt, uploadReceipt } from "../../lib/storage.js";
 import { verifyLink } from "../../lib/tokens.js";
@@ -87,12 +87,14 @@ publicRouter.get(
 
 publicRouter.post(
   "/promotions/validate",
+  promoLimiter,
   validate({ body: z.object({ code: z.string().min(2), service: objectId, date, time }) }),
   async (req, res) => {
     const service = await Service.findById(req.body.service);
     if (!service) throw AppError.notFound("Servicio");
     const { toBusinessDate } = await import("../../lib/dates.js");
-    const r = await commercial.evaluatePromotion({ code: req.body.code, service, startsAt: toBusinessDate(req.body.date, req.body.time), amount: service.price });
+    // Respuesta genérica: un código inexistente, vencido o agotado se ve igual (no se puede explorar qué códigos existen).
+    const r = await commercial.evaluatePromotion({ code: req.body.code, service, startsAt: toBusinessDate(req.body.date, req.body.time), amount: service.price }).catch((err) => (err instanceof AppError && err.status === 400 ? null : Promise.reject(err)));
     res.json({ valid: !!r, name: r?.promo.name, discount: r?.discount ?? 0, total: service.price - (r?.discount ?? 0) });
   },
 );
