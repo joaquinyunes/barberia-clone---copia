@@ -60,6 +60,8 @@ const appointmentSchema = new Schema(
     holdExpiresAt: Date,
     /** Plazo para que el personal revise un comprobante (12 h): si vence, el horario se libera. */
     reviewExpiresAt: Date,
+    /** Candado mientras se finaliza el turno (cobro + comisión): evita que dos «Finalizar» a la vez cobren dos veces. */
+    closing: { type: Boolean, select: false },
     notes: String,
     cancellation: {
       by: { type: String, enum: CANCEL_BY },

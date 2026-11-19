@@ -422,6 +422,44 @@ export async function complete(id: string, input: CompleteInput, actor: Actor) {
     throw new AppError(409, `El cliente quedaría debiendo ${-projectedBalance} y supera su tope de ${limit}. Autorizá la deuda para continuar.`, "CREDIT_LIMIT", { balance: projectedBalance, limit });
   }
 
+  // Reclamo atómico: solo un «Finalizar» sigue; el otro recibe 409 sin haber tocado caja, saldo ni comisión.
+  const claimed = await Appointment.findOneAndUpdate({ _id: appt._id, status: { $in: ["confirmed", "in_progress", "payment_review", "pending_payment"] }, closing: { $ne: true } }, { closing: true });
+  if (!claimed) throw AppError.conflict("Este turno ya se está finalizando o ya fue finalizado");
+  try {
+    return await completeClaimed(appt, input, actor, { service, barber, client, settings, productDocs, productsTotal, charge, coverage });
+  } catch (err) {
+    await Appointment.updateOne({ _id: appt._id, status: { $ne: "completed" } }, { $unset: { closing: 1 } }); // queda abierto para reintentar
+    throw err;
+  }
+}
+
+async function completeClaimed(
+  appt: InstanceType<typeof Appointment>,
+  input: CompleteInput,
+  actor: Actor,
+  c: {
+    service: InstanceType<typeof Service>;
+    barber: InstanceType<typeof Barber>;
+    client: InstanceType<typeof Client>;
+    settings: Awaited<ReturnType<typeof getSettings>>;
+    productDocs: { doc: InstanceType<typeof Product>; qty: number }[];
+    productsTotal: number;
+    charge: number;
+    coverage: Awaited<ReturnType<typeof commercial.coverageFor>>;
+  },
+) {
+  const { service, barber, client, settings, productDocs, productsTotal, coverage } = c;
+  const charge = c.charge;
+  // Primero se consumen gift cards y cupos (pueden fallar si otro cobro los gastó en el medio): si fallan no se registró nada todavía.
+  const redeemed = new Map<number, Awaited<ReturnType<typeof commercial.redeemGiftCard>>>();
+  for (const [pi, p] of input.payments.entries()) {
+    if (p.tender === "giftcard") {
+      if (!p.giftCardCode) throw AppError.badRequest("Falta el código de la gift card");
+      redeemed.set(pi, await commercial.redeemGiftCard(p.giftCardCode, p.amount, appt.code));
+    } else if (p.tender === "membership" || p.tender === "pack") {
+      await commercial.consumeCoverage(coverage!.kind, coverage!.id, service, appt._id);
+    }
+  }
   // Productos vendidos en el turno
   const products: { product: Types.ObjectId; name: string; qty: number; unitPrice: number }[] = [];
   for (const { doc, qty } of productDocs) {
@@ -437,20 +475,18 @@ export async function complete(id: string, input: CompleteInput, actor: Actor) {
   // 2) Se registran los pagos según el medio
   let paidNow = 0;
   let prepaidCovered = 0;
-  for (const p of input.payments) {
+  for (const [pi, p] of input.payments.entries()) {
     if (!(p.amount > 0) && !["membership", "pack"].includes(p.tender)) continue;
     if (["cash", "transfer", "mercadopago", "card"].includes(p.tender)) {
       await cash.record({ location: appt.location, direction: "in", method: p.tender as PaymentMethod, amount: p.amount, category: "sale", concept: `${service.name} ${appt.code}`, party: { kind: "Client", id: client._id, name: client.name }, ref, actor });
       await ledger.post({ ownerType: "client", owner: client._id, type: "payment", amount: p.amount, concept: `Pago ${appt.code}`, method: p.tender, location: appt.location, ref, actor });
       paidNow += p.amount;
     } else if (p.tender === "giftcard") {
-      if (!p.giftCardCode) throw AppError.badRequest("Falta el código de la gift card");
-      const r = await commercial.redeemGiftCard(p.giftCardCode, p.amount, appt.code);
-      await ledger.post({ ownerType: "client", owner: client._id, type: "credit", amount: r.used, concept: `Gift card ${p.giftCardCode.toUpperCase()}`, location: appt.location, ref, actor });
+      const r = redeemed.get(pi)!;
+      await ledger.post({ ownerType: "client", owner: client._id, type: "credit", amount: r.used, concept: `Gift card ${(p.giftCardCode ?? "").toUpperCase()}`, location: appt.location, ref, actor });
       paidNow += r.used;
     } else if (p.tender === "membership" || p.tender === "pack") {
       const cov = coverage!;
-      await commercial.consumeCoverage(cov.kind, cov.id, service, appt._id);
       await ledger.post({ ownerType: "client", owner: client._id, type: "credit", amount: appt.total, concept: `Cubierto por ${cov.label}`, location: appt.location, ref, actor });
       paidNow += appt.total;
       prepaidCovered += appt.total;
@@ -485,6 +521,7 @@ export async function complete(id: string, input: CompleteInput, actor: Actor) {
     paidAmount: (appt.deposit?.paid ?? 0) + paidNow + (input.tip?.amount ?? 0),
   });
   appt.prepaidCovered = prepaidCovered;
+  appt.closing = undefined;
   await appt.save();
 
   if (input.cutNote) client.cutNotes.push({ date: new Date(), barber: barber._id, text: input.cutNote, appointment: appt._id });

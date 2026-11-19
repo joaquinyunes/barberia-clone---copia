@@ -66,19 +66,26 @@ export async function issueGiftCard(input: {
 }
 
 export async function redeemGiftCard(code: string, amount: number, ref: string) {
-  const gc = await GiftCard.findOne({ code: code.toUpperCase() });
-  if (!gc || gc.status !== "active") throw AppError.badRequest("Gift card inválida o sin saldo");
-  if (gc.expiresAt && gc.expiresAt < new Date()) {
-    gc.status = "expired";
-    await gc.save();
-    throw AppError.badRequest("La gift card está vencida");
+  const upper = code.toUpperCase();
+  // Canje condicional con reintento: el saldo se descuenta solo si sigue siendo el que leímos (dos cobros a la vez no gastan de más).
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const gc = await GiftCard.findOne({ code: upper });
+    if (!gc || gc.status !== "active" || gc.balance <= 0) throw AppError.badRequest("Gift card inválida o sin saldo");
+    if (gc.expiresAt && gc.expiresAt < new Date()) {
+      await GiftCard.updateOne({ _id: gc._id, status: "active" }, { status: "expired" });
+      throw AppError.badRequest("La gift card está vencida");
+    }
+    const used = Math.min(gc.balance, amount);
+    const updated = await GiftCard.findOneAndUpdate(
+      { _id: gc._id, status: "active", balance: gc.balance },
+      { $inc: { balance: -used }, $push: { redemptions: { amount: used, date: new Date(), ref } } },
+      { new: true },
+    );
+    if (!updated) continue; // alguien usó la tarjeta en el medio: se relee y se reintenta
+    if (updated.balance <= 0) await GiftCard.updateOne({ _id: updated._id }, { status: "used" });
+    return { used, remaining: updated.balance, giftCard: updated };
   }
-  const used = Math.min(gc.balance, amount);
-  gc.balance -= used;
-  gc.redemptions.push({ amount: used, date: new Date(), ref });
-  if (gc.balance <= 0) gc.status = "used";
-  await gc.save();
-  return { used, remaining: gc.balance, giftCard: gc };
+  throw AppError.conflict("La gift card se está usando en este momento. Probá de nuevo.");
 }
 
 /* ── Packs / bonos ── */
@@ -147,22 +154,24 @@ export async function coverageFor(clientId: unknown, service: { _id: unknown; ca
 }
 
 export async function consumeCoverage(kind: "membership" | "pack", id: unknown, service: { _id: unknown; category: string }, appointmentId: unknown) {
-  if (kind === "membership") {
-    const m = await Membership.findById(id);
-    const u = m && findUsage(m.usage, service);
-    if (!m || !u) throw AppError.badRequest("La membresía no tiene cupo para este servicio");
-    u.used = (u.used ?? 0) + 1;
-    await m.save();
-    return m;
+  const Model = (kind === "membership" ? Membership : ClientPack) as unknown as typeof Membership;
+  // Consumo condicional con reintento: el cupo se suma solo si el contador sigue como lo leímos (dos turnos a la vez no gastan el mismo cupo).
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const doc = await Model.findById(id);
+    const u = doc && findUsage(doc.usage, service);
+    const idx = doc && u ? doc.usage.indexOf(u) : -1;
+    if (!doc || !u || idx < 0 || (kind === "membership" && (doc.status !== "active"))) {
+      throw AppError.badRequest(kind === "membership" ? "La membresía no tiene cupo para este servicio" : "El pack no tiene cupo para este servicio");
+    }
+    const field = `usage.${idx}.used`;
+    const update: Record<string, unknown> = { $inc: { [field]: 1 } };
+    if (kind === "pack") update.$push = { history: { date: new Date(), label: u.label ?? "", appointment: appointmentId } };
+    const done = await Model.findOneAndUpdate({ _id: id, [field]: u.used ?? 0 }, update, { new: true });
+    if (!done) continue;
+    if (kind === "pack" && (done as unknown as InstanceType<typeof ClientPack>).usage.every((x) => (x.used ?? 0) >= (x.total ?? 0))) await ClientPack.updateOne({ _id: id }, { status: "used" });
+    return done;
   }
-  const p = await ClientPack.findById(id);
-  const u = p && findUsage(p.usage, service);
-  if (!p || !u) throw AppError.badRequest("El pack no tiene cupo para este servicio");
-  u.used = (u.used ?? 0) + 1;
-  p.history.push({ date: new Date(), label: u.label ?? "", appointment: appointmentId as Types.ObjectId });
-  if (p.usage.every((x) => (x.used ?? 0) >= (x.total ?? 0))) p.status = "used";
-  await p.save();
-  return p;
+  throw AppError.conflict("El cupo se está usando en este momento. Probá de nuevo.");
 }
 
 /* ── Promociones ── */
