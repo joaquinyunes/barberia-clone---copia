@@ -9,7 +9,8 @@ import { AppError } from "../../lib/AppError.js";
 import { signAccess, signRefresh, verifyRefresh } from "../../lib/tokens.js";
 import { permissionsFor, type Role } from "../../core/permissions.js";
 import { audit } from "../audit/audit.service.js";
-import { openSecret, otpauthUrl, newSecret, sealSecret, verifyTotp } from "../../lib/totp.js";
+import { matchTotpStep, openSecret, otpauthUrl, newSecret, sealSecret, verifyTotp } from "../../lib/totp.js";
+import { clearFailures, isLocked, recordFailure } from "./loginAttempt.model.js";
 import { Client, normalizePhone } from "../clients/client.model.js";
 import { User } from "../users/user.model.js";
 
@@ -45,32 +46,28 @@ authRouter.post(
   authLimiter,
   validate({ body: z.object({ email: z.string().email(), password: z.string().min(1), totp: z.string().optional() }) }),
   async (req, res) => {
-    const user = await User.findOne({ email: req.body.email.toLowerCase() }).select("+totpSecret");
+    const email = String(req.body.email).toLowerCase();
+    const ip = req.ip ?? "?";
+    const user = await User.findOne({ email }).select("+totpSecret");
     const passwordOk = await bcrypt.compare(req.body.password, user?.passwordHash ?? DUMMY_HASH);
     // Un solo mensaje para: no existe, contraseña mala, cuenta inactiva o bloqueada (no se revela cuál).
     const fail = async () => {
-      if (user) {
-        // Contador atómico: pedidos en paralelo no pueden saltearse el límite.
-        const u = await User.findOneAndUpdate({ _id: user._id }, { $inc: { failedLogins: 1 } }, { new: true });
-        if (u && u.failedLogins >= MAX_FAILED) {
-          await User.updateOne({ _id: user._id }, { lockUntil: new Date(Date.now() + LOCK_MS), failedLogins: 0 });
-          await audit(undefined, { action: "custom", entity: "Seguridad", entityId: user._id, summary: `cuenta bloqueada 15 min por intentos fallidos` });
-        }
-      }
+      // El bloqueo es por cuenta + IP (con espera creciente): quien ataca desde una IP no deja afuera al dueño que entra desde otra.
+      if (await recordFailure(email, ip)) await audit(undefined, { action: "custom", entity: "Seguridad", summary: "se bloqueó un par cuenta+IP por intentos fallidos de ingreso" });
       throw AppError.unauthorized(GENERIC_LOGIN_ERROR);
     };
+    if (await isLocked(email, ip)) throw AppError.unauthorized(GENERIC_LOGIN_ERROR);
     if (!user || !passwordOk || !user.active) return fail();
-    if (user.lockUntil && user.lockUntil > new Date()) throw AppError.unauthorized(GENERIC_LOGIN_ERROR);
     if (user.totpEnabled) {
       if (!req.body.totp) throw new AppError(401, "Ingresá el código de tu app de autenticación", "TOTP_REQUIRED");
-      if (!verifyTotp(openSecret(user.totpSecret!), req.body.totp)) return fail();
+      const step = matchTotpStep(openSecret(user.totpSecret!), req.body.totp);
+      if (step === null) return fail();
+      // Un código se acepta una sola vez: se guarda el último paso usado (atómico).
+      const fresh = await User.findOneAndUpdate({ _id: user._id, $or: [{ totpLastStep: { $exists: false } }, { totpLastStep: { $lt: step } }] }, { totpLastStep: step });
+      if (!fresh) return fail();
     }
-    // Entrada atómica: solo si la cuenta no se bloqueó mientras tanto (intentos en vuelo).
-    const entered = await User.findOneAndUpdate(
-      { _id: user._id, $or: [{ lockUntil: { $exists: false } }, { lockUntil: null }, { lockUntil: { $lte: new Date() } }] },
-      { $set: { failedLogins: 0, lastLoginAt: new Date() }, $unset: { lockUntil: 1 } },
-      { new: true },
-    );
+    await clearFailures(email, ip);
+    const entered = await User.findOneAndUpdate({ _id: user._id }, { $set: { lastLoginAt: new Date() } }, { new: true });
     if (!entered) throw AppError.unauthorized(GENERIC_LOGIN_ERROR);
     res.cookie(COOKIE, signRefresh(String(entered._id), entered.tokenVersion), cookieOpts);
     res.json(session(entered));
@@ -94,9 +91,11 @@ authRouter.post("/2fa/setup", authLimiter, authenticate, validate({ body: z.obje
 authRouter.post("/2fa/enable", authLimiter, authenticate, validate({ body: z.object({ code: z.string().length(6) }) }), async (req, res) => {
   const user = await User.findById(req.user!._id).select("+totpPending");
   if (!user?.totpPending || user.totpEnabled || !verifyTotp(openSecret(user.totpPending), req.body.code)) throw AppError.badRequest("Código incorrecto");
+  const step = matchTotpStep(openSecret(user.totpPending), req.body.code);
   user.totpSecret = user.totpPending;
   user.totpPending = undefined;
   user.totpEnabled = true;
+  user.totpLastStep = step ?? undefined; // el código con el que se activó no se puede reusar para entrar
   user.tokenVersion += 1; // cierra las demás sesiones
   await user.save();
   await audit(req, { action: "update", entity: "Seguridad", entityId: user._id, summary: "activó la verificación en dos pasos" });

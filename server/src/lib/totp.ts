@@ -24,21 +24,24 @@ export function totpCode(secret: string, step: number) {
 
 export const newSecret = () => base32(randomBytes(20));
 
-/** Acepta el código actual y ±1 paso (reloj desfasado). */
-export function verifyTotp(secret: string, token: string, now = Date.now()) {
+/** Paso de 30 s al que corresponde el código (acepta el actual y ±1 por reloj desfasado), o null si no coincide. Sirve para no aceptar el mismo paso dos veces. */
+export function matchTotpStep(secret: string, token: string, now = Date.now()): number | null {
   const step = Math.floor(now / 30_000);
   const given = Buffer.from(token.replace(/\s/g, ""));
-  return [-1, 0, 1].some((d) => {
+  for (const d of [-1, 0, 1]) {
     const want = Buffer.from(totpCode(secret, step + d));
-    return want.length === given.length && timingSafeEqual(want, given);
-  });
+    if (want.length === given.length && timingSafeEqual(want, given)) return step + d;
+  }
+  return null;
 }
+
+export const verifyTotp = (secret: string, token: string, now = Date.now()) => matchTotpStep(secret, token, now) !== null;
 
 export const otpauthUrl = (secret: string, account: string) =>
   `otpauth://totp/${encodeURIComponent(`Jack el Barbero:${account}`)}?secret=${secret}&issuer=${encodeURIComponent("Jack el Barbero")}&algorithm=SHA1&digits=6&period=30`;
 
 /** El secreto TOTP se guarda cifrado (AES-256-GCM) con una clave derivada de JWT_REFRESH_SECRET: un volcado de la base solo no alcanza. */
-const key = () => createHash("sha256").update(`totp:${env.JWT_REFRESH_SECRET}`).digest();
+const key = () => createHash("sha256").update(`totp:${env.TOTP_ENC_KEY ?? env.JWT_REFRESH_SECRET}`).digest();
 export function sealSecret(secret: string) {
   const iv = randomBytes(12);
   const c = createCipheriv("aes-256-gcm", key(), iv);

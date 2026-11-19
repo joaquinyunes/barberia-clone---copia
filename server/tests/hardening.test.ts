@@ -19,15 +19,32 @@ afterAll(() => {
 
 const login = (email: string, password: string, totp?: string) => request(app).post("/api/v1/auth/login").send({ email, password, totp });
 
-describe("S3: bloqueo de cuenta tras intentos fallidos", () => {
-  it("5 contraseñas mal → 429 aunque la sexta sea la correcta; la cuenta se libera al vencer el bloqueo", async () => {
+describe("S3: bloqueo por cuenta + IP con espera progresiva (media 13)", () => {
+  const from = (ip: string, email: string, password: string, totp?: string) => request(app).post("/api/v1/auth/login").set("X-Forwarded-For", ip).send({ email, password, totp });
+
+  it("5 contraseñas mal desde una IP bloquean ESE par; el dueño real, desde su IP, sigue entrando", async () => {
     await User.create({ name: "Recep", email: "lock@jack.test", passwordHash: await bcrypt.hash("clave-larga-12345", 4), role: "reception" });
-    for (let i = 0; i < 5; i++) expect((await login("lock@jack.test", "mal")).status).toBe(401);
-    const blocked = await login("lock@jack.test", "clave-larga-12345");
-    expect(blocked.status).toBe(401); // mismo mensaje que una contraseña mala: no se revela que está bloqueada
-    expect(blocked.body.error.message).toBe((await login("noexiste@jack.test", "x")).body.error.message);
-    await User.updateOne({ email: "lock@jack.test" }, { lockUntil: new Date(Date.now() - 1000) });
-    expect((await login("lock@jack.test", "clave-larga-12345")).status).toBe(200);
+    for (let k = 0; k < 5; k++) expect((await from("203.0.113.9", "lock@jack.test", "mal")).status).toBe(401);
+    const blocked = await from("203.0.113.9", "lock@jack.test", "clave-larga-12345");
+    expect(blocked.status).toBe(401); // mismo mensaje que una contraseña mala: no se revela el bloqueo
+    expect(blocked.body.error.message).toBe((await from("203.0.113.9", "noexiste@jack.test", "x")).body.error.message);
+    // quien ataca no deja afuera al dueño: desde otra IP entra normal
+    expect((await from("198.51.100.7", "lock@jack.test", "clave-larga-12345")).status).toBe(200);
+  });
+
+  it("cada bloqueo repetido dura más (15, 30, 60 min…)", async () => {
+    const { LoginAttempt } = await import("../src/modules/auth/loginAttempt.model.js");
+    await User.create({ name: "Prog", email: "prog@jack.test", passwordHash: await bcrypt.hash("clave-larga-12345", 4), role: "reception" });
+    const wait = async () => {
+      const a = await LoginAttempt.findOne({ email: "prog@jack.test" });
+      return Math.round((a!.lockUntil!.getTime() - Date.now()) / 60_000);
+    };
+    for (let k = 0; k < 5; k++) await from("192.0.2.50", "prog@jack.test", "mal");
+    expect(await wait()).toBeGreaterThanOrEqual(14);
+    expect(await wait()).toBeLessThanOrEqual(15);
+    await LoginAttempt.updateOne({ email: "prog@jack.test" }, { lockUntil: new Date(Date.now() - 1000) });
+    for (let k = 0; k < 5; k++) await from("192.0.2.50", "prog@jack.test", "mal");
+    expect(await wait()).toBeGreaterThanOrEqual(29);
   });
 
   it("un email inexistente responde igual que una contraseña mala (no revela cuentas)", async () => {
@@ -39,10 +56,8 @@ describe("S3: bloqueo de cuenta tras intentos fallidos", () => {
 
   it("intentos fallidos en paralelo también cuentan (el contador es atómico)", async () => {
     await User.create({ name: "Par", email: "par@jack.test", passwordHash: await bcrypt.hash("clave-larga-12345", 4), role: "reception" });
-    await Promise.all(Array.from({ length: 6 }, () => login("par@jack.test", "mal")));
-    const u = await User.findOne({ email: "par@jack.test" });
-    expect(u!.lockUntil!.getTime()).toBeGreaterThan(Date.now());
-    expect((await login("par@jack.test", "clave-larga-12345")).status).toBe(401);
+    await Promise.all(Array.from({ length: 6 }, () => from("192.0.2.60", "par@jack.test", "mal")));
+    expect((await from("192.0.2.60", "par@jack.test", "clave-larga-12345")).status).toBe(401);
   });
 });
 
@@ -104,7 +119,7 @@ describe("S4: contraseña del personal y 2FA (TOTP)", () => {
     expect((await request(app).post("/api/v1/auth/2fa/enable").set(auth).send({ code: totpCode(secret, now()) })).status).toBe(204);
 
     // con 2FA activo, un access token robado NO puede reemplazarlo: setup se rechaza aunque traiga la contraseña
-    const newer = await login(email, "clave-larga-12345", totpCode(secret, now()));
+    const newer = await login(email, "clave-larga-12345", totpCode(secret, now() + 1)); // el paso del código de activación ya no sirve
     const hijack = await request(app).post("/api/v1/auth/2fa/setup").set({ Authorization: `Bearer ${newer.body.accessToken}` }).send({ password: "clave-larga-12345" });
     expect(hijack.status).toBe(409);
     expect((await User.findOne({ email }))!.totpEnabled).toBe(true);
@@ -112,10 +127,52 @@ describe("S4: contraseña del personal y 2FA (TOTP)", () => {
     expect(noCode.status).toBe(401);
     expect(noCode.body.error.code).toBe("TOTP_REQUIRED");
     expect((await login(email, "clave-larga-12345", "000000")).status).toBe(401);
-    const ok = await login(email, "clave-larga-12345", totpCode(secret, now()));
+    expect((await login(email, "clave-larga-12345", totpCode(secret, now() + 1))).status).toBe(401); // reuso del mismo código
+    const ok = newer;
     expect(ok.status).toBe(200);
     expect(ok.body.user.totpSecret).toBeUndefined();
     expect(await AuditLog.countDocuments({ summary: /verificación en dos pasos/ })).toBe(1);
+  });
+});
+
+describe("S4: 2FA — un código no se reusa y es obligatorio para admin y encargado (media 14)", () => {
+  it("el mismo código TOTP no sirve dos veces (aunque siga vigente)", async () => {
+    const email = "reuso@jack.test";
+    await User.create({ name: "Reuso", email, passwordHash: await bcrypt.hash("clave-larga-12345", 4), role: "admin" });
+    const first = await login(email, "clave-larga-12345");
+    const auth = { Authorization: `Bearer ${first.body.accessToken}` };
+    const secret = (await request(app).post("/api/v1/auth/2fa/setup").set(auth).send({ password: "clave-larga-12345" })).body.secret as string;
+    const step = () => Math.floor(Date.now() / 30_000);
+    expect((await request(app).post("/api/v1/auth/2fa/enable").set(auth).send({ code: totpCode(secret, step()) })).status).toBe(204);
+    // el código con el que se activó tampoco se puede reusar para entrar
+    expect((await login(email, "clave-larga-12345", totpCode(secret, step()))).status).toBe(401);
+    const next = totpCode(secret, step() + 1); // el paso siguiente (la tolerancia de ±1 lo acepta)
+    expect((await login(email, "clave-larga-12345", next)).status).toBe(200);
+    expect((await login(email, "clave-larga-12345", next)).status).toBe(401); // reuso
+  });
+
+  it("con REQUIRE_STAFF_2FA, admin y encargado sin 2FA solo pueden activarlo; el resto del panel responde 2FA_REQUIRED", async () => {
+    const { env } = await import("../src/config/env.js");
+    env.REQUIRE_STAFF_2FA = true;
+    try {
+      await User.create({ name: "Sin2fa", email: "sin2fa@jack.test", passwordHash: await bcrypt.hash("clave-larga-12345", 4), role: "manager" });
+      await User.create({ name: "Recep2", email: "recep2@jack.test", passwordHash: await bcrypt.hash("clave-larga-12345", 4), role: "reception" });
+      const mgr = { Authorization: `Bearer ${(await login("sin2fa@jack.test", "clave-larga-12345")).body.accessToken}` };
+      const blocked = await request(app).get("/api/v1/admin/clients").set(mgr);
+      expect(blocked.status).toBe(403);
+      expect(blocked.body.error.code).toBe("2FA_REQUIRED");
+      const setup = await request(app).post("/api/v1/auth/2fa/setup").set(mgr).send({ password: "clave-larga-12345" });
+      expect(setup.status).toBe(200); // activar sí se puede
+      const rec = { Authorization: `Bearer ${(await login("recep2@jack.test", "clave-larga-12345")).body.accessToken}` };
+      expect((await request(app).get("/api/v1/admin/clients").set(rec)).status).toBe(200); // recepción no está obligada
+      const secret = setup.body.secret as string;
+      expect((await request(app).post("/api/v1/auth/2fa/enable").set(mgr).send({ code: totpCode(secret, Math.floor(Date.now() / 30_000)) })).status).toBe(204);
+      const again = await login("sin2fa@jack.test", "clave-larga-12345", totpCode(secret, Math.floor(Date.now() / 30_000) + 1));
+      expect(again.status).toBe(200);
+      expect((await request(app).get("/api/v1/admin/clients").set({ Authorization: `Bearer ${again.body.accessToken}` })).status).toBe(200);
+    } finally {
+      env.REQUIRE_STAFF_2FA = false;
+    }
   });
 });
 

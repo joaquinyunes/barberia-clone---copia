@@ -1,5 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 import { AppError } from "../lib/AppError.js";
+import { env } from "../config/env.js";
 import { verifyAccess } from "../lib/tokens.js";
 import { User, type UserDoc } from "../modules/users/user.model.js";
 import { permissionsFor, type Permission } from "../core/permissions.js";
@@ -30,6 +31,10 @@ async function loadUser(req: Request) {
 export async function authenticate(req: Request, _res: Response, next: NextFunction) {
   const user = await loadUser(req);
   if (!user) return next(AppError.unauthorized());
+  // Administradores y encargados sin 2FA solo pueden llegar a /auth (para activarlo); el resto del panel pide activarlo primero.
+  if (env.REQUIRE_STAFF_2FA && (user.role === "admin" || user.role === "manager") && !user.totpEnabled && !req.originalUrl.startsWith("/api/v1/auth/")) {
+    return next(new AppError(403, "Activá la verificación en dos pasos para usar el panel", "2FA_REQUIRED"));
+  }
   req.user = user;
   next();
 }

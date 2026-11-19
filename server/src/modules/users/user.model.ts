@@ -18,6 +18,8 @@ const userSchema = new Schema(
     failedLogins: { type: Number, default: 0 },
     lockUntil: Date,
     totpEnabled: { type: Boolean, default: false },
+    /** Último paso TOTP aceptado: un mismo código no se puede reusar. */
+    totpLastStep: Number,
     totpSecret: { type: String, select: false }, // cifrado, ver lib/totp.ts
     totpPending: { type: String, select: false }, // secreto generado y todavía no confirmado
   },

@@ -36,6 +36,10 @@ http.interceptors.response.use(
   async (error: AxiosError) => {
     const original = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
     const isAuthCall = original?.url?.includes("/auth/");
+    // El servidor exige activar la verificación en dos pasos antes de usar el panel.
+    if (error.response?.status === 403 && (error.response.data as ApiErrorBody | undefined)?.error?.code === "2FA_REQUIRED" && !window.location.pathname.startsWith("/admin/2fa")) {
+      window.location.assign("/admin/2fa");
+    }
     if (error.response?.status === 401 && original && !original._retry && !isAuthCall) {
       original._retry = true;
       const token = await refreshSession();

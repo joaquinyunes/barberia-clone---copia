@@ -54,6 +54,10 @@ const router = createBrowserRouter([
         ],
       },
       {
+        path: "admin/2fa",
+        element: <ProtectedRoute staff>{page(() => import("@/pages/admin/Enroll2faPage"))}</ProtectedRoute>,
+      },
+      {
         path: "admin",
         element: <ProtectedRoute staff><AdminLayout /></ProtectedRoute>,
         children: [
