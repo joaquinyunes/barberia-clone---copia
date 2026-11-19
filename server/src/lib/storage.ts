@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import multer from "multer";
+import { Schema, model } from "mongoose";
 import { env } from "../config/env.js";
 import { AppError } from "./AppError.js";
 
@@ -29,17 +30,27 @@ export const uploadReceipt = multer({
 
 const EXT: Record<string, string> = { "image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "application/pdf": "pdf" };
 
+/** Archivo guardado en la base (comprobantes ≤ 5 MB): persiste entre deploys, a diferencia del disco de Render. */
+const storedFileSchema = new Schema({ path: { type: String, required: true, unique: true }, mime: { type: String, required: true }, data: { type: Buffer, required: true } }, { timestamps: true });
+export const StoredFile = model("StoredFile", storedFileSchema);
+
 export async function saveReceipt(file: Express.Multer.File | undefined) {
   if (!file) throw AppError.badRequest("Adjuntá el comprobante (JPG, PNG, WEBP o PDF)");
   const mime = sniffMime(file.buffer);
   if (!mime || !ALLOWED.has(mime)) throw AppError.badRequest("Formato no permitido. Subí una imagen (JPG, PNG, WEBP) o un PDF.");
   const name = `receipts/${randomUUID()}.${EXT[mime]}`;
+  if (env.STORAGE_DRIVER === "mongo") {
+    await StoredFile.create({ path: name, mime, data: file.buffer });
+    return { path: name, mime };
+  }
   const { writeFile } = await import("node:fs/promises");
   await writeFile(path.join(ROOT, name), file.buffer);
   return { path: name, mime };
 }
 
 export async function readStored(relPath: string) {
+  const inDb = await StoredFile.findOne({ path: relPath }, "data").lean();
+  if (inDb) return Buffer.from(inDb.data.buffer);
   const full = path.resolve(ROOT, relPath);
   if (!full.startsWith(ROOT + path.sep)) throw AppError.forbidden();
   return readFile(full);

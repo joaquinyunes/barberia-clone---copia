@@ -49,6 +49,13 @@ export async function createOrder(input: {
   });
 }
 
+export async function assertCanAttachOrderReceipt(code: string) {
+  const order = await Order.findOne({ code });
+  if (!order) throw AppError.notFound("Pedido");
+  if (order.status === "payment_review") throw AppError.conflict("Ya enviaste un comprobante y lo estamos revisando.");
+  if (order.status !== "pending_payment") throw AppError.conflict("Este pedido ya no admite comprobantes");
+}
+
 export async function attachOrderReceipt(code: string, file: { path: string; mime: string }) {
   const order = await Order.findOne({ code });
   if (!order) throw AppError.notFound("Pedido");

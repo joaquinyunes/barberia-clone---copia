@@ -209,6 +209,7 @@ publicRouter.get("/bookings/:code", bookingLinkLimiter, async (req, res) => {
 
 publicRouter.post("/bookings/:code/receipt", publicWriteLimiter, uploadReceipt.single("receipt"), async (req, res) => {
   await bookingCode(req.query.token, String(req.params.code));
+  await appointments.assertCanAttachReceipt(String(req.params.code));
   const file = await saveReceipt(req.file);
   const a = await appointments.attachReceipt(String(req.params.code), file);
   res.json({ status: a.status });
@@ -298,6 +299,7 @@ publicRouter.post(
 
 publicRouter.post("/orders/:code/receipt", publicWriteLimiter, uploadReceipt.single("receipt"), async (req, res) => {
   await bookingCode(req.query.token, String(req.params.code));
+  await orders.assertCanAttachOrderReceipt(String(req.params.code));
   const file = await saveReceipt(req.file);
   const o = await orders.attachOrderReceipt(String(req.params.code), file);
   res.json({ status: o.status });

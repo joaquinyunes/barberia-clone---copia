@@ -278,6 +278,15 @@ export async function populated(id: unknown) {
 /** Horas que tiene el personal para revisar un comprobante antes de que el horario se libere. */
 const REVIEW_HOURS = 12;
 
+/** ¿Puede subir un comprobante ahora? Se llama ANTES de guardar el archivo (así no quedan archivos huérfanos). */
+export async function assertCanAttachReceipt(code: string) {
+  const appt = await Appointment.findOne({ code });
+  if (!appt) throw AppError.notFound("Turno");
+  if (appt.status === "cancelled") throw AppError.conflict("La reserva venció o fue cancelada. Reservá de nuevo; si ya pagaste, escribinos por WhatsApp.");
+  if (appt.status === "payment_review") throw AppError.conflict("Ya enviaste un comprobante y lo estamos revisando. Si no era el correcto, escribinos por WhatsApp.");
+  if (appt.status !== "pending_payment") throw AppError.conflict("Este turno ya no admite comprobantes");
+}
+
 export async function attachReceipt(code: string, file: { path: string; mime: string }) {
   const appt = await Appointment.findOne({ code });
   if (!appt) throw AppError.notFound("Turno");

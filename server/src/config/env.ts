@@ -16,6 +16,8 @@ const schema = z.object({
   BUSINESS_UTC_OFFSET: z.string().regex(/^[+-]\d{2}:\d{2}$/).default("-03:00"),
   MP_ACCESS_TOKEN: z.string().optional(),
   MP_WEBHOOK_SECRET: z.string().optional(),
+  /** Dónde se guardan los comprobantes: `mongo` (persistente, por defecto en producción) o `disk` (carpeta local; en Render se pierde en cada deploy). */
+  STORAGE_DRIVER: z.enum(["disk", "mongo"]).optional(),
   /** Clave propia (32+ caracteres) para cifrar los secretos de 2FA; si falta se deriva de JWT_REFRESH_SECRET. Rotar los JWT no debería invalidar el 2FA: cargarla en producción. */
   TOTP_ENC_KEY: z.string().min(32).optional(),
   /** Obliga a administradores y encargados a activar la verificación en dos pasos (por defecto, sí en producción). */
@@ -38,7 +40,11 @@ if (!parsed.success) {
   process.exit(1);
 }
 
-export const env = { ...parsed.data, REQUIRE_STAFF_2FA: parsed.data.REQUIRE_STAFF_2FA ?? parsed.data.NODE_ENV === "production" };
+export const env = {
+  ...parsed.data,
+  REQUIRE_STAFF_2FA: parsed.data.REQUIRE_STAFF_2FA ?? parsed.data.NODE_ENV === "production",
+  STORAGE_DRIVER: (parsed.data.STORAGE_DRIVER ?? (parsed.data.NODE_ENV === "production" ? "mongo" : "disk")) as "disk" | "mongo",
+};
 
 if (env.NODE_ENV === "production") {
   // Los valores por defecto (localhost, secretos de desarrollo) son solo para desarrollo y tests.
