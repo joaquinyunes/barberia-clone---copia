@@ -1,4 +1,5 @@
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/features/auth/useAuth";
 import { Badge, Button } from "@/components/ui";
 import { ResourcePage } from "@/features/admin/components/ResourcePage/ResourcePage";
 import { useLocations } from "@/features/catalog/useCatalog";
@@ -21,6 +22,7 @@ const tone = (s: string) => (s === "active" ? "success" : s === "vacation" || s 
 
 export default function BarbersPage() {
   const navigate = useNavigate();
+  const { can } = useAuth();
   const { data: locations } = useLocations();
   return (
     <ResourcePage<Barber>
@@ -48,10 +50,14 @@ export default function BarbersPage() {
         { name: "dni", label: "DNI" },
         { name: "hiredAt", label: "Fecha de ingreso", type: "date" },
         { name: "status", label: "Estado", type: "select", required: true, options: Object.entries(BARBER_STATUS).map(([value, label]) => ({ value, label })) },
-        { name: "defaultCommissionPct", label: "Comisión base (%)", type: "number", hint: "Se usa si el servicio no tiene comisión propia" },
-        { name: "hourlyRate", label: "Valor hora extra", type: "money" },
-        { name: "monthlyHours", label: "Horas mensuales pactadas", type: "number" },
-        { name: "attendancePin", label: "PIN de fichaje (4-6 dígitos)", hint: "Para marcar entrada/salida en la tablet del local" },
+        ...(can("finance.manage")
+          ? ([
+              { name: "defaultCommissionPct", label: "Comisión base (%)", type: "number", hint: "Se usa si el servicio no tiene comisión propia" },
+              { name: "hourlyRate", label: "Valor hora extra", type: "money" },
+              { name: "monthlyHours", label: "Horas mensuales pactadas", type: "number" },
+              { name: "attendancePin", label: "PIN de fichaje (6-8 dígitos)", hint: "Para marcar entrada/salida en la tablet del local. Se guarda cifrado: dejalo vacío para no cambiarlo." },
+            ] as const)
+          : []),
         { name: "specialties", label: "Especialidades", type: "list" },
         { name: "instagram", label: "Instagram" },
         { name: "photo", label: "Foto (URL)", placeholder: "/images/barbers/nombre.webp" },

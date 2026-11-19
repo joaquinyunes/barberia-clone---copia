@@ -256,7 +256,11 @@ async function createBookingUnlocked(input: BookingInput, actor?: Actor) {
 export const manageToken = (code: string) => signLink({ code, scope: "booking" }, "30d");
 
 export async function populated(id: unknown) {
-  const appt = await Appointment.findById(id).populate("location service barber client");
+  const appt = await Appointment.findById(id)
+    .populate("location")
+    .populate("service", "name durationMin price category")
+    .populate("barber", "name slug photo")
+    .populate("client", "name phone tier");
   if (!appt) throw AppError.notFound("Turno");
   return appt;
 }

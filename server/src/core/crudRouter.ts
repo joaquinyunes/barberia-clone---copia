@@ -2,7 +2,7 @@ import { Router, type RequestHandler } from "express";
 import type { Model } from "mongoose";
 import type { ZodObject, ZodRawShape } from "zod";
 import { authenticate } from "../middlewares/authenticate.js";
-import { authorize } from "../middlewares/authorize.js";
+import { authorize, hasPermission } from "../middlewares/authorize.js";
 import { validate } from "../middlewares/validate.js";
 import { AppError } from "../lib/AppError.js";
 import { audit, diff } from "../modules/audit/audit.service.js";
@@ -18,6 +18,8 @@ interface CrudOptions {
   populate?: string | string[];
   sort?: Record<string, 1 | -1>;
   label?: (doc: any) => string;
+  /** Campos reservados a quien tenga `permission`: se ocultan al leer y escribirlos sin el permiso da 403. */
+  restricted?: { permission: Permission; fields: string[] };
   /** Campos que nunca van al registro de auditoría (hashes, secretos). */
   secretFields?: string[];
   /** Si es true, DELETE marca active=false en lugar de borrar (conserva historial). */
@@ -38,6 +40,12 @@ export function crudRouter(opts: CrudOptions) {
   const { model, entity, permission } = opts;
   const label = opts.label ?? ((d: any) => d.name ?? d.code ?? String(d._id));
   router.use(authenticate, authorize(permission));
+  /** Proyección que oculta los campos restringidos a quien no tiene el permiso. */
+  const hide = (req: Parameters<RequestHandler>[0]) => (opts.restricted && !hasPermission(req, opts.restricted.permission) ? opts.restricted.fields.map((f) => `-${f}`).join(" ") : undefined);
+  const guardWrite = (req: Parameters<RequestHandler>[0]) => {
+    const r = opts.restricted;
+    if (r && !hasPermission(req, r.permission) && r.fields.some((f) => req.body && f in req.body)) throw AppError.forbidden("No tenés permiso para cambiar estos datos");
+  };
 
   router.get("/", async (req, res) => {
     const q = req.query as Record<string, string>;
@@ -52,6 +60,8 @@ export function crudRouter(opts: CrudOptions) {
     const limit = Math.min(Number(q.limit) || 50, 500);
     const page = Math.max(Number(q.page) || 1, 1);
     let query = model.find(filter).sort(opts.sort ?? { createdAt: -1 }).skip((page - 1) * limit).limit(limit);
+    const sel = hide(req);
+    if (sel) query = query.select(sel);
     if (opts.populate) query = query.populate(opts.populate as string);
     const [items, total] = await Promise.all([query.lean(), model.countDocuments(filter)]);
     res.json({ items, total, page, pages: Math.ceil(total / limit) });
@@ -59,6 +69,8 @@ export function crudRouter(opts: CrudOptions) {
 
   router.get("/:id", async (req, res) => {
     let query = model.findById(req.params.id);
+    const sel1 = hide(req);
+    if (sel1) query = query.select(sel1);
     if (opts.populate) query = query.populate(opts.populate as string);
     const doc = await query.lean();
     if (!doc) throw AppError.notFound(entity);
@@ -67,6 +79,7 @@ export function crudRouter(opts: CrudOptions) {
 
   const bodySchema = opts.schema;
   router.post("/", ...(bodySchema ? [validate({ body: bodySchema })] : []), async (req, res) => {
+    guardWrite(req);
     const data = opts.beforeCreate ? await opts.beforeCreate(req.body, req) : req.body;
     const doc = await model.create(data);
     await opts.afterCreate?.(doc, req);
@@ -75,6 +88,7 @@ export function crudRouter(opts: CrudOptions) {
   });
 
   router.patch("/:id", ...(bodySchema ? [validate({ body: bodySchema.partial() })] : []), async (req, res) => {
+    guardWrite(req);
     const doc = await model.findById(req.params.id);
     if (!doc) throw AppError.notFound(entity);
     const before = doc.toObject();

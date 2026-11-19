@@ -39,6 +39,7 @@ export const clientsRouter = crudRouter({
     blocked: z.boolean().optional(),
     active: z.boolean().optional(),
   }),
+  restricted: { permission: "clients.notes", fields: ["internalNotes"] },
   searchFields: ["name", "phone", "email", "referralCode"],
   filterFields: ["tier", "source", "active"],
   populate: "preferredBarber",
@@ -51,7 +52,7 @@ export const clientsRouter = crudRouter({
 
 /** Ficha 360: turnos, pagos, deuda/saldo, compras, membresía, bonos, gift cards, referidos, notas e historial de cambios. */
 clientsRouter.get("/:id/profile", async (req, res) => {
-  const client = await Client.findById(req.params.id).populate("preferredBarber referredBy", "name").populate("cutNotes.barber", "name").lean();
+  const client = await Client.findById(req.params.id).select(hasPermission(req, "clients.notes") ? "" : "-internalNotes").populate("preferredBarber referredBy", "name").populate("cutNotes.barber", "name").lean();
   if (!client) throw AppError.notFound("Cliente");
   const [account, appointments, memberships, packs, giftCards, referrals, changes] = await Promise.all([
     ledger.statement("client", String(client._id)),

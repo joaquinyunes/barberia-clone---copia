@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { crudRouter } from "../../core/crudRouter.js";
+import { hasPermission } from "../../middlewares/authorize.js";
 import { AppError } from "../../lib/AppError.js";
 import { businessDayString, currentPeriod, monthRange } from "../../lib/dates.js";
 import { Appointment } from "../appointments/appointment.model.js";
@@ -46,7 +47,7 @@ const schema = z.object({
   commissionOverrides: z.array(z.object({ service: z.string(), commission })).optional(),
   hourlyRate: z.number().min(0).optional(),
   monthlyHours: z.number().min(0).optional(),
-  attendancePin: z.string().regex(/^\d{6,8}$/, "El PIN debe tener de 6 a 8 dígitos").optional(),
+  attendancePin: z.string().regex(/^\d{6,8}$/, "El PIN debe tener de 6 a 8 dígitos").optional().or(z.literal("").transform(() => undefined)),
   public: z.boolean().optional(),
   order: z.number().optional(),
 });
@@ -61,11 +62,12 @@ export const barbersAdminRouter = crudRouter({
   populate: "location",
   sort: { order: 1, name: 1 },
   secretFields: ["attendancePin"],
+  restricted: { permission: "finance.manage", fields: ["defaultCommissionPct", "commissionByCategory", "commissionOverrides", "hourlyRate", "monthlyHours", "attendancePin"] },
 });
 
 /** Ficha completa del barbero: saldo, ventas, turnos, clientes, horas, adelantos, deudas, herramientas. */
 barbersAdminRouter.get("/:id/summary", async (req, res) => {
-  const barber = await Barber.findById(req.params.id).populate("location station services").lean();
+  const barber = await Barber.findById(req.params.id).select(hasPermission(req, "finance.manage") ? "" : "-defaultCommissionPct -commissionByCategory -commissionOverrides -hourlyRate -monthlyHours").populate("location station services").lean();
   if (!barber) throw AppError.notFound("Barbero");
   const period = (req.query.period as string) || currentPeriod();
   const { start, end } = monthRange(period);
