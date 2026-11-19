@@ -105,23 +105,51 @@ describe("B6: reseñas verificadas y encuesta", () => {
   });
 });
 
-describe("B6: campañas solo con consentimiento", () => {
-  it("sin tilde no hay consentimiento ni link de campaña; con tilde sí; la baja por link lo retira", async () => {
+describe("B6: campañas solo con consentimiento CONFIRMADO", () => {
+  it("sin tilde no hay nada; con la tilde del formulario queda pendiente (sin link); confirmado por el personal sí; la baja por link lo retira", async () => {
     const no = await completed();
     const si = await completed({ consent: true });
     expect((await Client.findById(no.clientId))!.marketing?.whatsapp).toBeFalsy();
-    expect((await Client.findById(si.clientId))!.marketing?.whatsapp).toBe(true);
+    const pendiente = (await Client.findById(si.clientId))!.marketing;
+    expect(pendiente?.whatsapp).toBe(true);
+    expect(pendiente?.confirmedAt).toBeUndefined(); // cualquiera pudo tildar la casilla con el celular de otra persona
 
     await Client.updateMany({ _id: { $in: [no.clientId, si.clientId] } }, { lastVisitAt: new Date(Date.now() - 60 * 86_400_000) });
-    const lapsed = await request(app).get("/api/v1/admin/engagement/lapsed?days=45").set(ctx.auth);
-    expect(lapsed.status).toBe(200);
-    const byId = Object.fromEntries(lapsed.body.items.map((i: { _id: string }) => [i._id, i]));
+    const get = async () => {
+      const r = await request(app).get("/api/v1/admin/engagement/lapsed?days=45").set(ctx.auth);
+      expect(r.status).toBe(200);
+      return Object.fromEntries(r.body.items.map((i: { _id: string }) => [i._id, i]));
+    };
+    let byId = await get();
     expect(byId[no.clientId].whatsapp).toBeNull();
+    expect(byId[si.clientId].whatsapp).toBeNull(); // pendiente: sin link de campaña
+    expect(byId[si.clientId].consentPending).toBe(true);
+
+    // el reporte «en riesgo» tampoco arma links de campaña sin consentimiento confirmado
+    await Client.updateOne({ _id: si.clientId }, { visits: 3, avgFrequencyDays: 20 });
+    const risk = await request(app).get("/api/v1/admin/reports/at-risk-clients").set(ctx.auth);
+    const riskRow = risk.body.find((r: { _id: string }) => r._id === si.clientId);
+    expect(riskRow.whatsapp).toBeNull();
+
+    expect((await request(app).post(`/api/v1/admin/engagement/clients/${si.clientId}/consent`).set(ctx.auth).send({ whatsapp: true })).status).toBe(204);
+    byId = await get();
     expect(byId[si.clientId].whatsapp).toMatch(/^https:\/\/wa\.me\//);
     expect(byId[si.clientId].daysSince).toBeGreaterThanOrEqual(60);
+    const risk2 = await request(app).get("/api/v1/admin/reports/at-risk-clients").set(ctx.auth);
+    expect(risk2.body.find((r: { _id: string }) => r._id === si.clientId).whatsapp).toMatch(/^https:\/\/wa\.me\//);
 
     expect((await request(app).post(`/api/v1/public/bookings/${si.code}/unsubscribe`).query({ token: si.token })).status).toBe(204);
     expect((await Client.findById(si.clientId))!.marketing?.whatsapp).toBe(false);
+  });
+
+  it("la cuenta del cliente (con el celular verificado) puede aceptar o retirar las campañas por sí misma", async () => {
+    const { auth } = await registerLinked("Cuenta Propia", "propia@mail.com", "11 7300-0001");
+    const c = await Client.findOne({ email: "propia@mail.com" });
+    expect((await request(app).post("/api/v1/me/client/marketing").set(auth).send({ whatsapp: true })).status).toBe(204);
+    expect((await Client.findById(c!._id))!.marketing).toMatchObject({ whatsapp: true });
+    expect((await Client.findById(c!._id))!.marketing?.confirmedAt).toBeInstanceOf(Date);
+    expect((await request(app).post("/api/v1/me/client/marketing").set(auth).send({ whatsapp: false })).status).toBe(204);
+    expect((await Client.findById(c!._id))!.marketing?.whatsapp).toBe(false);
   });
 });
 

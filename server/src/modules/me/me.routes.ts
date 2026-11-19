@@ -69,6 +69,12 @@ meRouter.post("/client/claim/confirm", authLimiter, validate({ body: z.object({ 
   res.status(204).end();
 });
 
+/** El cliente acepta o retira las campañas desde su cuenta (celular ya verificado). */
+meRouter.post("/client/marketing", validate({ body: z.object({ whatsapp: z.boolean() }) }), async (req, res) => {
+  await engagement.setConsent(clientIdOf(req), { whatsapp: req.body.whatsapp }, "cuenta", true);
+  res.status(204).end();
+});
+
 /** El cliente canjea sus puntos por saldo a favor. */
 meRouter.post("/client/points/redeem", validate({ body: z.object({ points: z.number().int().positive().max(1_000_000) }) }), async (req, res) => {
   res.json(await engagement.redeemPoints(String(clientIdOf(req)), req.body.points, req.user!));

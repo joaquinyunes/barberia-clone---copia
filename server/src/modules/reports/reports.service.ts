@@ -360,7 +360,9 @@ export async function atRiskClients(message: (name: string) => string) {
       preferredBarber: (r.client.preferredBarber as any)?.name,
       daysSince: r.daysSince,
       expectedEvery: r.expectedEvery,
-      whatsapp: waLink(r.client.phone, message(r.client.name.split(" ")[0])),
+      consentWhatsapp: !!(r.client.marketing?.whatsapp && r.client.marketing?.confirmedAt),
+      // Link de campaña solo con consentimiento confirmado; sin él, el contacto es uno a uno desde el teléfono.
+      whatsapp: r.client.marketing?.whatsapp && r.client.marketing?.confirmedAt ? waLink(r.client.phone, message(r.client.name.split(" ")[0])) : null,
     }));
 }
 

@@ -38,7 +38,7 @@ engagementRouter.get("/lapsed", authorize("clients.manage"), validate({ query: z
 /** Registrar el consentimiento (o su retiro) que el cliente dio en persona o por WhatsApp. */
 engagementRouter.post("/clients/:id/consent", authorize("clients.manage"), validate({ params: z.object({ id: objectId }), body: z.object({ whatsapp: z.boolean().optional(), email: z.boolean().optional() }) }), async (req, res) => {
   if (!(await Client.exists({ _id: req.params.id }))) throw AppError.notFound("Cliente");
-  await engagement.setConsent(req.params.id, req.body, `admin:${req.user!.name}`);
+  await engagement.setConsent(req.params.id, req.body, `admin:${req.user!.name}`, true); // el personal lo registra porque la persona lo dijo en el local
   await audit(req, { action: "update", entity: "Cliente", entityId: req.params.id, summary: "registró el consentimiento de campañas", changes: req.body });
   res.status(204).end();
 });

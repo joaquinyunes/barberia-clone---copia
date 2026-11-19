@@ -6,7 +6,7 @@ import { Money } from "@/features/admin/components/Money/Money";
 import { PageHeader } from "@/features/admin/components/PageHeader/PageHeader";
 import { useAdminStore } from "@/features/admin/adminStore";
 import { useAdminQuery } from "@/features/admin/hooks/useAdmin";
-import { currentPeriod, date, isoDay, money, periodLabel } from "@/utils/format";
+import { currentPeriod, date, isoDay, money, periodLabel , waHref } from "@/utils/format";
 import { METHOD_LABELS } from "@/utils/labels";
 import styles from "./admin.module.css";
 
@@ -16,7 +16,7 @@ interface Pnl {
 }
 interface RankingRow { barber: { _id: string; name: string }; clients: number; services: number; revenue: number; avgTicket: number; commissions: number; tips: number; cancelled: number; noShows: number; hoursWorked: number; overtimeHours: number; occupancyPct: number | null; revenuePerHour: number | null }
 interface Margin { service: string; count: number; revenue: number; commissions: number; supplies: number; margin: number; marginPct: number; marginPerHour: number }
-interface AtRisk { _id: string; name: string; phone: string; visits: number; lastVisitAt: string; preferredBarber?: string; daysSince: number; expectedEvery: number; whatsapp: string }
+interface AtRisk { _id: string; name: string; phone: string; visits: number; lastVisitAt: string; preferredBarber?: string; daysSince: number; expectedEvery: number; whatsapp: string | null; consentWhatsapp?: boolean }
 interface Daily { date: string; appointments: { completed: number; cancelled: number; noShows: number }; sales: number; tips: number; byMethod: Record<string, number>; expenses: number; advances: number; net: number }
 
 const INCOME: Record<string, string> = { services: "Servicios realizados", products: "Productos", memberships: "Membresías", packs: "Packs", giftCardsSold: "Gift cards vendidas", retainedDeposits: "Señas retenidas" };
@@ -185,7 +185,7 @@ function AtRiskClients() {
         { key: "f", header: "Suele venir cada", render: (c) => `${c.expectedEvery} días` },
         { key: "d", header: "No viene hace", render: (c) => <span className={styles.dangerText}>{c.daysSince} días</span> },
         { key: "b", header: "Barbero", render: (c) => c.preferredBarber ?? "—", hideOnMobile: true },
-        { key: "w", header: "", render: (c) => <Button size="sm" variant="whatsapp" href={c.whatsapp} icon={<IoLogoWhatsapp />}>Escribirle</Button> },
+        { key: "w", header: "", render: (c) => <Button size="sm" variant="whatsapp" href={c.whatsapp ?? waHref(c.phone)} icon={<IoLogoWhatsapp />}>{c.whatsapp ? "Escribirle" : "Abrir chat"}</Button> },
       ]} />
     </Card>
   );

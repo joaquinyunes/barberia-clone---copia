@@ -34,7 +34,7 @@ const clientSchema = new Schema(
     /** Puntos de fidelidad canjeables por saldo a favor. */
     points: { type: Number, default: 0, min: 0 },
     /** Consentimiento para campañas (solo opt-in explícito; nunca se completa solo). */
-    marketing: { whatsapp: { type: Boolean, default: false }, email: { type: Boolean, default: false }, at: Date, source: String },
+    marketing: { whatsapp: { type: Boolean, default: false }, email: { type: Boolean, default: false }, at: Date, source: String, /** Cuándo lo confirmó la persona (en el local o desde su cuenta con celular verificado). Sin esto no se arman links de campaña. */ confirmedAt: Date },
     blocked: { type: Boolean, default: false },
     active: { type: Boolean, default: true },
   },

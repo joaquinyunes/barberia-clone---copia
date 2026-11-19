@@ -6,7 +6,7 @@ import { useAdminAction, useAdminQuery } from "@/features/admin/hooks/useAdmin";
 import { date, phoneDisplay } from "@/utils/format";
 
 interface Review { _id: string; rating: number; recommend?: number; comment?: string; status: "published" | "hidden"; createdAt: string; barber?: { name: string }; client?: { name: string } }
-interface Lapsed { _id: string; name: string; phone: string; visits: number; lastVisitAt: string; daysSince: number; consentWhatsapp: boolean; whatsapp: string | null }
+interface Lapsed { _id: string; name: string; phone: string; visits: number; lastVisitAt: string; daysSince: number; consentWhatsapp: boolean; consentPending?: boolean; whatsapp: string | null }
 
 export default function EngagementPage() {
   const [tab, setTab] = useState("lapsed");
@@ -22,6 +22,8 @@ export default function EngagementPage() {
 function LapsedTab() {
   const [days, setDays] = useState(45);
   const { data, isLoading } = useAdminQuery<{ items: Lapsed[] }>("engagement/lapsed", { days });
+  // El personal confirma solo si la persona lo dijo en el local: el tilde del formulario público no alcanza (pudo ponerlo cualquiera).
+  const confirm = useAdminAction((id: string) => adminApi.post(`engagement/clients/${id}/consent`, { whatsapp: true }), { success: "Consentimiento registrado" });
   return (
     <Card tone="light" padded={false} title={`Clientes que no vuelven hace más de ${days} días`}>
       <div style={{ padding: "0 1rem 1rem", display: "flex", gap: 8 }}>
@@ -35,8 +37,8 @@ function LapsedTab() {
           { key: "n", header: "Cliente", render: (c) => <>{c.name}<div><small>{phoneDisplay(c.phone)}</small></div></> },
           { key: "v", header: "Visitas", render: (c) => c.visits, hideOnMobile: true },
           { key: "l", header: "Última visita", render: (c) => `${date(c.lastVisitAt)} (${c.daysSince} d)` },
-          { key: "c", header: "Campañas", render: (c) => <Badge tone={c.consentWhatsapp ? "success" : "neutral"}>{c.consentWhatsapp ? "Aceptó" : "Sin consentimiento"}</Badge> },
-          { key: "a", header: "", render: (c) => (c.whatsapp ? <Button size="sm" variant="light" href={c.whatsapp}>Escribir por WhatsApp</Button> : null) },
+          { key: "c", header: "Campañas", render: (c) => <Badge tone={c.consentWhatsapp ? "success" : c.consentPending ? "warning" : "neutral"}>{c.consentWhatsapp ? "Aceptó" : c.consentPending ? "Pendiente de confirmar" : "Sin consentimiento"}</Badge> },
+          { key: "a", header: "", render: (c) => (c.whatsapp ? <Button size="sm" variant="light" href={c.whatsapp}>Escribir por WhatsApp</Button> : c.consentPending ? <Button size="sm" variant="ghost" onClick={() => confirm.mutate(c._id)}>Lo aceptó en persona</Button> : null) },
         ]}
       />
     </Card>

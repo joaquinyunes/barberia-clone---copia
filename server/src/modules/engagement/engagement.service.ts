@@ -42,8 +42,10 @@ export async function reviewSummary(barber?: string) {
 
 /* ── Consentimiento y campañas (Ley 25.326 + normativa anti-spam: solo quien dijo que sí) ── */
 
-export async function setConsent(clientId: unknown, consent: { whatsapp?: boolean; email?: boolean }, source: string) {
+export async function setConsent(clientId: unknown, consent: { whatsapp?: boolean; email?: boolean }, source: string, confirmed = false) {
   const set: Record<string, unknown> = { "marketing.at": new Date(), "marketing.source": source };
+  // Confirmado = lo dijo la persona (en el local o desde su cuenta). Retirarlo siempre vale.
+  if (confirmed && (consent.whatsapp || consent.email)) set["marketing.confirmedAt"] = new Date();
   if (consent.whatsapp !== undefined) set["marketing.whatsapp"] = consent.whatsapp;
   if (consent.email !== undefined) set["marketing.email"] = consent.email;
   await Client.updateOne({ _id: clientId }, { $set: set });
@@ -60,9 +62,10 @@ export async function lapsedClients(days: number, message: (name: string) => str
     visits: c.visits,
     lastVisitAt: c.lastVisitAt,
     daysSince: Math.floor((Date.now() - c.lastVisitAt!.getTime()) / 86_400_000),
-    consentWhatsapp: !!c.marketing?.whatsapp,
+    consentWhatsapp: !!(c.marketing?.whatsapp && c.marketing?.confirmedAt),
+    consentPending: !!(c.marketing?.whatsapp && !c.marketing?.confirmedAt),
     // El link a WhatsApp de una campaña masiva solo se arma si hay consentimiento.
-    whatsapp: c.marketing?.whatsapp ? waLink(c.phone, message(c.name.split(" ")[0])) : null,
+    whatsapp: c.marketing?.whatsapp && c.marketing?.confirmedAt ? waLink(c.phone, message(c.name.split(" ")[0])) : null,
   }));
 }
 
