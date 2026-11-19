@@ -370,6 +370,8 @@ export interface CompleteInput {
   tip?: { amount: number; method: PaymentMethod };
   products?: { product: string; qty: number }[];
   allowDebt?: boolean;
+  /** Quien finaliza tiene permiso de caja: solo ellos pueden cerrar un turno que deja saldo sin cobrar. */
+  canCollect?: boolean;
   cutNote?: string;
 }
 
@@ -418,6 +420,10 @@ export async function complete(id: string, input: CompleteInput, actor: Actor) {
   const currentBalance = await ledger.balanceOf("client", client._id);
   const limit = await clients.creditLimitOf(client);
   const projectedBalance = currentBalance - charge + projected;
+  // Sin permiso de caja (ej. el barbero) no se cierra un turno que deja plata sin cobrar: la comisión se genera al finalizar.
+  if (projectedBalance < 0 && !input.canCollect) {
+    throw new AppError(409, `Falta cobrar ${-projectedBalance}: el turno lo cierra caja o administración, o cobralo completo.`, "UNPAID", { missing: -projectedBalance });
+  }
   if (projectedBalance < -limit && !input.allowDebt) {
     throw new AppError(409, `El cliente quedaría debiendo ${-projectedBalance} y supera su tope de ${limit}. Autorizá la deuda para continuar.`, "CREDIT_LIMIT", { balance: projectedBalance, limit });
   }

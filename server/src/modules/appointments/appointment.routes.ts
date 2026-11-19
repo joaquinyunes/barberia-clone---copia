@@ -141,7 +141,7 @@ appointmentsRouter.post(
   async (req, res) => {
     await scoped(req, String(req.params.id));
     if (req.body.allowDebt && !hasPermission(req, "cash.manage")) throw AppError.forbidden("Solo caja/administración puede autorizar deudas");
-    const r = await svc.complete(String(req.params.id), req.body, req.user!);
+    const r = await svc.complete(String(req.params.id), { ...req.body, canCollect: hasPermission(req, "cash.manage") }, req.user!);
     await audit(req, { action: "update", entity: "Turno", entityId: r.appointment._id, summary: `finalizó el turno ${r.appointment.code} (comisión ${formatARS(r.commission)})` });
     res.json(r);
   },
