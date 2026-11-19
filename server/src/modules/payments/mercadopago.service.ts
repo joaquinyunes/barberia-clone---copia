@@ -121,6 +121,16 @@ export async function handleSubscription(preapprovalId: string) {
   return { handled: false, status: sub.status };
 }
 
+/** Pausa, reactiva o cancela la suscripción en Mercado Pago (sin esto seguiría cobrando aunque la membresía figure cancelada). */
+export async function setSubscriptionStatus(preapprovalId: string, status: "active" | "paused" | "cancelled") {
+  try {
+    await new PreApproval(client()).update({ id: preapprovalId, body: { status: status === "active" ? "authorized" : status } });
+  } catch (err) {
+    if (err instanceof AppError) throw err;
+    throw new AppError(502, "No se pudo avisar a Mercado Pago: la membresía no se modificó. Probá de nuevo.", "MP_UNAVAILABLE");
+  }
+}
+
 /** Valida la firma x-signature (ts + v1 HMAC-SHA256) según la documentación de Mercado Pago. */
 export function verifySignature(headers: Record<string, string | string[] | undefined>, dataId: string) {
   if (!env.MP_WEBHOOK_SECRET) return false;
@@ -196,11 +206,15 @@ export async function handleNotification(paymentId: string) {
       }
     } else if (kind === "membership") {
       // Cobro mensual de una suscripción: el primero se registra sin extender (la membresía ya nació con su período); los siguientes renuevan.
-      const m = await Membership.findOne({ client: code, mpPreapprovalId: { $exists: true }, status: { $in: ["active", "paused", "expired"] } }).sort({ createdAt: -1 });
+      const m = await Membership.findOne({ client: code, mpPreapprovalId: { $exists: true } }).sort({ createdAt: -1 });
       const location = await Location.findOne({ active: true }).sort({ order: 1 });
-      // Cobro que llega antes que el aviso de la suscripción: se libera el reclamo y Mercado Pago reintenta.
-      if (!m) throw new AppError(409, "La membresía todavía no está registrada: reintentar", "MEMBERSHIP_PENDING");
-      if (m && location && paid > 0) {
+      // Cobro que llega antes que el aviso de la suscripción: se libera el reclamo y Mercado Pago reintenta (solo las primeras 6 h;
+      // después queda para revisión: puede ser una suscripción que nunca se registró).
+      if (!m && Date.now() - new Date(String(payment.date_created ?? new Date().toISOString())).getTime() < 6 * 3_600_000) {
+        throw new AppError(409, "La membresía todavía no está registrada: reintentar", "MEMBERSHIP_PENDING");
+      }
+      // Una membresía cancelada no se renueva: el cobro que llegó igual queda para reembolsar (abajo, needs_review con auditoría).
+      if (m && m.status !== "cancelled" && location && paid > 0) {
         if (m.payments.length === 0) {
           m.payments.push({ date: new Date(), amount: paid, method: "mercadopago" });
           await m.save();

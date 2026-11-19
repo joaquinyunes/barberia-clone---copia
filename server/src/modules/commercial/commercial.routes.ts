@@ -11,6 +11,7 @@ import { audit } from "../audit/audit.service.js";
 import { PAYMENT_METHODS } from "../settings/settings.model.js";
 import { ClientPack, GiftCard, Membership, MembershipPlan, PackPlan, Promotion } from "./commercial.models.js";
 import * as commercial from "./commercial.service.js";
+import * as mp from "../payments/mercadopago.service.js";
 
 const objectId = z.string().regex(/^[a-f\d]{24}$/i, "ID inválido");
 const sale = z.object({ method: z.enum(PAYMENT_METHODS), location: objectId });
@@ -135,6 +136,10 @@ commercialRouter.post("/memberships/:id/renew", validate({ body: sale }), async 
   res.json(await commercial.renewMembership(String(req.params.id), req.body, req.user!));
 });
 commercialRouter.post("/memberships/:id/status", validate({ body: z.object({ status: z.enum(["active", "paused", "cancelled"]) }) }), async (req, res) => {
+  const found = await Membership.findById(req.params.id);
+  if (!found) throw AppError.notFound("Membresía");
+  // Si tiene cobro automático en Mercado Pago, primero se corta allá; si falla no se toca la base (no quedan desincronizados).
+  if (found.mpPreapprovalId && found.status !== req.body.status) await mp.setSubscriptionStatus(found.mpPreapprovalId, req.body.status);
   const m = await Membership.findByIdAndUpdate(req.params.id, { status: req.body.status }, { new: true });
   if (!m) throw AppError.notFound("Membresía");
   await audit(req, { action: "update", entity: "Membresía", entityId: m._id, summary: `cambió membresía a ${req.body.status}` });

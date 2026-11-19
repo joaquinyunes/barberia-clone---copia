@@ -4,7 +4,7 @@ import request from "supertest";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mercado Pago: respuestas dictadas por cada test, sin red.
-const mp = vi.hoisted(() => ({ payments: new Map<string, Record<string, unknown>>(), subs: new Map<string, Record<string, unknown>>() }));
+const mp = vi.hoisted(() => ({ payments: new Map<string, Record<string, unknown>>(), subs: new Map<string, Record<string, unknown>>(), updates: [] as { id: string; body: Record<string, unknown> }[], failUpdate: false }));
 vi.mock("mercadopago", () => ({
   MercadoPagoConfig: class {},
   Payment: class {
@@ -19,6 +19,11 @@ vi.mock("mercadopago", () => ({
   },
   PreApproval: class {
     create = async () => ({ init_point: "https://sandbox.mercadopago.test/suscripcion", id: "sub-1" });
+    update = async (p: { id: string; body: Record<string, unknown> }) => {
+      if (mp.failUpdate) throw new Error("MP caído");
+      mp.updates.push(p);
+      return { id: p.id, ...p.body };
+    };
     get = async ({ id }: { id: string }) => {
       const s = mp.subs.get(String(id));
       if (!s) throw new Error("suscripción inexistente");
@@ -31,6 +36,7 @@ import { Appointment } from "../src/modules/appointments/appointment.model.js";
 import { Client } from "../src/modules/clients/client.model.js";
 import { GiftCard, Membership, MembershipPlan } from "../src/modules/commercial/commercial.models.js";
 import { Movement } from "../src/modules/ledger/ledger.model.js";
+import { AuditLog } from "../src/modules/audit/audit.model.js";
 import { app, nextWeekday, seedBase } from "./fixtures.js";
 
 let ctx: Awaited<ReturnType<typeof seedBase>>;
@@ -69,6 +75,8 @@ beforeAll(async () => {
 beforeEach(() => {
   mp.payments.clear();
   mp.subs.clear();
+  mp.updates.length = 0;
+  mp.failUpdate = false;
 });
 
 describe("B6: reseñas verificadas y encuesta", () => {
@@ -225,6 +233,45 @@ describe("B7: cobro recurrente de la membresía", () => {
     expect(await Membership.countDocuments({ client: clientId })).toBe(1);
     expect((await webhook("payment", "pay-early")).body.handled).toBe(true);
     expect((await Membership.findOne({ client: clientId }))!.payments).toHaveLength(1);
+  });
+
+  it("cancelar o pausar desde el panel también corta el cobro en Mercado Pago; si Mercado Pago falla no se cambia nada local", async () => {
+    const m = await Membership.findOne({ client: clientId });
+    await Membership.updateOne({ _id: m!._id }, { status: "active", mpPreapprovalId: "sub-live" });
+    mp.failUpdate = true;
+    const bad = await request(app).post(`/api/v1/admin/commercial/memberships/${m!._id}/status`).set(ctx.auth).send({ status: "cancelled" });
+    expect(bad.status).toBeGreaterThanOrEqual(500);
+    expect((await Membership.findById(m!._id))!.status).toBe("active");
+    mp.failUpdate = false;
+    const paused = await request(app).post(`/api/v1/admin/commercial/memberships/${m!._id}/status`).set(ctx.auth).send({ status: "paused" });
+    expect(paused.status).toBe(200);
+    expect(mp.updates.at(-1)).toEqual({ id: "sub-live", body: { status: "paused" } });
+    const cancelled = await request(app).post(`/api/v1/admin/commercial/memberships/${m!._id}/status`).set(ctx.auth).send({ status: "cancelled" });
+    expect(cancelled.status).toBe(200);
+    expect(mp.updates.at(-1)).toEqual({ id: "sub-live", body: { status: "cancelled" } });
+    // una membresía sin suscripción de Mercado Pago (alta manual) se cancela solo en la base
+    const manual = await Membership.create({ client: clientId, plan: planId, status: "active" });
+    mp.updates.length = 0;
+    expect((await request(app).post(`/api/v1/admin/commercial/memberships/${manual._id}/status`).set(ctx.auth).send({ status: "cancelled" })).status).toBe(200);
+    expect(mp.updates).toHaveLength(0);
+    await Membership.deleteOne({ _id: manual._id });
+  });
+
+  it("un cobro que llega después de cancelar, o de una suscripción que nunca se registró, queda para revisión (no 409 infinito, no plata sin rastro)", async () => {
+    await Membership.updateMany({ client: clientId }, { status: "cancelled", mpPreapprovalId: "sub-live" });
+    mp.payments.set("pay-late", { id: "pay-late", status: "approved", external_reference: `membership:${clientId}:${planId}`, transaction_amount: 20000, date_created: new Date().toISOString() });
+    const r = await webhook("payment", "pay-late");
+    expect(r.status).toBe(200);
+    expect(r.body.outcome).toBe("needs_review");
+    expect(await AuditLog.countDocuments({ summary: /pay-late/ })).toBe(1);
+    // sin ninguna membresía y con el cobro viejo (más de 6 h): también a revisión
+    await Membership.deleteMany({ client: clientId });
+    mp.payments.set("pay-old", { id: "pay-old", status: "approved", external_reference: `membership:${clientId}:${planId}`, transaction_amount: 20000, date_created: new Date(Date.now() - 8 * 3_600_000).toISOString() });
+    expect((await webhook("payment", "pay-old")).body.outcome).toBe("needs_review");
+    // sin membresía y reciente (<6 h): se pide reintento
+    mp.payments.set("pay-new", { id: "pay-new", status: "approved", external_reference: `membership:${clientId}:${planId}`, transaction_amount: 20000, date_created: new Date().toISOString() });
+    expect((await webhook("payment", "pay-new")).status).toBe(409);
+    await Membership.create({ client: clientId, plan: planId, status: "active", mpPreapprovalId: "sub-live" });
   });
 
   it("no deja suscribirse dos veces ni con un plan inexistente", async () => {
