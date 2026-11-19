@@ -1,9 +1,9 @@
-import { Router } from "express";
+import { Router, type Request } from "express";
 import QRCode from "qrcode";
 import { z } from "zod";
 import { crudRouter } from "../../core/crudRouter.js";
 import { authenticate } from "../../middlewares/authenticate.js";
-import { authorize } from "../../middlewares/authorize.js";
+import { authorize, hasPermission } from "../../middlewares/authorize.js";
 import { validate } from "../../middlewares/validate.js";
 import { AppError } from "../../lib/AppError.js";
 import { formatARS } from "../../lib/money.js";
@@ -72,13 +72,19 @@ export const promotionsRouter = crudRouter({
   sort: { createdAt: -1 },
 });
 
+/** Emitir algo SIN cobrar (regalo, cortesía) es plata que no entra: solo con permiso comercial. Quien solo tiene caja puede emitir si cobra. */
+function requireCommercialIfFree(req: Request, paid: boolean) {
+  if (!paid && !hasPermission(req, "commercial.manage")) throw AppError.forbidden("Emitir sin cobro requiere el permiso comercial. Cobralo desde caja.");
+}
+const FREE_GIFTCARD_MAX = 100_000;
+
 export const commercialRouter = Router();
 commercialRouter.use(authenticate, authorize("commercial.manage", "cash.manage"));
 
 /* Gift cards */
 commercialRouter.get("/giftcards", async (req, res) => {
   const { status, search } = req.query as Record<string, string>;
-  const items = await GiftCard.find({ ...(status && { status }), ...(search && { code: new RegExp(search, "i") }) }).populate("buyer", "name").sort({ createdAt: -1 }).limit(300).lean();
+  const items = await GiftCard.find({ ...(status && { status }), ...(search && { code: new RegExp(search.replace(/[^A-Za-z0-9-]/g, ""), "i") }) }).populate("buyer", "name").sort({ createdAt: -1 }).limit(300).lean();
   res.json({ items, liability: items.filter((g) => g.status === "active").reduce((a, g) => a + g.balance, 0) });
 });
 commercialRouter.get("/giftcards/:code", async (req, res) => {
@@ -90,8 +96,10 @@ commercialRouter.post(
   "/giftcards",
   validate({ body: z.object({ value: z.number().positive(), buyer: objectId.optional(), recipientName: z.string().optional(), recipientPhone: z.string().optional(), message: z.string().optional(), validityDays: z.number().int().positive().optional(), sale: sale.optional() }) }),
   async (req, res) => {
+    requireCommercialIfFree(req, !!req.body.sale);
+    if (!req.body.sale && req.body.value > FREE_GIFTCARD_MAX) throw AppError.badRequest(`Una gift card sin cobro no puede pasar de ${formatARS(FREE_GIFTCARD_MAX)}. Registrá el cobro para montos mayores.`);
     const gc = await commercial.issueGiftCard({ ...req.body, actor: req.user! });
-    await audit(req, { action: "create", entity: "Gift card", entityId: gc._id, summary: `emitió gift card ${gc.code} por ${formatARS(gc.initialValue)}` });
+    await audit(req, { action: "create", entity: "Gift card", entityId: gc._id, summary: `emitió gift card ${gc.code} por ${formatARS(gc.initialValue)}${req.body.sale ? "" : " sin cobro"}` });
     res.status(201).json(gc);
   },
 );
@@ -117,8 +125,9 @@ commercialRouter.get("/packs", async (req, res) => {
   res.json({ items: await ClientPack.find({ ...(client && { client }), ...(status && { status }) }).populate("client", "name phone").sort({ createdAt: -1 }).limit(300).lean() });
 });
 commercialRouter.post("/packs", validate({ body: z.object({ plan: objectId, client: objectId, sale: sale.optional() }) }), async (req, res) => {
+  requireCommercialIfFree(req, !!req.body.sale);
   const pack = await commercial.issuePack({ ...req.body, actor: req.user! });
-  await audit(req, { action: "create", entity: "Bono", entityId: pack._id, summary: `emitió ${pack.name} (${pack.code})` });
+  await audit(req, { action: "create", entity: "Bono", entityId: pack._id, summary: `emitió ${pack.name} (${pack.code})${req.body.sale ? "" : " sin cobro"}` });
   res.status(201).json(pack);
 });
 
@@ -128,8 +137,9 @@ commercialRouter.get("/memberships", async (req, res) => {
   res.json({ items: await Membership.find(status ? { status } : {}).populate("client", "name phone").populate("plan", "name price").sort({ renewsAt: 1 }).lean() });
 });
 commercialRouter.post("/memberships", validate({ body: z.object({ plan: objectId, client: objectId, payment: sale.optional() }) }), async (req, res) => {
+  requireCommercialIfFree(req, !!req.body.payment);
   const m = await commercial.subscribe({ ...req.body, actor: req.user! });
-  await audit(req, { action: "create", entity: "Membresía", entityId: m._id, summary: "dio de alta una membresía" });
+  await audit(req, { action: "create", entity: "Membresía", entityId: m._id, summary: `dio de alta una membresía${req.body.payment ? "" : " sin cobro"}` });
   res.status(201).json(m);
 });
 commercialRouter.post("/memberships/:id/renew", validate({ body: sale }), async (req, res) => {
