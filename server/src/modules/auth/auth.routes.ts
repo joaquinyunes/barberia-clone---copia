@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { Router } from "express";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
@@ -24,6 +25,13 @@ const cookieOpts = {
   path: "/api/v1/auth",
   maxAge: 7 * 24 * 3600 * 1000,
 };
+
+/** Entrega un refresh token nuevo (cookie) y lo registra como vigente para este dispositivo. */
+async function issueRefresh(res: import("express").Response, user: InstanceType<typeof User>) {
+  const jti = randomUUID();
+  await User.updateOne({ _id: user._id }, { $push: { refreshJtis: { $each: [jti], $slice: -10 } } });
+  res.cookie(COOKIE, signRefresh(String(user._id), user.tokenVersion, jti), cookieOpts);
+}
 
 function session(user: InstanceType<typeof User>) {
   return {
@@ -69,7 +77,7 @@ authRouter.post(
     await clearFailures(email, ip);
     const entered = await User.findOneAndUpdate({ _id: user._id }, { $set: { lastLoginAt: new Date() } }, { new: true });
     if (!entered) throw AppError.unauthorized(GENERIC_LOGIN_ERROR);
-    res.cookie(COOKIE, signRefresh(String(entered._id), entered.tokenVersion), cookieOpts);
+    await issueRefresh(res, entered);
     res.json(session(entered));
   },
 );
@@ -134,7 +142,7 @@ authRouter.post(
       passwordHash: await bcrypt.hash(req.body.password, 10),
       role: "customer",
     });
-    res.cookie(COOKIE, signRefresh(String(user._id), user.tokenVersion), cookieOpts);
+    await issueRefresh(res, user);
     res.status(201).json({ ...session(user), pendingClaim: true });
   },
 );
@@ -142,14 +150,24 @@ authRouter.post(
 authRouter.post("/refresh", async (req, res) => {
   const token = req.cookies?.[COOKIE];
   if (!token) throw AppError.unauthorized("Sesión expirada");
-  let payload: { sub: string; v: number };
+  let payload: { sub: string; v: number; jti?: string };
   try {
     payload = verifyRefresh(token);
   } catch {
     throw AppError.unauthorized("Sesión expirada");
   }
   const user = await User.findById(payload.sub);
-  if (!user || !user.active || user.tokenVersion !== payload.v) throw AppError.unauthorized("Sesión expirada");
+  if (!user || !user.active || user.tokenVersion !== payload.v || !payload.jti) throw AppError.unauthorized("Sesión expirada");
+  // Rotación: el token usado se "gasta" de forma atómica. Si ya no estaba vigente, alguien lo reusó (robo probable): se cierran
+  // TODAS las sesiones de la cuenta (también la que tenga el token nuevo) y queda registrado.
+  const spent = await User.findOneAndUpdate({ _id: user._id, refreshJtis: payload.jti }, { $pull: { refreshJtis: payload.jti } });
+  if (!spent) {
+    await User.updateOne({ _id: user._id }, { $inc: { tokenVersion: 1 }, $set: { refreshJtis: [] } });
+    await audit(undefined, { action: "custom", entity: "Seguridad", entityId: user._id, summary: "se reutilizó un refresh token ya rotado: se cerraron todas las sesiones de la cuenta" });
+    res.clearCookie(COOKIE, { ...cookieOpts, maxAge: undefined });
+    throw AppError.unauthorized("Sesión expirada");
+  }
+  await issueRefresh(res, user);
   res.json(session(user));
 });
 

@@ -10,10 +10,11 @@ export const signAccess = (p: AccessPayload) =>
   jwt.sign(p, env.JWT_ACCESS_SECRET, { expiresIn: "15m" });
 export const verifyAccess = (t: string) => jwt.verify(t, env.JWT_ACCESS_SECRET) as AccessPayload;
 
-export const signRefresh = (sub: string, version: number) =>
-  jwt.sign({ sub, v: version }, env.JWT_REFRESH_SECRET, { expiresIn: "7d" });
+/** `jti` identifica a este refresh token: cada uso lo rota y reusar uno ya rotado revoca la sesión entera. */
+export const signRefresh = (sub: string, version: number, jti: string) =>
+  jwt.sign({ sub, v: version, jti }, env.JWT_REFRESH_SECRET, { expiresIn: "7d" });
 export const verifyRefresh = (t: string) =>
-  jwt.verify(t, env.JWT_REFRESH_SECRET) as { sub: string; v: number };
+  jwt.verify(t, env.JWT_REFRESH_SECRET) as { sub: string; v: number; jti?: string };
 
 /** Links firmados (comprobantes, gestión de una reserva sin cuenta). */
 export const signLink = (data: Record<string, string>, expiresIn: jwt.SignOptions["expiresIn"] = "7d") =>

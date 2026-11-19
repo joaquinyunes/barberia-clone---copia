@@ -20,6 +20,8 @@ const userSchema = new Schema(
     totpEnabled: { type: Boolean, default: false },
     /** Último paso TOTP aceptado: un mismo código no se puede reusar. */
     totpLastStep: Number,
+    /** Refresh tokens vigentes (uno por dispositivo, máx. 10). Rotan en cada uso; usar uno que ya no está = reuso = robo probable. */
+    refreshJtis: { type: [String], select: false, default: [] },
     totpSecret: { type: String, select: false }, // cifrado, ver lib/totp.ts
     totpPending: { type: String, select: false }, // secreto generado y todavía no confirmado
   },
