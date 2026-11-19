@@ -87,9 +87,21 @@ export async function orderWhatsapp(id: unknown) {
 
 /** Aprueba el pago: entra a caja, baja stock y emite gift cards / packs. */
 export async function approveOrder(id: string, method: PaymentMethod, actor: Actor) {
-  const order = await Order.findById(id);
-  if (!order) throw AppError.notFound("Pedido");
-  if (!["pending_payment", "payment_review"].includes(order.status)) throw AppError.conflict("El pedido no está pendiente de pago");
+  const before = await Order.findById(id);
+  if (!before) throw AppError.notFound("Pedido");
+  if (!["pending_payment", "payment_review"].includes(before.status)) throw AppError.conflict("El pedido no está pendiente de pago");
+  // Reclamo atómico: si dos aprobaciones llegan juntas (webhook + admin) solo una emite gift cards, baja stock y registra caja.
+  const order = await Order.findOneAndUpdate({ _id: id, status: { $in: ["pending_payment", "payment_review"] } }, { status: "paid" }, { new: true });
+  if (!order) throw AppError.conflict("El pedido no está pendiente de pago");
+  try {
+    return await approveOrderClaimed(order, method, actor);
+  } catch (err) {
+    await Order.updateOne({ _id: id, "payment.approvedAt": { $exists: false } }, { status: before.status }); // vuelve a pendiente: se puede reintentar
+    throw err;
+  }
+}
+
+async function approveOrderClaimed(order: InstanceType<typeof Order>, method: PaymentMethod, actor: Actor) {
   const giftCards: string[] = [];
   const packs: string[] = [];
   for (const item of order.items) {

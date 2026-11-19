@@ -8,6 +8,7 @@ import { Order } from "../orders/order.model.js";
 import { approveOrder } from "../orders/order.service.js";
 import { audit } from "../audit/audit.service.js";
 import { PaymentEvent } from "./paymentEvent.model.js";
+import { SubscriptionIntent } from "./subscriptionIntent.model.js";
 import * as cash from "../cash/cash.service.js";
 import * as ledger from "../ledger/ledger.service.js";
 import { Client } from "../clients/client.model.js";
@@ -82,7 +83,18 @@ export async function createMembershipCheckout(userId: string, planId: string) {
   if (!user?.client) throw AppError.forbidden("Tu usuario no tiene ficha de cliente");
   if (!plan) throw AppError.notFound("Plan de membresía");
   if (await Membership.exists({ client: user.client, status: "active" })) throw AppError.conflict("Ya tenés una membresía activa");
-  const sub = await new PreApproval(client()).create({
+  // Una sola intención vigente: un doble clic recibe el mismo link, no crea otra suscripción.
+  try {
+    await SubscriptionIntent.create({ client: user.client, plan: plan._id, expiresAt: new Date(Date.now() + 30 * 60_000) });
+  } catch (err) {
+    if ((err as { code?: number }).code !== 11000) throw err;
+    const current = await SubscriptionIntent.findOne({ client: user.client });
+    if (current?.initPoint && String(current.plan) === String(plan._id)) return { initPoint: current.initPoint, preapprovalId: current.preapprovalId };
+    throw AppError.conflict(current?.initPoint ? "Ya tenés una suscripción en curso con otro plan. Terminala o esperá unos minutos." : "Ya se está generando tu suscripción: esperá unos segundos.");
+  }
+  let sub;
+  try {
+    sub = await new PreApproval(client()).create({
     body: {
       reason: `Membresía ${plan.name}`,
       external_reference: `membership:${user.client}:${plan._id}`,
@@ -92,6 +104,11 @@ export async function createMembershipCheckout(userId: string, planId: string) {
       status: "pending",
     },
   });
+  } catch (err) {
+    await SubscriptionIntent.deleteOne({ client: user.client });
+    throw err;
+  }
+  await SubscriptionIntent.updateOne({ client: user.client }, { preapprovalId: sub.id, initPoint: sub.init_point });
   return { initPoint: sub.init_point, preapprovalId: sub.id };
 }
 
@@ -105,6 +122,13 @@ export async function handleSubscription(preapprovalId: string) {
     if (existing) {
       if (existing.status === "paused") await Membership.updateOne({ _id: existing._id }, { status: "active" });
       return { handled: true, status: sub.status, duplicate: true };
+    }
+    // Ya hay una membresía vigente con OTRA suscripción de Mercado Pago (se autorizaron dos): la nueva se cancela allá para no cobrar doble.
+    const other = await Membership.findOne({ client: clientId, status: { $in: ["active", "paused"] }, mpPreapprovalId: { $exists: true, $ne: preapprovalId } });
+    if (other) {
+      await setSubscriptionStatus(preapprovalId, "cancelled");
+      await audit({ name: "Mercado Pago" }, { action: "custom", entity: "Pago", entityId: preapprovalId, summary: `Se autorizó una segunda suscripción (${preapprovalId}) del mismo cliente: se canceló en Mercado Pago para no cobrar doble` });
+      return { handled: true, status: sub.status, duplicateSubscription: true };
     }
     let created: { _id: unknown } | undefined;
     try {
