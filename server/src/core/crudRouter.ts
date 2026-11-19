@@ -18,6 +18,8 @@ interface CrudOptions {
   populate?: string | string[];
   sort?: Record<string, 1 | -1>;
   label?: (doc: any) => string;
+  /** Campos que nunca van al registro de auditoría (hashes, secretos). */
+  secretFields?: string[];
   /** Si es true, DELETE marca active=false en lugar de borrar (conserva historial). */
   softDelete?: boolean;
   beforeCreate?: (data: any, req: Parameters<RequestHandler>[0]) => Promise<any> | any;
@@ -80,6 +82,7 @@ export function crudRouter(opts: CrudOptions) {
     doc.set(req.body);
     await doc.save();
     const changes = diff(before, doc.toObject());
+    for (const f of opts.secretFields ?? []) delete changes[f];
     if (Object.keys(changes).length) {
       await audit(req, {
         action: "update",

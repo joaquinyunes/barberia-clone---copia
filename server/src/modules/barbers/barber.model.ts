@@ -1,4 +1,6 @@
+import bcrypt from "bcryptjs";
 import { Schema, model } from "mongoose";
+import { AppError } from "../../lib/AppError.js";
 import { commissionSchema } from "../services/service.model.js";
 
 export const BARBER_STATUSES = ["active", "inactive", "vacation", "leave", "suspended"] as const;
@@ -44,11 +46,25 @@ const barberSchema = new Schema(
     commissionOverrides: [{ service: { type: Schema.Types.ObjectId, ref: "Service" }, commission: commissionSchema, _id: false }],
     hourlyRate: Number, // para horas extra
     monthlyHours: { type: Number, default: 160 },
+    /** Hash bcrypt del PIN de fichaje (6 a 8 dígitos). Nunca se guarda ni se devuelve en claro. */
     attendancePin: { type: String, select: false },
+    pinFailed: { type: Number, default: 0, select: false },
+    pinLockUntil: { type: Date, select: false },
     public: { type: Boolean, default: true },
     order: { type: Number, default: 0 },
   },
   { timestamps: true },
 );
+
+/** Guarda el PIN siempre hasheado y rechaza que dos barberos tengan el mismo (así el PIN solo no identifica a nadie ambiguamente). */
+barberSchema.pre("save", async function () {
+  if (!this.isModified("attendancePin") || !this.attendancePin) return;
+  const plain = this.attendancePin;
+  if (/^\$2[aby]\$/.test(plain)) return; // ya es un hash
+  if (!/^\d{6,8}$/.test(plain)) throw new AppError(400, "El PIN debe tener de 6 a 8 dígitos", "BAD_PIN");
+  const others = await Barber.find({ _id: { $ne: this._id }, attendancePin: { $exists: true } }).select("+attendancePin").lean();
+  for (const o of others) if (o.attendancePin && (await bcrypt.compare(plain, o.attendancePin))) throw new AppError(409, "Ese PIN ya lo usa otro barbero", "PIN_TAKEN");
+  this.attendancePin = await bcrypt.hash(plain, 10);
+});
 
 export const Barber = model("Barber", barberSchema);

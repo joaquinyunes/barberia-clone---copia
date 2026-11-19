@@ -46,7 +46,7 @@ const schema = z.object({
   commissionOverrides: z.array(z.object({ service: z.string(), commission })).optional(),
   hourlyRate: z.number().min(0).optional(),
   monthlyHours: z.number().min(0).optional(),
-  attendancePin: z.string().regex(/^\d{4,6}$/).optional(),
+  attendancePin: z.string().regex(/^\d{6,8}$/, "El PIN debe tener de 6 a 8 dígitos").optional(),
   public: z.boolean().optional(),
   order: z.number().optional(),
 });
@@ -60,6 +60,7 @@ export const barbersAdminRouter = crudRouter({
   filterFields: ["status", "location"],
   populate: "location",
   sort: { order: 1, name: 1 },
+  secretFields: ["attendancePin"],
 });
 
 /** Ficha completa del barbero: saldo, ventas, turnos, clientes, horas, adelantos, deudas, herramientas. */

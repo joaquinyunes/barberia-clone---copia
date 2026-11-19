@@ -164,7 +164,7 @@ async function main() {
         defaultCommissionPct: b.pct,
         commissionByCategory: b.cat,
         hourlyRate: 5000,
-        attendancePin: `${1000 + i}`,
+        attendancePin: `${100100 + i}`,
         order: i,
       }),
     );
@@ -412,7 +412,7 @@ Usuarios (contraseña: jack1234)
   encargado@jackelbarbero.com   → Encargado
   recepcion@jackelbarbero.com   → Recepción
   lucas@jackelbarbero.com       → Barbero (Lucas)
-PIN de fichaje de barberos: 1000 a 1005
+PIN de fichaje de barberos: 100100 a 100105 (se guardan hasheados)
 `);
   await mongoose.disconnect();
 }

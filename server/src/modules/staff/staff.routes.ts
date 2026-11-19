@@ -1,3 +1,5 @@
+import bcrypt from "bcryptjs";
+import { kioskLimiter } from "../../middlewares/rateLimiters.js";
 import { Router } from "express";
 import { z } from "zod";
 import { authenticate } from "../../middlewares/authenticate.js";
@@ -141,11 +143,23 @@ staffRouter.post("/attendance/check-out", authorize("barbers.manage"), validate(
   res.json(await staff.checkOut(req.body.barber));
 });
 
+const DUMMY_PIN_HASH = bcrypt.hashSync("000000-relleno", 10);
+
 /** Fichaje con PIN desde la tablet del local (sin sesión de admin). */
 export const attendanceKioskRouter = Router();
-attendanceKioskRouter.post("/", validate({ body: z.object({ pin: z.string().min(4), action: z.enum(["in", "out"]) }) }), async (req, res) => {
-  const barber = await Barber.findOne({ attendancePin: req.body.pin, status: "active" }).select("+attendancePin");
-  if (!barber) throw AppError.unauthorized("PIN incorrecto");
+attendanceKioskRouter.post("/", kioskLimiter, validate({ body: z.object({ barber: objectId, pin: z.string().regex(/^\d{6,8}$/), action: z.enum(["in", "out"]) }) }), async (req, res) => {
+  const barber = await Barber.findOne({ _id: req.body.barber, status: "active" }).select("+attendancePin +pinFailed +pinLockUntil");
+  const hashed = barber?.attendancePin?.startsWith("$2") ? barber.attendancePin : undefined; // un PIN viejo en texto plano no sirve
+  const ok = await bcrypt.compare(req.body.pin, hashed ?? DUMMY_PIN_HASH);
+  if (!barber || !hashed || !ok || (barber.pinLockUntil && barber.pinLockUntil > new Date())) {
+    if (barber) {
+      // Contador atómico por barbero: 5 fallos bloquean 15 minutos aunque vengan en paralelo.
+      const b = await Barber.findOneAndUpdate({ _id: barber._id }, { $inc: { pinFailed: 1 } }, { new: true }).select("+pinFailed");
+      if (b && b.pinFailed >= 5) await Barber.updateOne({ _id: barber._id }, { pinLockUntil: new Date(Date.now() + 15 * 60_000), pinFailed: 0 });
+    }
+    throw AppError.unauthorized("PIN incorrecto o fichaje bloqueado unos minutos");
+  }
+  await Barber.updateOne({ _id: barber._id }, { pinFailed: 0, $unset: { pinLockUntil: 1 } });
   const record = req.body.action === "in" ? await staff.checkIn(String(barber._id)) : await staff.checkOut(String(barber._id));
   res.json({ barber: barber.name, record });
 });
