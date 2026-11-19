@@ -1,6 +1,8 @@
 import bcrypt from "bcryptjs";
 import request from "supertest";
 import { beforeAll, describe, expect, it } from "vitest";
+import { setNotifier } from "../src/lib/notify/notifier.js";
+import { Client, normalizePhone } from "../src/modules/clients/client.model.js";
 import { User } from "../src/modules/users/user.model.js";
 import { app, nextWeekday, seedBase } from "./fixtures.js";
 
@@ -17,17 +19,36 @@ beforeAll(async () => {
   expect(r.status).toBe(201);
 });
 
-describe("registro: no se puede tomar la ficha de otro cliente por su celular", () => {
-  it("una reserva pública no escribe el email de una ficha existente", async () => {
+describe("registro: la ficha de un cliente solo se vincula con una prueba de que el celular es tuyo", () => {
+  const sent: { to: string; text: string }[] = [];
+  const lastCode = (to: string) => /(\d{6})/.exec([...sent].reverse().find((m) => m.to === to)?.text ?? "")?.[1] ?? "";
+  beforeAll(() => setNotifier({ send: async (m) => void sent.push({ to: m.to, text: m.text }) }));
+
+  it("registrarse con el celular de otra persona NO da acceso a su ficha ni a sus turnos", async () => {
     const r = await request(app)
       .post("/api/v1/public/bookings")
       .send({ location: String(ctx.location._id), service: String(ctx.fade._id), barber: "any", date, time: "15:00", customer: { name: "Atacante", phone: victimPhone, email: "atacante@mail.com" } });
     expect(r.status).toBe(201);
     const reg = await request(app).post("/api/v1/auth/register").send({ name: "Atacante", email: "atacante@mail.com", phone: victimPhone, password: "12345678" });
-    expect(reg.status).toBe(409);
+    expect(reg.status).toBe(201);
+    expect(reg.body.pendingClaim).toBe(true);
+    expect(reg.body.user.client).toBeUndefined();
+    const auth = { Authorization: `Bearer ${reg.body.accessToken}` };
+    const me = await request(app).get("/api/v1/me/client").set(auth);
+    expect(me.status).toBe(403);
+    expect(JSON.stringify(me.body)).not.toMatch(/Víctima|6000|appointments/);
+    expect(await Client.countDocuments({ user: reg.body.user._id })).toBe(0);
+
+    // el código se manda al celular DE LA FICHA (la víctima), no a quien se registró
+    expect((await request(app).post("/api/v1/me/client/claim/request").set(auth)).status).toBe(204);
+    expect(sent.at(-1)!.to).toBe(normalizePhone(victimPhone));
+    for (let k = 0; k < 5; k++) expect((await request(app).post("/api/v1/me/client/claim/confirm").set(auth).send({ code: "000000" })).status).toBe(400);
+    // con 5 fallos el código se invalida: ni el correcto sirve
+    expect((await request(app).post("/api/v1/me/client/claim/confirm").set(auth).send({ code: lastCode(normalizePhone(victimPhone)) })).status).toBe(400);
+    expect((await request(app).get("/api/v1/me/client").set(auth)).status).toBe(403);
   });
 
-  it("vincula la ficha cuando el email coincide con el que ya tenía, y solo una vez", async () => {
+  it("quien recibe el código en su celular vincula su ficha (una sola vez, el código vence al usarse)", async () => {
     const own = await request(app)
       .post("/api/v1/admin/appointments")
       .set(ctx.auth)
@@ -35,11 +56,35 @@ describe("registro: no se puede tomar la ficha de otro cliente por su celular", 
     expect(own.status).toBe(201);
     const reg = await request(app).post("/api/v1/auth/register").send({ name: "Ana", email: "ana@mail.com", phone: "11 6000-2222", password: "12345678" });
     expect(reg.status).toBe(201);
-    const me = await request(app).get("/api/v1/me/client").set({ Authorization: `Bearer ${reg.body.accessToken}` });
+    const auth = { Authorization: `Bearer ${reg.body.accessToken}` };
+    expect((await request(app).get("/api/v1/me/client").set(auth)).status).toBe(403); // aunque el email coincida, hasta verificar no ve nada
+    await request(app).post("/api/v1/me/client/claim/request").set(auth);
+    const code = lastCode(normalizePhone("11 6000-2222"));
+    expect(code).toMatch(/^\d{6}$/);
+    expect((await request(app).post("/api/v1/me/client/claim/confirm").set(auth).send({ code })).status).toBe(204);
+    const me = await request(app).get("/api/v1/me/client").set(auth);
+    expect(me.status).toBe(200);
     expect(me.body.appointments).toHaveLength(1);
-
+    expect((await request(app).post("/api/v1/me/client/claim/confirm").set(auth).send({ code })).status).toBe(409); // ya vinculada
     const again = await request(app).post("/api/v1/auth/register").send({ name: "Ana 2", email: "otra@mail.com", phone: "11 6000-2222", password: "12345678" });
     expect(again.status).toBe(409);
+  });
+
+  it("registro: el mensaje es el mismo si el email o el celular ya tienen cuenta (no sirve para averiguar quién es cliente)", async () => {
+    const mailTaken = await request(app).post("/api/v1/auth/register").send({ name: "X Y", email: "ana@mail.com", phone: "11 6999-0000", password: "12345678" });
+    const phoneTaken = await request(app).post("/api/v1/auth/register").send({ name: "X Y", email: "nuevo-x@mail.com", phone: "11 6000-2222", password: "12345678" });
+    expect(mailTaken.status).toBe(409);
+    expect(phoneTaken.status).toBe(409);
+    expect(mailTaken.body.error.message).toBe(phoneTaken.body.error.message);
+  });
+
+  it("el personal puede vincular una cuenta a una ficha tras verificar la identidad en persona (queda auditado)", async () => {
+    const c = await Client.create({ name: "Presencial", phone: "5491160009999" });
+    const reg = await request(app).post("/api/v1/auth/register").send({ name: "Presencial", email: "pres@mail.com", phone: "11 6000-9999", password: "12345678" });
+    expect(reg.body.pendingClaim).toBe(true);
+    const link = await request(app).post(`/api/v1/admin/clients/${c._id}/link-user`).set(ctx.auth).send({ user: reg.body.user._id });
+    expect(link.status).toBe(204);
+    expect((await request(app).get("/api/v1/me/client").set({ Authorization: `Bearer ${reg.body.accessToken}` })).status).toBe(200);
   });
 });
 

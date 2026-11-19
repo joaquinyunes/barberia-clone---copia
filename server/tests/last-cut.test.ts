@@ -1,16 +1,14 @@
 import request from "supertest";
 import { beforeAll, describe, expect, it } from "vitest";
 import { Appointment } from "../src/modules/appointments/appointment.model.js";
-import { app, nextWeekday, seedBase } from "./fixtures.js";
+import { app, nextWeekday, seedBase, registerLinked } from "./fixtures.js";
 
 let ctx: Awaited<ReturnType<typeof seedBase>>;
 let me: Record<string, string>;
 const date = nextWeekday(2, 2);
 
 async function registerCustomer(email: string, phone: string) {
-  const r = await request(app).post("/api/v1/auth/register").send({ name: "Nico Habitual", email, phone, password: "secreto123" });
-  expect(r.status).toBe(201);
-  return { Authorization: `Bearer ${r.body.accessToken}` };
+  return (await registerLinked("Nico Habitual", email, phone)).auth;
 }
 
 beforeAll(async () => {

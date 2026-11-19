@@ -4,7 +4,7 @@ export interface OutgoingMessage {
   /** Celular en formato internacional, solo dígitos. */
   to: string;
   text: string;
-  kind: "waitlist_offer" | "reminder";
+  kind: "waitlist_offer" | "reminder" | "claim_code";
 }
 
 export interface Notifier {

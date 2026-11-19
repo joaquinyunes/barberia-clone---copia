@@ -37,7 +37,7 @@ import { Client } from "../src/modules/clients/client.model.js";
 import { GiftCard, Membership, MembershipPlan } from "../src/modules/commercial/commercial.models.js";
 import { Movement } from "../src/modules/ledger/ledger.model.js";
 import { AuditLog } from "../src/modules/audit/audit.model.js";
-import { app, nextWeekday, seedBase } from "./fixtures.js";
+import { app, nextWeekday, seedBase, registerLinked } from "./fixtures.js";
 
 let ctx: Awaited<ReturnType<typeof seedBase>>;
 const date = nextWeekday(3, 2);
@@ -185,9 +185,7 @@ describe("B7: cobro recurrente de la membresía", () => {
   beforeAll(async () => {
     const plan = await MembershipPlan.create({ name: "Club Mensual", price: 20000, items: [{ category: "corte", label: "Cortes", quantity: 2 }] });
     planId = String(plan._id);
-    const reg = await request(app).post("/api/v1/auth/register").send({ name: "Socio Club", email: "socio@mail.com", phone: "11 7200-0001", password: "12345678" });
-    expect(reg.status).toBe(201);
-    userAuth = { Authorization: `Bearer ${reg.body.accessToken}` };
+    userAuth = (await registerLinked("Socio Club", "socio@mail.com", "11 7200-0001", "12345678")).auth;
     clientId = String((await Client.findOne({ email: "socio@mail.com" }))!._id);
     await bcrypt.hash("x", 1);
   });

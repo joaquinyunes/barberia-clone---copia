@@ -1,3 +1,5 @@
+import { useState } from "react";
+import axios from "axios";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "react-router-dom";
 import { paths } from "@/app/router/paths";
@@ -72,9 +74,35 @@ function Subscribe() {
   );
 }
 
+/** La cuenta nueva no ve ninguna ficha hasta probar que el celular es suyo: se manda un código al celular. */
+function VerifyPhone({ onDone }: { onDone: () => void }) {
+  const [code, setCode] = useState("");
+  const [asked, setAsked] = useState(false);
+  const ask = useMutation({ mutationFn: () => http.post("/me/client/claim/request"), onSuccess: () => { setAsked(true); toast.success("Te mandamos un código por WhatsApp"); }, onError: (e) => toast.error(errorMessage(e)) });
+  const confirm = useMutation({ mutationFn: () => http.post("/me/client/claim/confirm", { code }), onSuccess: onDone, onError: (e) => toast.error(errorMessage(e)) });
+  return (
+    <Section className={styles.page}>
+      <title>Verificá tu celular · Jack el Barbero</title>
+      <Container narrow>
+        <h1>Verificá tu celular</h1>
+        <p>Para ver tus turnos, tu saldo y tus beneficios, confirmá que el celular de tu cuenta es tuyo. Te mandamos un código de 6 dígitos por WhatsApp (vence en 10 minutos).</p>
+        <p><Button loading={ask.isPending} onClick={() => ask.mutate()}>{asked ? "Mandar otro código" : "Mandarme el código"}</Button></p>
+        {asked && (
+          <p>
+            <label>Código de 6 dígitos <input inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code} onChange={(e) => setCode(e.target.value)} /></label>{" "}
+            <Button disabled={code.length !== 6} loading={confirm.isPending} onClick={() => confirm.mutate()}>Confirmar</Button>
+          </p>
+        )}
+        <p><small>¿No te llega? Pedile al personal de la barbería que vincule tu cuenta en el local.</small></p>
+      </Container>
+    </Section>
+  );
+}
+
 export default function AccountPage() {
   const { user, logout } = useAuth();
-  const { data, isLoading } = useQuery({ queryKey: ["me-client"], queryFn: () => http.get<MyData>("/me/client").then((r) => r.data), enabled: !!user });
+  const { data, isLoading, error, refetch } = useQuery({ queryKey: ["me-client"], queryFn: () => http.get<MyData>("/me/client").then((r) => r.data), enabled: !!user, retry: false });
+  if (axios.isAxiosError(error) && error.response?.data?.error?.code === "NOT_LINKED") return <VerifyPhone onDone={() => void refetch()} />;
   if (isLoading || !data) return <PageLoader />;
   const upcoming = data.appointments.filter((a) => new Date(a.startsAt) > new Date() && !["cancelled", "no_show"].includes(a.status));
   const past = data.appointments.filter((a) => !upcoming.includes(a)).slice(0, 10);

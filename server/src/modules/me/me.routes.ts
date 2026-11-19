@@ -11,6 +11,8 @@ import * as lastCuts from "../clients/lastCut.service.js";
 import { ClientPack, GiftCard, Membership } from "../commercial/commercial.models.js";
 import * as ledger from "../ledger/ledger.service.js";
 import * as engagement from "../engagement/engagement.service.js";
+import * as claim from "../auth/claim.service.js";
+import { authLimiter } from "../../middlewares/rateLimiters.js";
 import * as mp from "../payments/mercadopago.service.js";
 import { Goal, Settlement } from "../staff/staff.models.js";
 import * as staff from "../staff/staff.service.js";
@@ -57,6 +59,16 @@ meRouter.post("/client/membership/checkout", validate({ body: z.object({ plan: z
   res.json(await mp.createMembershipCheckout(String(req.user!._id), req.body.plan));
 });
 
+/** Vincular la cuenta con la ficha de cliente: se pide un código (llega al celular) y se confirma. */
+meRouter.post("/client/claim/request", authLimiter, async (req, res) => {
+  await claim.requestClaim(String(req.user!._id));
+  res.status(204).end();
+});
+meRouter.post("/client/claim/confirm", authLimiter, validate({ body: z.object({ code: z.string().regex(/^\d{6}$/) }) }), async (req, res) => {
+  await claim.confirmClaim(String(req.user!._id), req.body.code);
+  res.status(204).end();
+});
+
 /** El cliente canjea sus puntos por saldo a favor. */
 meRouter.post("/client/points/redeem", validate({ body: z.object({ points: z.number().int().positive().max(1_000_000) }) }), async (req, res) => {
   res.json(await engagement.redeemPoints(String(clientIdOf(req)), req.body.points, req.user!));
@@ -64,7 +76,7 @@ meRouter.post("/client/points/redeem", validate({ body: z.object({ points: z.num
 
 meRouter.get("/client", async (req, res) => {
   const client = req.user?.client ? await Client.findById(req.user.client).lean() : null;
-  if (!client) throw AppError.forbidden("Tu usuario no tiene ficha de cliente");
+  if (!client) throw new AppError(403, "Verificá tu celular para ver tus turnos y tu saldo", "NOT_LINKED");
   const [account, appointments, membership, packs, giftCards] = await Promise.all([
     ledger.statement("client", String(client._id)),
     Appointment.find({ client: client._id }).populate("service barber location", "name address").sort({ startsAt: -1 }).limit(50).lean({ virtuals: true }),

@@ -11,7 +11,6 @@ import { permissionsFor, type Role } from "../../core/permissions.js";
 import { audit } from "../audit/audit.service.js";
 import { openSecret, otpauthUrl, newSecret, sealSecret, verifyTotp } from "../../lib/totp.js";
 import { Client, normalizePhone } from "../clients/client.model.js";
-import { findOrCreate } from "../clients/client.service.js";
 import { User } from "../users/user.model.js";
 
 export const authRouter = Router();
@@ -122,27 +121,22 @@ authRouter.post(
   validate({ body: z.object({ name: z.string().trim().min(2), email: z.string().email(), phone: z.string().min(8), password: z.string().min(8, "Mínimo 8 caracteres") }) }),
   async (req, res) => {
     const email = req.body.email.toLowerCase();
-    if (await User.exists({ email })) throw AppError.conflict("Ya existe una cuenta con ese email");
-    // Una ficha existente (mismo celular) trae turnos, saldo y gift cards: solo se vincula
-    // si nadie la reclamó y el email coincide con el que ya tiene cargado.
-    const existing = await Client.findOne({ phone: normalizePhone(req.body.phone) });
-    if (existing?.user) throw AppError.conflict("Ya existe una cuenta con ese celular. Ingresá con tu email.");
-    if (existing && existing.email?.toLowerCase() !== email) {
-      throw AppError.conflict("Ese celular ya figura en la barbería con otro email. Registrate con el email que dejaste al reservar, o pedí en la sede que lo actualicen.");
-    }
-    const { client } = await findOrCreate({ name: req.body.name, phone: req.body.phone, email: req.body.email });
+    const phone = normalizePhone(req.body.phone);
+    // Mismo mensaje si el email o el celular ya tienen cuenta: no sirve para averiguar quién es cliente.
+    const taken = AppError.conflict("No pudimos crear la cuenta con esos datos. Si ya te registraste, ingresá con tu email.");
+    if (await User.exists({ email })) throw taken;
+    if (await Client.exists({ phone, user: { $exists: true } })) throw taken;
+    // La cuenta nace SIN ficha: una ficha existente trae turnos, saldo y gift cards, y no se entrega por escribir el celular
+    // (ni siquiera con el mismo email). Se vincula con un código que llega al celular (/me/client/claim/*) o lo vincula el personal.
     const user = await User.create({
       name: req.body.name,
       email: req.body.email,
       phone: req.body.phone,
       passwordHash: await bcrypt.hash(req.body.password, 10),
       role: "customer",
-      client: client._id,
     });
-    client.user = user._id;
-    await client.save();
     res.cookie(COOKIE, signRefresh(String(user._id), user.tokenVersion), cookieOpts);
-    res.status(201).json(session(user));
+    res.status(201).json({ ...session(user), pendingClaim: true });
   },
 );
 

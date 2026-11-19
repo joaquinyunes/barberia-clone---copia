@@ -15,6 +15,7 @@ import { User } from "../users/user.model.js";
 import { Order } from "../orders/order.model.js";
 import { Review } from "../engagement/review.model.js";
 import { importClients } from "./csvImport.js";
+import * as claim from "../auth/claim.service.js";
 import { Client, normalizePhone } from "./client.model.js";
 import { ensureReferralCode, recomputeTier } from "./client.service.js";
 
@@ -139,6 +140,13 @@ clientsRouter.post(
 
 clientsRouter.post("/:id/recompute-tier", async (req, res) => {
   res.json({ tier: await recomputeTier(req.params.id) });
+});
+
+/** Vincula una cuenta de cliente con su ficha tras verificar la identidad en persona (mientras no haya WhatsApp para el código). */
+clientsRouter.post("/:id/link-user", authorize("clients.manage"), validate({ body: z.object({ user: objectId }) }), async (req, res) => {
+  const linked = await claim.linkByStaff(String(req.params.id), req.body.user);
+  await audit(req, { action: "update", entity: "Cliente", entityId: linked._id, summary: "vinculó una cuenta a la ficha (identidad verificada en persona)" });
+  res.status(204).end();
 });
 
 /* ── Datos personales (Ley 25.326): exportar y anonimizar a pedido del titular ── */

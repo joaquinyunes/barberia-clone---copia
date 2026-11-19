@@ -1,5 +1,6 @@
 import bcrypt from "bcryptjs";
 import request from "supertest";
+import { setNotifier } from "../src/lib/notify/notifier.js";
 import { createApp } from "../src/app.js";
 import { Barber } from "../src/modules/barbers/barber.model.js";
 import { Location } from "../src/modules/locations/location.model.js";
@@ -45,6 +46,19 @@ export async function seedBase(suffix = "") {
   const token = login.body.accessToken as string;
   const auth = { Authorization: `Bearer ${token}` };
   return { location, fade, beard, lucas, token, auth };
+}
+
+/** Registra una cuenta de cliente y la vincula a su ficha con el código que llega al celular (como lo haría la persona real). */
+export async function registerLinked(name: string, email: string, phone: string, password = "secreto123") {
+  const sent: string[] = [];
+  setNotifier({ send: async (m) => void sent.push(m.text) });
+  const r = await request(app).post("/api/v1/auth/register").send({ name, email, phone, password });
+  if (r.status !== 201) throw new Error(`registro falló: ${r.status}`);
+  const auth = { Authorization: `Bearer ${r.body.accessToken}` };
+  await request(app).post("/api/v1/me/client/claim/request").set(auth).expect(204);
+  const code = /(\d{6})/.exec(sent.at(-1) ?? "")![1];
+  await request(app).post("/api/v1/me/client/claim/confirm").set(auth).send({ code }).expect(204);
+  return { auth, userId: r.body.user._id as string };
 }
 
 /** PNG real mínimo (1×1) para probar la subida de comprobantes. */
