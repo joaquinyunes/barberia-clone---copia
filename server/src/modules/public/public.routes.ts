@@ -164,39 +164,65 @@ publicRouter.post(
 );
 
 /** Todo lo que sigue exige el token de gestión de la reserva (?token=...). */
-function bookingCode(token: unknown, code: string) {
+async function bookingCode(token: unknown, code: string) {
   try {
     const data = verifyLink<{ code: string; scope: string }>(String(token ?? ""));
     if (data.code !== code || data.scope !== "booking") throw new Error();
   } catch {
     throw AppError.unauthorized("Link inválido o vencido");
   }
+  // El link también vence con el turno: cancelado, a los 2 días; realizado, a los 14 (alcanza para opinar y dejar propina).
+  const a = await Appointment.findOne({ code }, "status completedAt cancellation.at updatedAt").lean();
+  if (!a) return; // pedidos de la tienda: sin esta regla
+  const age = (d?: Date | null) => (d ? Date.now() - new Date(d).getTime() : 0);
+  const DAY = 86_400_000;
+  if ((a.status === "cancelled" || a.status === "no_show") && age(a.cancellation?.at ?? a.updatedAt) > 2 * DAY) throw AppError.unauthorized("Link inválido o vencido");
+  if (a.status === "completed" && age(a.completedAt ?? a.updatedAt) > 14 * DAY) throw AppError.unauthorized("Link inválido o vencido");
 }
 
 publicRouter.get("/bookings/:code", bookingLinkLimiter, async (req, res) => {
-  bookingCode(req.query.token, String(req.params.code));
+  await bookingCode(req.query.token, String(req.params.code));
   const a = await Appointment.findOne({ code: req.params.code }).populate("location service barber", "name address durationMin whatsapp").lean({ virtuals: true });
   if (!a) throw AppError.notFound("Turno");
-  const { commission, commissionRule, ...safe } = a as Record<string, unknown>;
-  res.json(safe);
+  // Solo lo que el cliente necesita (sin comisión, quién lo cargó, pagos internos ni rutas de archivos).
+  const d = (a.deposit ?? {}) as { required?: number; paid?: number; rejectedReason?: string };
+  res.json({
+    _id: a._id,
+    code: a.code,
+    status: a.status,
+    startsAt: a.startsAt,
+    endsAt: a.endsAt,
+    service: a.service,
+    barber: a.barber,
+    location: a.location,
+    price: a.price,
+    discount: a.discount,
+    discountReason: a.discountReason,
+    total: a.total,
+    deposit: { required: d.required, paid: d.paid, rejectedReason: d.rejectedReason },
+    holdExpiresAt: a.holdExpiresAt,
+    notes: a.notes,
+    cancellation: a.cancellation ? { by: a.cancellation.by, at: a.cancellation.at, depositRetained: a.cancellation.depositRetained } : undefined,
+    pendingAmount: (a as { pendingAmount?: number }).pendingAmount,
+  });
 });
 
 publicRouter.post("/bookings/:code/receipt", publicWriteLimiter, uploadReceipt.single("receipt"), async (req, res) => {
-  bookingCode(req.query.token, String(req.params.code));
+  await bookingCode(req.query.token, String(req.params.code));
   const file = await saveReceipt(req.file);
   const a = await appointments.attachReceipt(String(req.params.code), file);
   res.json({ status: a.status });
 });
 
 publicRouter.get("/bookings/:code/whatsapp", bookingLinkLimiter, async (req, res) => {
-  bookingCode(req.query.token, String(req.params.code));
+  await bookingCode(req.query.token, String(req.params.code));
   const a = await Appointment.findOne({ code: req.params.code });
   if (!a) throw AppError.notFound("Turno");
   res.json(await appointments.whatsappFor(a._id));
 });
 
 publicRouter.post("/bookings/:code/cancel", bookingLinkLimiter, async (req, res) => {
-  bookingCode(req.query.token, String(req.params.code));
+  await bookingCode(req.query.token, String(req.params.code));
   const a = await Appointment.findOne({ code: req.params.code });
   if (!a) throw AppError.notFound("Turno");
   const r = await appointments.cancel(String(a._id), { by: "client", reason: String(req.body?.reason ?? "Cancelado por el cliente") });
@@ -204,7 +230,7 @@ publicRouter.post("/bookings/:code/cancel", bookingLinkLimiter, async (req, res)
 });
 
 publicRouter.post("/bookings/:code/reschedule", bookingLinkLimiter, validate({ body: z.object({ date, time }) }), async (req, res) => {
-  bookingCode(req.query.token, String(req.params.code));
+  await bookingCode(req.query.token, String(req.params.code));
   const a = await Appointment.findOne({ code: req.params.code });
   if (!a) throw AppError.notFound("Turno");
   const s = await getSettings();
@@ -217,7 +243,7 @@ publicRouter.post("/bookings/:code/reschedule", bookingLinkLimiter, validate({ b
 
 /** Descarga del calendario (.ics) para agregar el turno a Google / Apple Calendar. */
 publicRouter.get("/bookings/:code/calendar.ics", bookingLinkLimiter, async (req, res) => {
-  bookingCode(req.query.token, String(req.params.code));
+  await bookingCode(req.query.token, String(req.params.code));
   const a = await Appointment.findOne({ code: req.params.code }).populate("location service barber");
   if (!a) throw AppError.notFound("Turno");
   const fmt = (d: Date) => d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
@@ -271,14 +297,14 @@ publicRouter.post(
 );
 
 publicRouter.post("/orders/:code/receipt", publicWriteLimiter, uploadReceipt.single("receipt"), async (req, res) => {
-  bookingCode(req.query.token, String(req.params.code));
+  await bookingCode(req.query.token, String(req.params.code));
   const file = await saveReceipt(req.file);
   const o = await orders.attachOrderReceipt(String(req.params.code), file);
   res.json({ status: o.status });
 });
 
 publicRouter.get("/orders/:code/whatsapp", async (req, res) => {
-  bookingCode(req.query.token, String(req.params.code));
+  await bookingCode(req.query.token, String(req.params.code));
   const o = await Order.findOne({ code: req.params.code });
   if (!o) throw AppError.notFound("Pedido");
   res.json(await orders.orderWhatsapp(o._id));
@@ -303,7 +329,7 @@ publicRouter.get("/receipts/:code", bookingLinkLimiter, async (req, res) => {
 
 /* ── Mercado Pago (etapa 2) ── */
 publicRouter.post("/mercadopago/preference", publicWriteLimiter, validate({ body: z.object({ kind: z.enum(["appointment", "order"]), code: z.string(), token: z.string() }) }), async (req, res) => {
-  bookingCode(req.body.token, req.body.code);
+  await bookingCode(req.body.token, req.body.code);
   res.json(await mp.createPreference(req.body.kind, req.body.code));
 });
 
@@ -321,7 +347,7 @@ publicRouter.post(
   publicWriteLimiter,
   validate({ body: z.object({ rating: z.number().int().min(1).max(5), recommend: z.number().int().min(0).max(10).optional(), comment: z.string().trim().max(500).optional() }) }),
   async (req, res) => {
-    bookingCode(req.query.token, String(req.params.code));
+    await bookingCode(req.query.token, String(req.params.code));
     await engagement.createReview(String(req.params.code), req.body);
     res.status(201).json({ ok: true });
   },
@@ -343,7 +369,7 @@ publicRouter.get("/reviews", publicReadLimiter, validate({ query: z.object({ bar
 
 /** Baja de campañas con el mismo link de la reserva. */
 publicRouter.post("/bookings/:code/unsubscribe", publicWriteLimiter, async (req, res) => {
-  bookingCode(req.query.token, String(req.params.code));
+  await bookingCode(req.query.token, String(req.params.code));
   const a = await Appointment.findOne({ code: req.params.code }, "client");
   if (!a) throw AppError.notFound("Turno");
   await engagement.setConsent(a.client, { whatsapp: false, email: false }, "baja-por-link");
@@ -352,7 +378,7 @@ publicRouter.post("/bookings/:code/unsubscribe", publicWriteLimiter, async (req,
 
 /** Propina online (Mercado Pago) para un turno ya realizado. */
 publicRouter.post("/bookings/:code/tip", publicWriteLimiter, validate({ body: z.object({ amount: z.number().int().min(100).max(100_000) }) }), async (req, res) => {
-  bookingCode(req.query.token, String(req.params.code));
+  await bookingCode(req.query.token, String(req.params.code));
   res.json(await mp.createTipPreference(String(req.params.code), req.body.amount));
 });
 
