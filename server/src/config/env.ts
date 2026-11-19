@@ -51,6 +51,7 @@ if (env.NODE_ENV === "production") {
   for (const key of ["MONGO_URI", "CLIENT_URL", "PUBLIC_API_URL"] as const) {
     if (!raw[key]) throw new Error(`${key} debe configurarse en producción`);
   }
+  if (new Set([env.JWT_ACCESS_SECRET, env.JWT_REFRESH_SECRET, env.LINK_SECRET]).size < 3) throw new Error("JWT_ACCESS_SECRET, JWT_REFRESH_SECRET y LINK_SECRET deben ser distintos entre sí");
   for (const key of ["JWT_ACCESS_SECRET", "JWT_REFRESH_SECRET", "LINK_SECRET"] as const) {
     if (env[key].startsWith(DEV_SECRET)) {
       throw new Error(`${key} debe configurarse en producción`);

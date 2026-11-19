@@ -171,6 +171,7 @@ authRouter.get("/me", authenticate, async (req, res) => {
 
 authRouter.post(
   "/change-password",
+  authLimiter,
   authenticate,
   validate({ body: z.object({ current: z.string(), next: z.string().min(8) }) }),
   async (req, res) => {
