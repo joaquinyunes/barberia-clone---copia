@@ -58,6 +58,8 @@ const appointmentSchema = new Schema(
     products: [{ product: { type: Schema.Types.ObjectId, ref: "Product" }, name: String, qty: Number, unitPrice: Number, _id: false }],
     payments: [{ tender: { type: String, enum: TENDER_TYPES }, amount: Number, at: Date, ref: String, _id: false }],
     holdExpiresAt: Date,
+    /** Plazo para que el personal revise un comprobante (12 h): si vence, el horario se libera. */
+    reviewExpiresAt: Date,
     notes: String,
     cancellation: {
       by: { type: String, enum: CANCEL_BY },
@@ -78,6 +80,7 @@ appointmentSchema.index({ barber: 1, startsAt: 1 });
 appointmentSchema.index({ location: 1, startsAt: 1 });
 appointmentSchema.index({ client: 1, startsAt: -1 });
 appointmentSchema.index({ status: 1, holdExpiresAt: 1 });
+appointmentSchema.index({ status: 1, reviewExpiresAt: 1 });
 // Anti doble reserva: un barbero no puede tener dos turnos activos que empiecen a la misma hora.
 appointmentSchema.index(
   { barber: 1, startsAt: 1 },

@@ -142,6 +142,9 @@ export interface BookingInput {
   holdMinutes?: number;
 }
 
+/** Reservas abiertas (sin seña confirmada) que puede tener una misma persona. */
+const MAX_OPEN_UNPAID = 3;
+
 /** Un solo turno a la vez por sede: la lectura de disponibilidad y la escritura no se pisan. */
 export const createBooking = (input: BookingInput, actor?: Actor) =>
   withLock(`loc:${input.location}`, () => createBookingUnlocked(input, actor));
@@ -178,6 +181,12 @@ async function createBookingUnlocked(input: BookingInput, actor?: Actor) {
   });
   const startsAt = toBusinessDate(input.date, input.time);
   const endsAt = new Date(startsAt.getTime() + service.durationMin * 60_000);
+
+  // Tope de reservas abiertas sin pagar por persona (si no, alguien puede dejar bloqueada la agenda con reservas falsas).
+  if ((input.source ?? "web") === "web") {
+    const open = await Appointment.countDocuments({ client: client._id, status: { $in: ["pending_payment", "payment_review"] }, endsAt: { $gt: new Date() } });
+    if (open >= MAX_OPEN_UNPAID) throw AppError.conflict(`Ya tenés ${MAX_OPEN_UNPAID} reservas pendientes de pago. Pagá o cancelá una antes de reservar otra.`);
+  }
 
   // Descuentos: el mejor entre promo (código o automática), nivel del cliente y referido en 1.ª visita.
   let discount = 0;
@@ -252,30 +261,23 @@ export async function populated(id: unknown) {
   return appt;
 }
 
+/** Horas que tiene el personal para revisar un comprobante antes de que el horario se libere. */
+const REVIEW_HOURS = 12;
+
 export async function attachReceipt(code: string, file: { path: string; mime: string }) {
   const appt = await Appointment.findOne({ code });
   if (!appt) throw AppError.notFound("Turno");
-  if (!["pending_payment", "payment_review", "cancelled"].includes(appt.status)) throw AppError.conflict("Este turno ya no admite comprobantes");
-  if (appt.status === "cancelled") {
-    if (appt.cancellation?.by !== "system") throw AppError.conflict("El turno fue cancelado");
-    // venció la reserva pero pagó igual: se reactiva si el horario sigue libre
-    // Cualquier turno que se superponga, no solo el que empieza a la misma hora.
-    const clash = await Appointment.exists({
-      _id: { $ne: appt._id },
-      barber: appt.barber,
-      startsAt: { $lt: appt.endsAt },
-      endsAt: { $gt: appt.startsAt },
-      status: { $in: BLOCKING_STATUSES },
-    });
-    if (clash) throw AppError.conflict("El horario fue tomado por otra persona. Contactanos por WhatsApp para reprogramar con tu seña.");
-    appt.cancellation = undefined as never;
-  }
+  // Un turno que venció o se canceló NO se revive subiendo un comprobante (se podía usar para recuperar un horario ya entregado a otra persona).
+  if (appt.status === "cancelled") throw AppError.conflict("La reserva venció o fue cancelada. Reservá de nuevo; si ya pagaste, escribinos por WhatsApp.");
+  if (!["pending_payment", "payment_review"].includes(appt.status)) throw AppError.conflict("Este turno ya no admite comprobantes");
   appt.deposit.receiptPath = file.path;
   appt.deposit.receiptMime = file.mime;
   appt.deposit.uploadedAt = new Date();
   appt.deposit.method = "transfer";
   appt.status = "payment_review";
   appt.holdExpiresAt = undefined;
+  // El plazo corre desde el PRIMER comprobante: volver a subir no lo estira.
+  appt.reviewExpiresAt ??= new Date(Date.now() + REVIEW_HOURS * 3_600_000);
   await appt.save();
   return appt;
 }
@@ -550,5 +552,7 @@ async function rescheduleUnlocked(id: string, input: { date: string; time: strin
 export async function expireHolds() {
   const expired = await Appointment.find({ status: "pending_payment", holdExpiresAt: { $lt: new Date() } }, "_id");
   for (const a of expired) await cancel(String(a._id), { by: "system", reason: "Seña no abonada a tiempo" });
-  return expired.length;
+  const unreviewed = await Appointment.find({ status: "payment_review", reviewExpiresAt: { $lt: new Date() } }, "_id");
+  for (const a of unreviewed) await cancel(String(a._id), { by: "system", reason: `Comprobante sin revisar en ${REVIEW_HOURS} h` }).catch((err) => logger.warn({ err }, "no se pudo vencer un comprobante"));
+  return expired.length + unreviewed.length;
 }

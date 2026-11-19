@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { validate } from "../../middlewares/validate.js";
-import { bookingLinkLimiter, publicReadLimiter, publicWriteLimiter, webhookLimiter } from "../../middlewares/rateLimiters.js";
+import { bookingCreateLimiter, bookingLinkLimiter, publicReadLimiter, publicWriteLimiter, webhookLimiter } from "../../middlewares/rateLimiters.js";
 import { AppError } from "../../lib/AppError.js";
 import { readStored, saveReceipt, uploadReceipt } from "../../lib/storage.js";
 import { verifyLink } from "../../lib/tokens.js";
@@ -100,6 +100,7 @@ publicRouter.post(
 publicRouter.post(
   "/bookings",
   publicWriteLimiter,
+  bookingCreateLimiter,
   validate({
     body: z.object({
       location: objectId,

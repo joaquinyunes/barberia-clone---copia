@@ -8,6 +8,8 @@ export const authLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 20, skip, s
 export const publicWriteLimiter = rateLimit({ windowMs: 10 * 60_000, limit: 30, skip, standardHeaders: true, legacyHeaders: false });
 
 const base = { skip, standardHeaders: true, legacyHeaders: false } as const;
+/** Crear reservas: 10 por hora y por IP (cada una ocupa un horario hasta que se paga o vence). */
+export const bookingCreateLimiter = rateLimit({ windowMs: 60 * 60_000, limit: 10, ...base });
 /** Fichaje con PIN (sin sesión): pocos intentos por IP; además hay bloqueo por barbero. */
 export const kioskLimiter = rateLimit({ windowMs: 15 * 60_000, limit: 10, ...base });
 /** Mercado Pago reintenta, pero 300 por minuto desde una IP no es tráfico legítimo. */
