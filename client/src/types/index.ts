@@ -114,6 +114,7 @@ export interface Appointment {
   code: string;
   status: string;
   startsAt: string;
+  holdExpiresAt?: string;
   endsAt: string;
   price: number;
   discount: number;

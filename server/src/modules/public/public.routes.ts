@@ -222,6 +222,13 @@ publicRouter.get("/bookings/:code/whatsapp", bookingLinkLimiter, async (req, res
   res.json(await appointments.whatsappFor(a._id));
 });
 
+/** Confirmar un turno retenido sin seña (oferta de la lista de espera). */
+publicRouter.post("/bookings/:code/confirm", bookingLinkLimiter, async (req, res) => {
+  await bookingCode(req.query.token, String(req.params.code));
+  const a = await appointments.confirmHeld(String(req.params.code));
+  res.json({ status: a.status });
+});
+
 publicRouter.post("/bookings/:code/cancel", bookingLinkLimiter, async (req, res) => {
   await bookingCode(req.query.token, String(req.params.code));
   const a = await Appointment.findOne({ code: req.params.code });

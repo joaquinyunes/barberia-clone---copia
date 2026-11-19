@@ -28,6 +28,8 @@ export async function join(input: JoinInput) {
   if (av.slots.length) throw AppError.conflict("Ese día todavía hay horarios libres: reservá directamente.");
 
   const { client } = await clients.findOrCreate({ ...input.customer, source: "web" });
+  // Tope por persona: si no, se puede anotar un celular ajeno en muchas esperas para llenarlo de avisos.
+  if (await WaitlistEntry.countDocuments({ client: client._id, status: "waiting" }) >= 3) throw AppError.conflict("Ya estás anotado en 3 listas de espera. Esperá a que se libere alguna.");
   const barber = input.barber === "any" ? undefined : input.barber;
   const entry =
     (await WaitlistEntry.findOne({ client: client._id, location: input.location, service: input.service, date: input.date, barber: barber ?? null, status: "waiting" })) ??
@@ -72,9 +74,10 @@ export async function onSlotFreed(appt: { _id: Types.ObjectId; location: Types.O
         customer: { name: entry.client.name, phone: entry.client.phone },
         source: "web",
         holdMinutes: settings.waitlistOfferMinutes,
+        requireConfirmation: true, // se ofrece, no se reserva a ciegas: la persona lo confirma
       });
       const a = r.appointment;
-      entry.status = a.status === "confirmed" ? "booked" : "offered";
+      entry.status = "offered";
       entry.appointment = a._id;
       entry.offeredAt = new Date();
       await entry.save();

@@ -89,6 +89,14 @@ export default function BookingManagePage() {
     },
     onError: (e) => toast.error(errorMessage(e)),
   });
+  const confirm = useMutation({
+    mutationFn: () => bookingApi.confirm(code, token),
+    onSuccess: () => {
+      toast.success("¡Turno confirmado!");
+      qc.invalidateQueries({ queryKey: ["booking", code] });
+    },
+    onError: (e) => toast.error(errorMessage(e)),
+  });
   const slots = useQuery({
     queryKey: ["availability-manage", code, newDate],
     queryFn: () => bookingApi.availability({ location: data!.location._id, service: data!.service._id, date: newDate!, barber: data!.barber._id }),
@@ -141,6 +149,12 @@ export default function BookingManagePage() {
           <Card className={styles.card} title="Completá la seña">
             {data.deposit.rejectedReason && <p className={styles.rejected}>El comprobante anterior fue rechazado: {data.deposit.rejectedReason}</p>}
             <PaymentPanel kind="bookings" code={code} token={token} amount={data.deposit.required} bank={{ alias: (data.location as { bankAlias?: string }).bankAlias }} onDone={() => qc.invalidateQueries({ queryKey: ["booking", code] })} />
+          </Card>
+        )}
+        {data.status === "pending_payment" && data.deposit.required === 0 && (
+          <Card className={styles.card} title="Confirmá tu turno">
+            <p>Te guardamos este horario{data.holdExpiresAt ? ` hasta las ${time(data.holdExpiresAt)} h` : ""}. Confirmalo para que quede reservado; si no, se libera para otra persona.</p>
+            <Button loading={confirm.isPending} onClick={() => confirm.mutate()}>Confirmar mi turno</Button>
           </Card>
         )}
         {data.status === "payment_review" && (

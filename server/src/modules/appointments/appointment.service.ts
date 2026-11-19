@@ -138,12 +138,25 @@ export interface BookingInput {
   marketingConsent?: boolean;
   source?: "web" | "admin" | "walkin" | "whatsapp";
   skipDeposit?: boolean;
+  /** El turno queda retenido (pending_payment con vencimiento) aunque no haya seña, hasta que la persona lo confirme. Lo usa la lista de espera. */
+  requireConfirmation?: boolean;
   /** Minutos que se guarda el horario esperando la seña (por defecto, el de la configuración). */
   holdMinutes?: number;
 }
 
 /** Reservas abiertas (sin seña confirmada) que puede tener una misma persona. */
 const MAX_OPEN_UNPAID = 3;
+
+/** Confirmación explícita de un turno retenido sin seña (oferta de la lista de espera). Atómica y solo mientras la retención siga vigente. */
+export async function confirmHeld(code: string) {
+  const appt = await Appointment.findOne({ code });
+  if (!appt) throw AppError.notFound("Turno");
+  if ((appt.deposit?.required ?? 0) > 0) throw AppError.conflict("Este turno necesita la seña para confirmarse.");
+  const done = await Appointment.findOneAndUpdate({ _id: appt._id, status: "pending_payment", "deposit.required": 0, holdExpiresAt: { $gt: new Date() } }, { status: "confirmed", $unset: { holdExpiresAt: 1 } }, { new: true });
+  if (!done) throw AppError.conflict("El turno ya no está disponible para confirmar (venció la reserva o ya estaba confirmado).");
+  await waitlist.markBooked(done._id);
+  return done;
+}
 
 /** Un solo turno a la vez por sede: la lectura de disponibilidad y la escritura no se pisan. */
 export const createBooking = (input: BookingInput, actor?: Actor) =>
@@ -236,7 +249,7 @@ async function createBookingUnlocked(input: BookingInput, actor?: Actor) {
       client: client._id,
       startsAt,
       endsAt,
-      status: depositRequired > 0 ? "pending_payment" : "confirmed",
+      status: depositRequired > 0 || input.requireConfirmation ? "pending_payment" : "confirmed",
       source: input.source ?? "web",
       price: service.price,
       discount,
@@ -244,7 +257,7 @@ async function createBookingUnlocked(input: BookingInput, actor?: Actor) {
       promo,
       total,
       deposit: { required: depositRequired },
-      holdExpiresAt: depositRequired > 0 ? new Date(Date.now() + (input.holdMinutes ?? settings.holdMinutes) * 60_000) : undefined,
+      holdExpiresAt: depositRequired > 0 || input.requireConfirmation ? new Date(Date.now() + (input.holdMinutes ?? settings.holdMinutes) * 60_000) : undefined,
       notes: input.notes,
       createdBy: actor?.name ?? "Web",
     });
