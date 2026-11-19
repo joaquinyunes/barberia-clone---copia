@@ -3,7 +3,7 @@ import request from "supertest";
 import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Mercado Pago "responde" lo que cada test dicta: nunca se llama a la red.
-const mp = vi.hoisted(() => ({ payments: new Map<string, Record<string, unknown>>() }));
+const mp = vi.hoisted(() => ({ payments: new Map<string, Record<string, unknown>>(), prefs: [] as Record<string, unknown>[] }));
 vi.mock("mercadopago", () => ({
   MercadoPagoConfig: class {},
   Payment: class {
@@ -14,13 +14,17 @@ vi.mock("mercadopago", () => ({
     };
   },
   Preference: class {
-    create = async () => ({ init_point: "https://sandbox.mercadopago.test/checkout", id: "pref-1" });
+    create = async ({ body }: { body: Record<string, unknown> }) => {
+      mp.prefs.push(body);
+      return { init_point: "https://sandbox.mercadopago.test/checkout", id: "pref-1" };
+    };
   },
 }));
 
 import { Appointment } from "../src/modules/appointments/appointment.model.js";
 import { CashMovement } from "../src/modules/cash/cash.model.js";
 import { PaymentEvent } from "../src/modules/payments/paymentEvent.model.js";
+import { AuditLog } from "../src/modules/audit/audit.model.js";
 import { app, nextWeekday, seedBase } from "./fixtures.js";
 
 const SECRET = process.env.MP_WEBHOOK_SECRET!;
@@ -46,7 +50,10 @@ beforeAll(async () => {
   expect(process.env.MP_WEBHOOK_SECRET).toBeTruthy();
   ctx = await seedBase();
 });
-beforeEach(() => mp.payments.clear());
+beforeEach(() => {
+  mp.payments.clear();
+  mp.prefs.length = 0;
+});
 
 describe("Mercado Pago: preferencia", () => {
   it("crea la preferencia de la seña con un link válido y no cobra turnos ya confirmados", async () => {
@@ -58,6 +65,19 @@ describe("Mercado Pago: preferencia", () => {
     expect((await webhook("pay-pref")).status).toBe(200);
     const again = await request(app).post("/api/v1/public/mercadopago/preference").send({ kind: "appointment", code: b.code, token: b.token });
     expect(again.status).toBe(409);
+  });
+
+  it("el link de pago vence junto con la reserva: no se puede pagar una seña después de que el horario se liberó", async () => {
+    const b = await newBooking();
+    await request(app).post("/api/v1/public/mercadopago/preference").send({ kind: "appointment", code: b.code, token: b.token });
+    const body = mp.prefs.at(-1)!;
+    const appt = await Appointment.findOne({ code: b.code });
+    expect(body.expires).toBe(true);
+    expect(new Date(String(body.expiration_date_to)).getTime()).toBe(appt!.holdExpiresAt!.getTime());
+    // si la reserva ya venció no se genera ningún link
+    await Appointment.updateOne({ code: b.code }, { holdExpiresAt: new Date(Date.now() - 1000) });
+    const late = await request(app).post("/api/v1/public/mercadopago/preference").send({ kind: "appointment", code: b.code, token: b.token });
+    expect(late.status).toBe(409);
   });
 
   it("rechaza un token de otra reserva", async () => {
@@ -154,6 +174,22 @@ describe("Mercado Pago: webhook (S6)", () => {
     await PaymentEvent.collection.updateOne({ paymentId: "pay-stuck" }, { $set: { updatedAt: new Date(Date.now() - 10 * 60_000) } });
     expect((await webhook("pay-stuck")).body.handled).toBe(true);
     expect((await Appointment.findOne({ code: b.code }))!.status).toBe("confirmed");
+  });
+
+  it("un pago devuelto o con contracargo se registra para revisar (una sola vez) y no mueve la caja", async () => {
+    const b = await newBooking();
+    approved("pay-ok", b.code, b.deposit);
+    expect((await webhook("pay-ok")).body.handled).toBe(true);
+    const cajaAntes = await CashMovement.countDocuments({ concept: `Seña ${b.code}` });
+    for (const status of ["refunded", "charged_back"]) {
+      mp.payments.set("pay-ok", { id: "pay-ok", status, external_reference: `appointment:${b.code}`, transaction_amount: b.deposit });
+      const r = await webhook("pay-ok");
+      expect(r.status).toBe(200);
+      expect(r.body.outcome).toBe("needs_review");
+      expect((await webhook("pay-ok")).body.duplicate).toBe(true); // el aviso repetido no duplica la alerta
+    }
+    expect(await AuditLog.countDocuments({ summary: /pay-ok.*(devuelto|contracargo)/ })).toBe(2);
+    expect(await CashMovement.countDocuments({ concept: `Seña ${b.code}` })).toBe(cajaAntes);
   });
 
   it("avisos que no son de pago se ignoran sin consultar nada", async () => {

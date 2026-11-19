@@ -34,9 +34,13 @@ export async function createPreference(kind: "appointment" | "order", code: stri
   if (!["pending_payment", "payment_review"].includes((doc as any).status)) throw AppError.conflict("Este pedido o turno ya no admite pago");
   const amount = kind === "appointment" ? (doc as any).deposit.required : (doc as any).total;
   if (!(amount > 0)) throw AppError.badRequest("No hay nada para cobrar online");
+  // El link vence junto con la reserva: pagar después de que el horario se liberó genera plata cobrada sin turno.
+  const expiresAt = kind === "appointment" && (doc as any).status === "pending_payment" ? ((doc as any).holdExpiresAt as Date | undefined) : undefined;
+  if (kind === "appointment" && (doc as any).status === "pending_payment" && (!expiresAt || expiresAt.getTime() <= Date.now())) throw AppError.conflict("La reserva venció. Reservá de nuevo.");
   const title = kind === "appointment" ? `Seña turno ${code}` : `Pedido ${code}`;
   const pref = await new Preference(client()).create({
     body: {
+      ...(expiresAt ? { expires: true, expiration_date_to: expiresAt.toISOString() } : {}),
       items: [{ id: code, title, quantity: 1, unit_price: amount, currency_id: "ARS" }],
       external_reference: `${kind}:${code}`,
       back_urls: {
@@ -121,6 +125,20 @@ export async function handleSubscription(preapprovalId: string) {
   return { handled: false, status: sub.status };
 }
 
+/** Pago devuelto o con contracargo: no se mueve plata sola, se deja una alerta para que el personal revise (idempotente por pago+estado). */
+async function handleReversal(id: string, payment: { status?: string; external_reference?: string; transaction_amount?: number }) {
+  const key = `${id}:${payment.status}`;
+  try {
+    await PaymentEvent.create({ paymentId: key, outcome: "needs_review", detail: String(payment.status) });
+  } catch (err) {
+    if ((err as { code?: number }).code === 11000) return { handled: false, duplicate: true, status: payment.status };
+    throw err;
+  }
+  const label = payment.status === "charged_back" ? "con contracargo" : "devuelto";
+  await audit({ name: "Mercado Pago" }, { action: "custom", entity: "Pago", entityId: id, summary: `El pago ${id} (${payment.external_reference}) fue ${label} por $${payment.transaction_amount ?? "?"}: revisar la caja y el turno/pedido/membresía a mano` });
+  return { handled: false, status: payment.status, outcome: "needs_review" as const };
+}
+
 /** Pausa, reactiva o cancela la suscripción en Mercado Pago (sin esto seguiría cobrando aunque la membresía figure cancelada). */
 export async function setSubscriptionStatus(preapprovalId: string, status: "active" | "paused" | "cancelled") {
   try {
@@ -154,6 +172,7 @@ export function verifySignature(headers: Record<string, string | string[] | unde
 export async function handleNotification(paymentId: string) {
   const payment = await new Payment(client()).get({ id: paymentId });
   const id = String(payment.id ?? paymentId);
+  if (["refunded", "charged_back"].includes(String(payment.status)) && payment.external_reference) return handleReversal(id, payment);
   if (payment.status !== "approved" || !payment.external_reference) return { handled: false, status: payment.status };
 
   try {
