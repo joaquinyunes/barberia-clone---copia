@@ -9,6 +9,7 @@ import { formatARS } from "../../lib/money.js";
 import { audit } from "../audit/audit.service.js";
 import { PAYMENT_METHODS, TENDER_TYPES } from "../settings/settings.model.js";
 import { Appointment, APPOINTMENT_STATUSES } from "./appointment.model.js";
+import { importAgenda } from "./agendaImport.js";
 import * as svc from "./appointment.service.js";
 
 const objectId = z.string().regex(/^[a-f\d]{24}$/i, "ID inválido");
@@ -25,6 +26,13 @@ async function scoped(req: Parameters<Parameters<typeof appointmentsRouter.get>[
   if (!hasPermission(req, "appointments.manage") && String(appt.barber) !== String(req.user?.barber)) throw AppError.forbidden();
   return appt;
 }
+
+/** Importar los turnos futuros de la herramienta anterior (CSV). */
+appointmentsRouter.post("/import", authorize("appointments.manage"), validate({ body: z.object({ csv: z.string().min(10).max(900_000) }) }), async (req, res) => {
+  const result = await importAgenda(req.body.csv, req.user!);
+  await audit(req, { action: "create", entity: "Turno", summary: `importó turnos por CSV (${result.created} nuevos, ${result.invalid.length} con error)` });
+  res.json(result);
+});
 
 appointmentsRouter.get("/", async (req, res) => {
   const q = req.query as Record<string, string>;

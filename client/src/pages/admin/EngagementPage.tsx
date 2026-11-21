@@ -66,19 +66,19 @@ function ReviewsTab() {
   );
 }
 
-interface ImportResult { created: number; skipped: number; invalid: { line: number; reason: string }[] }
+interface ImportResult { created: number; skipped?: number; invalid: { line: number; reason: string }[] }
 
-/** Trae los clientes de la herramienta anterior: CSV con columnas nombre, teléfono y email. */
-function ImportTab() {
+/** Subida de un CSV de la herramienta anterior y resultado fila por fila. */
+function CsvCard({ title, help, path }: { title: string; help: React.ReactNode; path: string }) {
   const [result, setResult] = useState<ImportResult>();
-  const run = useAdminAction((csv: string) => adminApi.post<ImportResult>("clients/import", { csv }), { success: "Importación terminada", onSuccess: setResult });
+  const run = useAdminAction((csv: string) => adminApi.post<ImportResult>(path, { csv }), { success: "Importación terminada", onSuccess: setResult });
   return (
-    <Card tone="light" title="Importar clientes desde un CSV">
-      <p>Exportá tus clientes de la herramienta anterior a CSV con las columnas <strong>nombre</strong>, <strong>teléfono</strong> y <strong>email</strong> (en cualquier orden). Los que ya existen por teléfono no se pisan. Los importados <strong>no</strong> quedan con permiso para recibir campañas.</p>
+    <Card tone="light" title={title}>
+      <p>{help}</p>
       <input
         type="file"
         accept=".csv,text/csv"
-        aria-label="Archivo CSV de clientes"
+        aria-label={title}
         onChange={async (e) => {
           const file = e.target.files?.[0];
           if (file) run.mutate(await file.text());
@@ -88,10 +88,28 @@ function ImportTab() {
       {run.isPending && <p>Importando…</p>}
       {result && (
         <div role="status">
-          <p><strong>{result.created}</strong> clientes nuevos · <strong>{result.skipped}</strong> ya existían · <strong>{result.invalid.length}</strong> filas con error</p>
+          <p><strong>{result.created}</strong> nuevos{result.skipped !== undefined ? <> · <strong>{result.skipped}</strong> ya existían</> : null} · <strong>{result.invalid.length}</strong> filas con error</p>
           {result.invalid.length > 0 && <ul>{result.invalid.map((i) => <li key={i.line}>Fila {i.line}: {i.reason}</li>)}</ul>}
         </div>
       )}
     </Card>
+  );
+}
+
+/** Trae clientes y agenda de la herramienta anterior. */
+function ImportTab() {
+  return (
+    <>
+      <CsvCard
+        title="Importar clientes desde un CSV"
+        path="clients/import"
+        help={<>Columnas <strong>nombre</strong>, <strong>teléfono</strong> y <strong>email</strong> (en cualquier orden). Los que ya existen por teléfono no se pisan y los importados <strong>no</strong> quedan con permiso para recibir campañas.</>}
+      />
+      <CsvCard
+        title="Importar la agenda (turnos futuros) desde un CSV"
+        path="appointments/import"
+        help={<>Columnas <strong>fecha</strong> (AAAA-MM-DD o DD/MM/AAAA), <strong>hora</strong> (HH:MM), <strong>nombre</strong>, <strong>teléfono</strong>, <strong>servicio</strong> y <strong>barbero</strong> (con los nombres tal como figuran acá). Entran confirmados y sin seña, respetando horarios y la regla de doble reserva. El historial de turnos pasados no se importa.</>}
+      />
+    </>
   );
 }
