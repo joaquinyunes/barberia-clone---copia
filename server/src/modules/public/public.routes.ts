@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
+import { env } from "../../config/env.js";
 import { validate } from "../../middlewares/validate.js";
 import { bookingCreateLimiter, bookingLinkLimiter, promoLimiter, publicReadLimiter, publicWriteLimiter, webhookLimiter } from "../../middlewares/rateLimiters.js";
 import { AppError } from "../../lib/AppError.js";
@@ -32,7 +33,7 @@ const time = z.string().regex(/^\d{2}:\d{2}$/);
 publicRouter.get("/site", async (_req, res) => {
   const s = await getSettings();
   const mpOn = mp.mpEnabled();
-  res.json({ businessName: s.businessName, whatsapp: s.whatsappMain, cancellationHours: s.cancellationHours, holdMinutes: s.holdMinutes, mercadoPago: mpOn, referredDiscountPct: s.referredDiscountPct });
+  res.json({ demo: env.DEMO_MODE, businessName: s.businessName, whatsapp: s.whatsappMain, cancellationHours: s.cancellationHours, holdMinutes: s.holdMinutes, mercadoPago: mpOn, referredDiscountPct: s.referredDiscountPct });
 });
 
 publicRouter.get("/locations", async (_req, res) => {
@@ -343,6 +344,7 @@ publicRouter.post("/mercadopago/preference", publicWriteLimiter, validate({ body
 });
 
 publicRouter.post("/mercadopago/webhook", webhookLimiter, async (req, res) => {
+  if (env.DEMO_MODE) return res.status(200).json({ ignored: true, demo: true }); // la demo no procesa pagos
   const dataId = String(req.query["data.id"] ?? req.body?.data?.id ?? "");
   const type = String(req.query.type ?? req.body?.type ?? "");
   if (!["payment", "subscription_preapproval"].includes(type) || !dataId) return res.status(200).json({ ignored: true });

@@ -7,6 +7,7 @@ export interface SiteInfo {
   cancellationHours: number;
   holdMinutes: number;
   mercadoPago: boolean;
+  demo?: boolean;
   referredDiscountPct: number;
 }
 

@@ -1,3 +1,4 @@
+import { env } from "../../config/env.js";
 import { logger } from "../logger.js";
 
 export interface OutgoingMessage {
@@ -26,4 +27,5 @@ let current: Notifier = logNotifier;
 export const setNotifier = (n: Notifier) => {
   current = n;
 };
-export const notify = (m: OutgoingMessage) => current.send(m);
+/** En DEMO nada sale de verdad: se registra en el log y listo. */
+export const notify = (m: OutgoingMessage) => (env.DEMO_MODE ? logNotifier.send(m) : current.send(m));

@@ -16,6 +16,8 @@ const schema = z.object({
   BUSINESS_UTC_OFFSET: z.string().regex(/^[+-]\d{2}:\d{2}$/).default("-03:00"),
   MP_ACCESS_TOKEN: z.string().optional(),
   MP_WEBHOOK_SECRET: z.string().optional(),
+  /** Entorno de DEMO: cartel «DEMO» en el sitio, Mercado Pago apagado y ningún aviso real. Nunca con la base de un cliente. */
+  DEMO_MODE: z.enum(["true", "false"]).optional().transform((v) => v === "true"),
   /** Dónde se guardan los comprobantes: `mongo` (persistente, por defecto en producción) o `disk` (carpeta local; en Render se pierde en cada deploy). */
   STORAGE_DRIVER: z.enum(["disk", "mongo"]).optional(),
   /** Clave propia (32+ caracteres) para cifrar los secretos de 2FA; si falta se deriva de JWT_REFRESH_SECRET. Rotar los JWT no debería invalidar el 2FA: cargarla en producción. */

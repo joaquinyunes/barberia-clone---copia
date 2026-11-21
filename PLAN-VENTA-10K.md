@@ -3,7 +3,7 @@ Leé primero `..\PLAN-VENTA-10K.md` (veredicto, paquetes **S** y **V**). Trabajo
 
 **Frase de venta (a validar):** «Turnos online para barberías: lista de espera, recordatorios, comisiones por barbero, membresías y gift cards, sin pagar una cuota por barbero.» Competidor: AgendaPro (precio vigente tomado de agendapro.com/ar/planes el 08/11/2026, ver [docs/COSTO-3-ANIOS.md](docs/COSTO-3-ANIOS.md)).
 
-> **Lo que dice la tabla de costos (sin maquillar):** a 3 años, AgendaPro cuesta ≈ USD 340–550 con 3 barberos y ≈ USD 4.400 con 8; este sistema cuesta USD 6.740 (Instalación + Mensual) o USD 12.880 (Completo). **Por ahorro no se vende**; se vende por datos y código propios, integraciones locales y cuota que no crece por barbero. El USD 10.000 solo se justifica para cadenas (≈ 26 barberos contra el Completo, ≈ 13 con Instalación + Mensual) y hay que validarlo con un comprador real.
+> **Lo que dice la tabla de costos (sin maquillar):** a 3 años, AgendaPro (precios del 20/11/2026) cuesta ≈ USD 575–1.040 con 3 barberos y ≈ USD 1.500–1.960 con 8 (Básico/Premium); este sistema cuesta USD 6.740 (Instalación + Mensual) o USD 12.880 (Completo). **Por ahorro no se vende**; se vende por datos y código propios, integraciones locales y cuota que no crece por barbero. El USD 10.000 solo se justifica para cadenas (≈ 26 barberos contra el Completo, ≈ 13 con Instalación + Mensual) y hay que validarlo con un comprador real.
 
 ## Verificación real (corrida el 08/11/2026, Node 24, Mongo 8.2 local)
 | Chequeo | Resultado |

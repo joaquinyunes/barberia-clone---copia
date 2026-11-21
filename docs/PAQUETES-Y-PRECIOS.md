@@ -34,4 +34,4 @@ Todo lo anterior más:
 | Mensual | por mes y por sede | USD 90 – 120 |
 | Completo | una vez (incluye 12 meses de Mensual) | ≈ USD 10.000 |
 
-El Completo vale la pena frente a una suscripción solo para **cadenas o varias sedes (≈ 13 o más barberos con Instalación + Mensual; ≈ 26 o más contra el Completo)**.
+Contra AgendaPro (precios leídos el 20/11/2026) **ninguno de los tres paquetes ahorra dinero**: Instalación + Mensual iguala a su plan Premium recién con ≈ 29–31 barberos y el Completo con ≈ 56 ([COSTO-3-ANIOS.md](COSTO-3-ANIOS.md)). Se vende por propiedad de los datos y el código, integraciones con las cuentas del cliente y cero cuota por barbero, y eso hay que validarlo con un comprador real.

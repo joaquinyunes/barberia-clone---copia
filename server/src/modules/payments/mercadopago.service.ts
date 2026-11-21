@@ -23,11 +23,11 @@ import { Types } from "mongoose";
  * Queda listo para activarse cargando MP_ACCESS_TOKEN y MP_WEBHOOK_SECRET.
  */
 const client = () => {
-  if (!env.MP_ACCESS_TOKEN) throw new AppError(503, "Mercado Pago todavía no está configurado", "MP_DISABLED");
+  if (env.DEMO_MODE || !env.MP_ACCESS_TOKEN) throw new AppError(503, "Mercado Pago todavía no está configurado", "MP_DISABLED");
   return new MercadoPagoConfig({ accessToken: env.MP_ACCESS_TOKEN });
 };
 
-export const mpEnabled = () => !!env.MP_ACCESS_TOKEN;
+export const mpEnabled = () => !env.DEMO_MODE && !!env.MP_ACCESS_TOKEN;
 
 export async function createPreference(kind: "appointment" | "order", code: string) {
   const doc = kind === "appointment" ? await Appointment.findOne({ code }) : await Order.findOne({ code });

@@ -2,6 +2,7 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { AppProviders } from "@/app/providers/AppProviders";
 import { AppRouter } from "@/app/router/AppRouter";
+import { DemoBanner } from "@/components/layout/DemoBanner/DemoBanner";
 import "@/styles/global.css";
 
 // PWA instalable: solo en producción (en desarrollo un service worker confunde al recargar).
@@ -15,6 +16,7 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <AppProviders>
       <AppRouter />
+      <DemoBanner />
     </AppProviders>
   </StrictMode>,
 );
