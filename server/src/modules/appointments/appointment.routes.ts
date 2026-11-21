@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { authenticate } from "../../middlewares/authenticate.js";
-import { authorize, hasPermission } from "../../middlewares/authorize.js";
+import { assertLocation, authorize, hasPermission, locationFilter, locationsOf } from "../../middlewares/authorize.js";
 import { validate } from "../../middlewares/validate.js";
 import { AppError } from "../../lib/AppError.js";
 import { dayRange } from "../../lib/dates.js";
@@ -23,12 +23,14 @@ appointmentsRouter.use(authenticate, authorize("appointments.manage", "appointme
 async function scoped(req: Parameters<Parameters<typeof appointmentsRouter.get>[1]>[0], id: string) {
   const appt = await Appointment.findById(id);
   if (!appt) throw AppError.notFound("Turno");
+  assertLocation(req, appt.location); // quien está limitado a una sede no toca turnos de otra
   if (!hasPermission(req, "appointments.manage") && String(appt.barber) !== String(req.user?.barber)) throw AppError.forbidden();
   return appt;
 }
 
 /** Importar los turnos futuros de la herramienta anterior (CSV). */
 appointmentsRouter.post("/import", authorize("appointments.manage"), validate({ body: z.object({ csv: z.string().min(10).max(900_000) }) }), async (req, res) => {
+  if (locationsOf(req)) throw AppError.forbidden("Importar la agenda requiere acceso a todas las sedes");
   const result = await importAgenda(req.body.csv, req.user!);
   await audit(req, { action: "create", entity: "Turno", summary: `importó turnos por CSV (${result.created} nuevos, ${result.invalid.length} con error)` });
   res.json(result);
@@ -39,7 +41,8 @@ appointmentsRouter.get("/", async (req, res) => {
   const filter: Record<string, unknown> = {};
   if (!hasPermission(req, "appointments.manage")) filter.barber = req.user?.barber;
   else if (q.barber) filter.barber = q.barber;
-  if (q.location) filter.location = q.location;
+  const loc = locationFilter(req, q.location);
+  if (loc) filter.location = loc;
   if (q.client) filter.client = q.client;
   if (q.code) filter.code = q.code.toUpperCase();
   if (q.status) filter.status = { $in: q.status.split(",") };
@@ -104,6 +107,7 @@ appointmentsRouter.post(
     }),
   }),
   async (req, res) => {
+    assertLocation(req, req.body.location);
     const r = await svc.createBooking(req.body, req.user);
     await audit(req, { action: "create", entity: "Turno", entityId: r.appointment._id, summary: `agendó turno ${r.appointment.code} para ${r.client.name}` });
     res.status(201).json(r.appointment);
@@ -115,6 +119,7 @@ appointmentsRouter.post(
   authorize("appointments.manage", "cash.manage"),
   validate({ body: z.object({ amount: z.number().min(0).optional(), method: z.enum(PAYMENT_METHODS).optional() }) }),
   async (req, res) => {
+    await scoped(req, String(req.params.id));
     const a = await svc.approveDeposit(String(req.params.id), req.body, req.user!);
     await audit(req, { action: "update", entity: "Turno", entityId: a._id, summary: `aprobó la seña del turno ${a.code} (${formatARS(a.deposit.paid ?? 0)})` });
     res.json(a);
@@ -122,6 +127,7 @@ appointmentsRouter.post(
 );
 
 appointmentsRouter.post("/:id/reject-deposit", authorize("appointments.manage"), validate({ body: z.object({ reason: z.string().min(3) }) }), async (req, res) => {
+  await scoped(req, String(req.params.id));
   const a = await svc.rejectDeposit(String(req.params.id), req.body.reason, req.user!);
   await audit(req, { action: "update", entity: "Turno", entityId: a._id, summary: `rechazó el comprobante del turno ${a.code}: ${req.body.reason}` });
   res.json(a);
@@ -171,6 +177,7 @@ appointmentsRouter.post(
   authorize("appointments.manage"),
   validate({ body: z.object({ date, time, barber: objectId.optional() }) }),
   async (req, res) => {
+    await scoped(req, String(req.params.id));
     const a = await svc.reschedule(String(req.params.id), req.body, req.user);
     await audit(req, { action: "update", entity: "Turno", entityId: a._id, summary: `reprogramó el turno ${a.code}` });
     res.json(a);

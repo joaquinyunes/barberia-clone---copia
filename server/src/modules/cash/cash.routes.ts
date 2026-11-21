@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { authenticate } from "../../middlewares/authenticate.js";
-import { authorize, hasPermission } from "../../middlewares/authorize.js";
+import { assertLocation, authorize, hasPermission, locationFilter } from "../../middlewares/authorize.js";
 import { validate } from "../../middlewares/validate.js";
 import { AppError } from "../../lib/AppError.js";
 import { businessDayString } from "../../lib/dates.js";
@@ -24,6 +24,7 @@ cashRouter.get("/categories", (_req, res) => res.json(CASH_CATEGORIES));
 cashRouter.get("/current", async (req, res) => {
   const location = String(req.query.location ?? "");
   if (!location) throw AppError.badRequest("Indicá la sede");
+  assertLocation(req, location);
   const session = await cash.openSession(location);
   if (!session) return res.json({ session: null });
   const totals = await cash.sessionTotals(session._id);
@@ -33,6 +34,7 @@ cashRouter.get("/current", async (req, res) => {
 });
 
 cashRouter.post("/open", validate({ body: z.object({ location: objectId, openingAmount: z.number().min(0) }) }), async (req, res) => {
+  assertLocation(req, req.body.location);
   const s = await cash.open(req.body.location, req.body.openingAmount, req.user!);
   await audit(req, { action: "create", entity: "Caja", entityId: s._id, summary: `abrió la caja con ${formatARS(req.body.openingAmount)}` });
   res.status(201).json(s);
@@ -51,6 +53,7 @@ cashRouter.post(
     }),
   }),
   async (req, res) => {
+    assertLocation(req, req.body.location);
     const m = await cash.record({ ...req.body, actor: req.user });
     await audit(req, { action: "create", entity: "Caja", entityId: m._id, summary: `${req.body.direction === "in" ? "ingresó" : "retiró"} ${formatARS(req.body.amount)} (${req.body.concept})` });
     res.status(201).json(m);
@@ -63,6 +66,7 @@ cashRouter.post(
   async (req, res) => {
     const session = await CashSession.findById(req.params.id);
     if (!session) throw AppError.notFound("Caja");
+    assertLocation(req, session.location);
     const summary = await dailyClose(businessDayString(session.openedAt), String(session.location));
     const closed = await cash.close(String(req.params.id), req.body.counted, req.user!, { ...req.body, summary });
     const diff = Object.values(closed.difference ?? {}).reduce((a: number, b) => a + (b as number), 0);
@@ -73,10 +77,14 @@ cashRouter.post(
 
 cashRouter.get("/sessions", async (req, res) => {
   const { location } = req.query as Record<string, string>;
-  res.json({ items: await CashSession.find(location ? { location } : {}).populate("location", "name").sort({ openedAt: -1 }).limit(60).lean() });
+  const loc = locationFilter(req, location);
+  res.json({ items: await CashSession.find(loc ? { location: loc } : {}).populate("location", "name").sort({ openedAt: -1 }).limit(60).lean() });
 });
 
 cashRouter.get("/sessions/:id", async (req, res) => {
+  const sess = await CashSession.findById(req.params.id, "location");
+  if (!sess) throw AppError.notFound("Caja");
+  assertLocation(req, sess.location);
   const totals = await cash.sessionTotals(String(req.params.id));
   res.json(totals);
 });
@@ -84,7 +92,8 @@ cashRouter.get("/sessions/:id", async (req, res) => {
 cashRouter.get("/movements", async (req, res) => {
   const q = req.query as Record<string, string>;
   const filter: Record<string, unknown> = {};
-  if (q.location) filter.location = q.location;
+  const loc = locationFilter(req, q.location);
+  if (loc) filter.location = loc;
   if (q.method) filter.method = q.method;
   if (q.category) filter.category = q.category;
   if (q.from || q.to) filter.date = { ...(q.from && { $gte: new Date(q.from) }), ...(q.to && { $lt: new Date(q.to) }) };
