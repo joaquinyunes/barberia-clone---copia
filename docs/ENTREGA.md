@@ -24,7 +24,7 @@ Probado de cero el 08/11/2026 en una base vacía: `npm run provision` tardó **2
 - [ ] Repositorio en la cuenta de GitHub del cliente (o copia entregada) con `main` protegida.
 - [ ] Contraseña del dueño cambiada, 2FA activo, y el código de recuperación guardado por el cliente.
 - [ ] Backup restaurado una vez en una base de prueba con el cliente delante ([BACKUPS.md](BACKUPS.md)).
-- [ ] `security.txt` con el contacto real; política de privacidad y términos publicados (ver [PENDIENTES-USUARIO.md](PENDIENTES-USUARIO.md)).
+- [ ] `security.txt` con el contacto real; política de privacidad y términos publicados (ver [PENDIENTES-DEL-USUARIO.md](PENDIENTES-DEL-USUARIO.md)).
 - [ ] Manuales entregados ([MANUAL-DUENO.md](MANUAL-DUENO.md), [MANUAL-BARBERO.md](MANUAL-BARBERO.md)) y capacitación hecha.
 - [ ] Contrato de mantenimiento firmado (alcance, tiempos de respuesta, qué no incluye).
 

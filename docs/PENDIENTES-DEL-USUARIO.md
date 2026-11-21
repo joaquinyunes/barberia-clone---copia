@@ -14,9 +14,9 @@ Todo lo que se podía hacer sin credenciales ni cuentas está hecho y verificado
 7. **V6 — Contrato y licencia:** cesión o licencia de uso, alcance del soporte, qué no incluye, datos del cliente suyos.
 
 ## Cosas que dependen de que haya un cliente
-8. **V10 — Barbería piloto** (seña o uso real). Sin esto no se ofrece el paquete Completo.
-9. **V3 — Entorno de demo** aparte, con cartel «DEMO» y datos de ejemplo; hoy no hay y la landing lo dice.
-10. **V5 — Capturas y videos** de los manuales con el sistema real del cliente (guion en [MANUAL-DUENO.md](MANUAL-DUENO.md)).
+8. **V10 — Conseguir la barbería piloto** y firmar con un abogado el contrato (borrador, checklist y métricas en [KIT-PILOTO.md](KIT-PILOTO.md)). Sin esto no se ofrece el paquete Completo.
+9. **V3 — Levantar el entorno de demo** (el código ya está: `DEMO_MODE`, cartel, sin cobros ni avisos): crear la base y el servicio aparte siguiendo [DEMO.md](DEMO.md). La landing lo nombra «en preparación» hasta entonces.
+10. **V5 — Grabar las capturas y los videos** con el sistema real del piloto o con la demo; la lista de tomas está en [GUION-VIDEO.md](GUION-VIDEO.md).
 11. **V1/V2 — Validar precios** con un comprador real. La tabla muestra que **por ahorro no se le gana a AgendaPro con 3 u 8 barberos** ([COSTO-3-ANIOS.md](COSTO-3-ANIOS.md)); hay que decidir el posicionamiento (datos propios, integraciones, cadenas).
 
 ## Pequeños pendientes de configuración

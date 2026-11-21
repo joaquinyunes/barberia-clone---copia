@@ -46,6 +46,6 @@ Leé primero `..\PLAN-VENTA-10K.md` (veredicto, paquetes **S** y **V**). Trabajo
 ## Salida
 ☑ integrado · ☑ tests (103 + 23) y 2 builds verdes · ☑ 0 altas/críticas en producción · ☐ reserva con seña de prueba en sandbox real (👤) · ☐ API < 5 s en frío en producción (👤 plan que no duerme) · ☐ backup restaurado en Atlas real (👤) · ☐ barbería piloto (👤)
 
-La lista completa de lo que solo puede hacer el usuario está en [docs/PENDIENTES-USUARIO.md](docs/PENDIENTES-USUARIO.md).
+La lista completa de lo que solo puede hacer el usuario está en [docs/PENDIENTES-DEL-USUARIO.md](docs/PENDIENTES-DEL-USUARIO.md).
 
 > ⚠ El repositorio de GitHub es **público**: conviene hacerlo privado antes de ofrecer el producto o activar el backup en GitHub (ver docs/SEGURIDAD.md, «Decisión tuya»).
